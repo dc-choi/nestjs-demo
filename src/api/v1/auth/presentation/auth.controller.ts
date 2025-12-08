@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiExtraModels, ApiOperation, ApiResponse, ApiTags, getSchemaPath } from '@nestjs/swagger';
 
 import { AuthService } from '../application/auth.service';
@@ -12,6 +12,14 @@ import { NotExistingMember } from '~/global/common/error/member.error';
 @Controller('v1/auth')
 export class AuthController {
     constructor(private readonly authService: AuthService) {}
+
+    @Get('login')
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({ summary: '로그인 내역 확인' })
+    @ApiResponse({ status: HttpStatus.OK })
+    async loginLog() {
+        return await this.authService.loginLog();
+    }
 
     @Post('login')
     @HttpCode(HttpStatus.OK)

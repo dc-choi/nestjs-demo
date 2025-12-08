@@ -30,6 +30,7 @@ import { AllExceptionFilter } from '~/global/filter/all.exception.filter';
 import { DefaultExceptionFilter } from '~/global/filter/default.exception.filter';
 import { HttpLoggingInterceptor } from '~/global/interceptor/http.logging.interceptor';
 import { TokenModule } from '~/global/jwt/token.module';
+import { InfluxDBModule } from '~/infra/influxdb/influxdb.module';
 import { MailModule } from '~/infra/mail/mail.module';
 import { QueueModule } from '~/infra/queue/queue.module';
 
@@ -58,6 +59,10 @@ import { QueueModule } from '~/infra/queue/queue.module';
                 MAIL_PASSWORD: Joi.string().required(),
                 MAIL_SIGNUP_ALERT_USER: Joi.string().required(),
                 REDIS_URL: Joi.string().required(),
+                INFLUX_URL: Joi.string().required(),
+                INFLUX_TOKEN: Joi.string().required(),
+                INFLUX_ORG: Joi.string().required(),
+                INFLUX_BUCKET: Joi.string().required(),
             }),
         }),
         // Logger
@@ -113,6 +118,8 @@ import { QueueModule } from '~/infra/queue/queue.module';
         QueueModule,
         // Prisma
         DaoModule,
+        // InfluxDB
+        InfluxDBModule,
         // Infra
         MailModule,
         // Token

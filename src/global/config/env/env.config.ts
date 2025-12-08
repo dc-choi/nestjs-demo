@@ -24,4 +24,9 @@ export interface EnvConfig {
     MAIL_SIGNUP_ALERT_USER: string;
 
     REDIS_URL: string;
+
+    INFLUX_URL: string;
+    INFLUX_TOKEN: string;
+    INFLUX_ORG: string;
+    INFLUX_BUCKET: string;
 }

@@ -11,6 +11,9 @@ importers:
       '@aws-sdk/client-s3':
         specifier: ^3.828.0
         version: 3.828.0
+      '@influxdata/influxdb-client':
+        specifier: ^1.35.0
+        version: 1.35.0
       '@nestjs-cls/transactional':
         specifier: ^3.0.2
         version: 3.0.2(@nestjs/common@11.1.3(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.3)(nestjs-cls@6.0.1(@nestjs/common@11.1.3(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -945,6 +948,9 @@ packages:
   '@humanwhocodes/retry@0.4.3':
     resolution: {integrity: sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ==}
     engines: {node: '>=18.18'}
+
+  '@influxdata/influxdb-client@1.35.0':
+    resolution: {integrity: sha512-woWMi8PDpPQpvTsRaUw4Ig+nOGS/CWwAwS66Fa1Vr/EkW+NEwxI8YfPBsdBMn33jK2Y86/qMiiuX/ROHIkJLTw==}
 
   '@inquirer/checkbox@4.1.8':
     resolution: {integrity: sha512-d/QAsnwuHX2OPolxvYcgSj7A9DO9H6gVOy2DvBTx+P2LH2iRTo/RSGV3iwCzW024nP9hw98KIuDmdyhZQj1UQg==}
@@ -7322,6 +7328,8 @@ snapshots:
   '@humanwhocodes/retry@0.3.1': {}
 
   '@humanwhocodes/retry@0.4.3': {}
+
+  '@influxdata/influxdb-client@1.35.0': {}
 
   '@inquirer/checkbox@4.1.8(@types/node@22.15.31)':
     dependencies:

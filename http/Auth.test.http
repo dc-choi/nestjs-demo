@@ -7,6 +7,10 @@ Content-Type: application/json
   "password": "ddagae0805"
 }
 
+### login log
+GET localhost:3000/api/v1/auth/login
+Content-Type: application/json
+
 ### token
 POST localhost:3000/api/v1/auth/token
 Content-Type: application/json
