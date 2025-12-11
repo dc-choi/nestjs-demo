@@ -61,8 +61,7 @@ import { QueueModule } from '~/infra/queue/queue.module';
                 REDIS_URL: Joi.string().required(),
                 INFLUX_URL: Joi.string().required(),
                 INFLUX_TOKEN: Joi.string().required(),
-                INFLUX_ORG: Joi.string().required(),
-                INFLUX_BUCKET: Joi.string().required(),
+                INFLUX_DATABASE: Joi.string().required(),
             }),
         }),
         // Logger

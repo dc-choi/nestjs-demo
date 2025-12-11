@@ -2,18 +2,17 @@
 version: "3.8"
 
 services:
-  influxdb:
-    image: influxdb:2.7
-    container_name: influxdb2
+  influxdb3-core:
+    image: influxdb:3-core
+    container_name: influxdb3-core
+    command: >
+      influxdb3 serve
+      --node-id node-0
+      --http-bind 0.0.0.0:8181
+      --object-store file
+      --data-dir=/var/lib/influxdb3/data
+      --log-filter info
     ports:
-      - "8086:8086"
+      - "8181:8181"
     volumes:
-      - ./influxdb2-data:/var/lib/influxdb2
-      - ./influxdb2-config:/etc/influxdb2
-    environment:
-      DOCKER_INFLUXDB_INIT_MODE: setup
-      DOCKER_INFLUXDB_INIT_USERNAME: admin
-      DOCKER_INFLUXDB_INIT_PASSWORD: admin1234
-      DOCKER_INFLUXDB_INIT_ORG: local-org
-      DOCKER_INFLUXDB_INIT_BUCKET: local-bucket
-      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: local-dev-token
+      - ./influxdb3-data:/var/lib/influxdb3/data

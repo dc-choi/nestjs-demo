@@ -1,4 +1,4 @@
-import { Point } from '@influxdata/influxdb-client';
+import { Point } from '@influxdata/influxdb3-client';
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
@@ -23,27 +23,19 @@ export class AuthService {
     ) {}
 
     async loginLog() {
-        const bucket = this.config.get<string>('INFLUX_BUCKET');
+        const influxQL = `
+            SELECT time AS createdAt, memberId, role, email, isFirstLogin
+            FROM login_events
+            WHERE time > now() - 1h
+        `;
 
-        const influxQuery = `from(bucket: "${bucket}")
-        |> range(start: -1h)
-        |> filter(fn: (r) => r._measurement == "login_events")
-        |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
-        |> map(fn: (r) => ({
-            createdAt: r._time,
-            memberId: r.memberId,
-            role: r.role,
-            email: r.email,
-            isFirstLogin: r.isFirstLogin
-        }))`;
-
-        return await this.influxDBService.read.collectRows<{
+        return await this.influxDBService.query<{
             createdAt: string;
             memberId: string;
             role: string;
             email: string;
             isFirstLogin: boolean;
-        }>(influxQuery);
+        }>(influxQL, 'influxql');
     }
 
     async login(loginRequestDto: LoginRequestDto) {
@@ -68,13 +60,15 @@ export class AuthService {
         //     where: { id },
         // });
 
-        const point = new Point('login_events')
-            .tag('memberId', id.toString())
-            .stringField('role', role)
-            .stringField('email', email)
-            .booleanField('isFirstLogin', isFirstLogin);
-        this.influxDBService.write.writePoint(point);
-        await this.influxDBService.write.flush();
+        // InfluxDB 3 Line Protocol format or Point
+        const point = Point.measurement('login_events')
+            .setTag('memberId', id.toString())
+            .setField('role', role, 'string')
+            .setStringField('email', email)
+            .setUintegerField('lastLoginAt', lastLoginAt ? new Date(lastLoginAt).getTime() : 0)
+            .setBooleanField('isFirstLogin', isFirstLogin);
+
+        await this.influxDBService.write(point);
 
         return LoginResponseDto.toDto({
             accessToken,

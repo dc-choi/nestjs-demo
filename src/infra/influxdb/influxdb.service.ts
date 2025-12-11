@@ -1,4 +1,4 @@
-import { InfluxDB, QueryApi, WriteApi } from '@influxdata/influxdb-client';
+import { InfluxDBClient, QueryType, WritableData } from '@influxdata/influxdb3-client';
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
@@ -7,26 +7,33 @@ import { INFLUXDB_CLIENT } from '~/infra/influxdb/influxdb.symbol';
 
 @Injectable()
 export class InfluxDBService {
-    private readonly _writeApi: WriteApi;
-    private readonly _queryApi: QueryApi;
+    private readonly _database: string;
 
     constructor(
-        @Inject(INFLUXDB_CLIENT) influxDB: InfluxDB,
+        @Inject(INFLUXDB_CLIENT) private readonly _client: InfluxDBClient,
         private readonly configService: ConfigService<EnvConfig, true>
     ) {
-        const org = this.configService.get<string>('INFLUX_ORG');
-        const bucket = this.configService.get<string>('INFLUX_BUCKET');
-
-        // precision: 'ns' or 'ms' etc
-        this._writeApi = influxDB.getWriteApi(org, bucket, 'ns');
-        this._queryApi = influxDB.getQueryApi(org);
+        this._database = this.configService.get<string>('INFLUX_DATABASE');
     }
 
-    get write() {
-        return this._writeApi;
+    get client() {
+        return this._client;
     }
 
-    get read() {
-        return this._queryApi;
+    get database() {
+        return this._database;
+    }
+
+    async write(record: WritableData): Promise<void> {
+        await this._client.write(record, this._database, undefined, { precision: 'ns' });
+    }
+
+    async query<T = Record<string, unknown>>(query: string, queryType: QueryType = 'sql'): Promise<T[]> {
+        const rows: T[] = [];
+        const reader = this._client.query(query, this._database, { type: queryType });
+        for await (const row of reader) {
+            rows.push(row as T);
+        }
+        return rows;
     }
 }

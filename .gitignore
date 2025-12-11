@@ -42,4 +42,4 @@ prisma/migrations
 
 api.http
 
-**/influxdb2-*
+**/influxdb*
