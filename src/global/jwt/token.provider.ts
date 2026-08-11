@@ -5,7 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import { JwtPayload } from './payload/jwt.payload';
 
 import Redis from 'ioredis';
-import { v4 as uuid } from 'uuid';
+import { randomUUIDv7 } from 'node:crypto';
 import { InvalidRefreshToken, NotExpiredAccessToken } from '~/global/common/error/auth.error';
 import { WEEK } from '~/global/common/utils/time';
 
@@ -58,7 +58,7 @@ export class TokenProvider {
         let refreshToken = await this.redis.get(`token:${memberId}`);
         if (refreshToken) await this.redis.del(`token:${memberId}`);
 
-        refreshToken = uuid();
+        refreshToken = randomUUIDv7();
 
         // INFO: refreshToken의 유효기간은 2주로 설정
         await this.redis.set(`token:${memberId}`, refreshToken, 'EX', WEEK * 2);

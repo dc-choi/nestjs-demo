@@ -13,9 +13,9 @@ export class TokenRequestDto {
     @IsNotEmpty({ message: emptyValue('accessToken') })
     accessToken: string;
 
-    @ApiProperty({ description: 'refreshToken', example: 'f7b3b3b3-4b3b-4b3b-4b3b-4b3b4b3b4b3b' })
+    @ApiProperty({ description: 'refreshToken', example: '019ff17e-31f2-7022-b5ea-bce5a339025c' })
     @IsString({ message: invalidValue('refreshToken') })
-    @IsUUID(4, { message: invalidValue('refreshToken') })
+    @IsUUID(7, { message: invalidValue('refreshToken') })
     @IsNotEmpty({ message: emptyValue('refreshToken') })
     refreshToken: string;
 }

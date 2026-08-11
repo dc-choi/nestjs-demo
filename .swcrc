@@ -21,7 +21,8 @@
     },
     "keepClassNames": true,
     "paths": {
-      "~/*": ["./src/*"]
+      "~/*": ["./src/*"],
+      "prisma/*": ["./prisma/*"]
     },
     "baseUrl": "./",
   },

@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { MemberRole } from '@prisma/client';
 
+import { MemberRole } from 'prisma/generated/client/enums';
 import { Unauthorized } from '~/global/common/error/auth.error';
 
 @Injectable()

@@ -1,10 +1,9 @@
 import { BadRequestException, Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
-import { Item } from '@prisma/client';
-import { Decimal } from '@prisma/client/runtime/library';
 
 import { REPOSITORY, Repository } from '../../../../../prisma/repository';
 
-import { v4 as uuid } from 'uuid';
+import { randomUUIDv7 } from 'node:crypto';
+import { type Item, Prisma } from 'prisma/generated/client/client';
 import { OrderV2RequestDto, OrderV2ResponseDto } from '~/api/v2/order/domain/dto/orderV2.dto';
 import { OrderedItemInterface } from '~/api/v2/order/domain/interface/orderedItem.interface';
 import { ItemStockShortage, NotExistingItem } from '~/global/common/error/item.error';
@@ -20,7 +19,7 @@ export class OrderV2Service {
         const { data: requestedData } = orderV2RequestDto;
 
         const items: OrderedItemInterface[] = [];
-        let totalPrice = new Decimal(0);
+        let totalPrice = new Prisma.Decimal(0);
 
         const id = await this.repository.$transaction(async (tx) => {
             for (const orderItem of requestedData) {
@@ -40,8 +39,8 @@ export class OrderV2Service {
                             ...result,
                             id: BigInt(id),
                             memberId: BigInt(memberId),
-                            supplyPrice: new Decimal(supplyPrice),
-                            totalPrice: new Decimal(totalPrice),
+                            supplyPrice: new Prisma.Decimal(supplyPrice),
+                            totalPrice: new Prisma.Decimal(totalPrice),
                         } as unknown as Item;
                     });
 
@@ -69,7 +68,7 @@ export class OrderV2Service {
             // 주문 생성
             const { id } = await tx.order.create({
                 data: {
-                    orderNumber: uuid(),
+                    orderNumber: randomUUIDv7(),
                     totalPrice,
                     memberId,
                 },

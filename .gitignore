@@ -39,6 +39,7 @@ lerna-debug.log*
 .env.*
 
 prisma/migrations
+/prisma/generated/client/
 
 api.http
 

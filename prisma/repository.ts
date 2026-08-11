@@ -1,9 +1,9 @@
 import { Provider } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
-import { Prisma, PrismaClient } from '@prisma/client';
 import { readReplicas } from '@prisma/extension-read-replicas';
 
+import { Prisma, PrismaClient } from './generated/client/client';
 import type { DB } from './generated/types';
 import { PRISMA_ADAPTER, PRISMA_READ_REPLICA_ADAPTER } from './mysql.adapter';
 

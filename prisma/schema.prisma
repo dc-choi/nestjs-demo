@@ -2,8 +2,9 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider        = "prisma-client-js"
-  engineType      = "client"
+  provider        = "prisma-client"
+  output          = "./generated/client"
+  moduleFormat    = "cjs"
   previewFeatures = ["relationJoins"]
 }
 
@@ -15,7 +16,6 @@ generator kysely {
 
 datasource db {
   provider = "mysql"
-  url      = env("DATABASE_URL")
 }
 
 model Member {
@@ -51,7 +51,7 @@ model Item {
   vat            Decimal        @map("vat") @db.Decimal(10, 3)
   totalPrice     Decimal        @map("total_price") @db.Decimal(10, 3)
   isTaxFree      Boolean        @default(false) @map("is_tax_free")
-  sku            String         @default(uuid()) @db.VarChar(255)
+  sku            String         @default(uuid(7)) @db.VarChar(255)
   stock          Int            @default(0) @db.Int
   description    String?        @db.Text
   itemSaleStatus ItemSaleStatus @default(DENY) @map("item_sale_status")

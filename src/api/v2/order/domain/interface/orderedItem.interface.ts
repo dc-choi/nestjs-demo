@@ -1,7 +1,7 @@
-import { Decimal } from '@prisma/client/runtime/library';
+import type { Prisma } from 'prisma/generated/client/client';
 
 export interface OrderedItemInterface {
     itemId: bigint;
     quantity: number;
-    itemPrice: Decimal;
+    itemPrice: Prisma.Decimal;
 }

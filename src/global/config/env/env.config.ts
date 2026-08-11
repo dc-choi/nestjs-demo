@@ -25,7 +25,7 @@ export interface EnvConfig {
 
     REDIS_URL: string;
 
-    INFLUX_URL: string;
-    INFLUX_TOKEN: string;
-    INFLUX_DATABASE: string;
+    // INFLUX_URL: string;
+    // INFLUX_TOKEN: string;
+    // INFLUX_DATABASE: string;
 }

@@ -1,5 +1,5 @@
 # Build stage
-FROM node:22-alpine AS builder
+FROM node:26.7.0-alpine AS builder
 
 ARG NODE_ENV
 
@@ -23,7 +23,7 @@ RUN pnpm prebuild && \
     pnpm prod:build
 
 # Production stage
-FROM node:22-alpine
+FROM node:26.7.0-alpine
 
 ARG NODE_ENV
 

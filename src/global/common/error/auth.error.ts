@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { MemberRole } from '@prisma/client';
+
+import { MemberRole } from 'prisma/generated/client/enums';
 
 export class Unauthorized {
     constructor(role?: MemberRole) {

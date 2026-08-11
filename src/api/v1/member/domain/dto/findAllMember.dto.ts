@@ -1,5 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Member, MemberRole } from '@prisma/client';
+
+import type { Member } from 'prisma/generated/client/client';
+import { MemberRole } from 'prisma/generated/client/enums';
 
 export class FindAllMemberResponseDto {
     @ApiProperty({ description: '회원 ID', example: 1 })

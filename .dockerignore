@@ -15,4 +15,3 @@ env.example
 Dockerfile
 nest-cli.json
 README.md
-vitest.config.mts

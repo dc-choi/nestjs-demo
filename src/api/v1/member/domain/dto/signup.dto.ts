@@ -1,7 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Member, MemberRole } from '@prisma/client';
 
 import { IsEnum, IsNotEmpty, IsString, Matches, MaxLength } from 'class-validator';
+import type { Member } from 'prisma/generated/client/client';
+import { MemberRole } from 'prisma/generated/client/enums';
 import { emptyValue, invalidMax, invalidValue } from '~/global/common/message/error.message';
 import {
     EMAIL_MAX_LENGTH,

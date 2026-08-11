@@ -1,4 +1,4 @@
-import { createHmac } from 'crypto';
+import { createHmac } from 'node:crypto';
 
 export class MemberDomain {
     public static generateHashedPassword(password: string, salt: string) {

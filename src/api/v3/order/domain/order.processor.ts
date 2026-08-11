@@ -1,12 +1,12 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { BadRequestException, Inject, InternalServerErrorException } from '@nestjs/common';
-import { ItemSaleStatus } from '@prisma/client';
-import { Decimal } from '@prisma/client/runtime/library';
 
 import { REPOSITORY, Repository } from '../../../../../prisma/repository';
 
 import { Job } from 'bullmq';
-import { v7 as uuid } from 'uuid';
+import { randomUUIDv7 } from 'node:crypto';
+import { Prisma } from 'prisma/generated/client/client';
+import { ItemSaleStatus } from 'prisma/generated/client/enums';
 import { OrderedItemInterface } from '~/api/v2/order/domain/interface/orderedItem.interface';
 import { OrderQueueRequest } from '~/api/v3/order/domain/message/order-queue.message';
 import { ItemStockShortage, NotExistingItem } from '~/global/common/error/item.error';
@@ -27,7 +27,7 @@ export class OrderProcessor extends WorkerHost {
         const { data: requestedData } = payload;
 
         const items: OrderedItemInterface[] = [];
-        let totalPrice = new Decimal(0);
+        let totalPrice = new Prisma.Decimal(0);
 
         try {
             const id = await this.repository.$transaction(async (tx) => {
@@ -65,7 +65,7 @@ export class OrderProcessor extends WorkerHost {
                 // 주문 생성
                 const { id } = await tx.order.create({
                     data: {
-                        orderNumber: uuid(),
+                        orderNumber: randomUUIDv7(),
                         totalPrice,
                         memberId,
                     },

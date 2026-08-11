@@ -363,7 +363,7 @@ AsyncLocalStorage 기반으로 요청별 컨텍스트 자동 관리
 
 ### x-request-id 헤더 처리
 - 요청 헤더에 x-request-id가 있으면 해당 값 사용
-- 없으면 uuid.v7()로 새로 생성
+- 없으면 Node.js `crypto.randomUUIDv7()`로 새로 생성
 
 ### 응답 헤더에 x-request-id 자동 추가
 - requestId 자동 포함
@@ -377,13 +377,13 @@ AsyncLocalStorage 기반으로 요청별 컨텍스트 자동 관리
 - 수동 설정 방법 (두 가지 방식):
     ```ts
     import { ClsService } from "nestjs-cls";
-    import { v7 } from "uuid";
+    import { randomUUIDv7 } from "node:crypto";
     
     constructor(private readonly cls: ClsService) {}
     
     // 방법 1: enterWith() - 현재 컨텍스트에 즉시 진입 (동기/비동기 모두 사용 가능)
     async someJob() {
-      this.cls.enterWith({ CLS_ID: v7() }); // requestId 설정
+      this.cls.enterWith({ CLS_ID: randomUUIDv7() }); // requestId 설정
       // 이후 모든 로그에 requestId가 자동 포함됨
       await this.doWork();
       // 작업 완료 후에도 requestId 유지됨
@@ -392,7 +392,7 @@ AsyncLocalStorage 기반으로 요청별 컨텍스트 자동 관리
     // 방법 2: run() - 콜백 범위 내에서만 컨텍스트 격리
     async anotherJob() {
       await this.cls.run(async () => {
-        this.cls.set("CLS_ID", v7()); // requestId 설정
+        this.cls.set("CLS_ID", randomUUIDv7()); // requestId 설정
         // 이 콜백 내에서만 requestId가 유효
         await this.doWork();
       });

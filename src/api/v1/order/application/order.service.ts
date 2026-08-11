@@ -1,9 +1,9 @@
 import { TransactionHost, Transactional } from '@nestjs-cls/transactional';
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
-import { Decimal } from '@prisma/client/runtime/library';
 
-import { v4 as uuid } from 'uuid';
+import { randomUUIDv7 } from 'node:crypto';
+import { Prisma } from 'prisma/generated/client/client';
 import { OrderRequestDto, OrderResponseDto } from '~/api/v1/order/domain/dto/order.dto';
 import { ItemStockShortage, NotExistingItem } from '~/global/common/error/item.error';
 import { OrderServerError } from '~/global/common/error/order.error';
@@ -18,8 +18,8 @@ export class OrderService {
         const { memberId } = jwtPayload;
         const { data: requestedData } = orderRequestDto;
 
-        const items: { itemId: bigint; quantity: number; itemPrice: Decimal }[] = [];
-        let totalPrice = new Decimal(0);
+        const items: { itemId: bigint; quantity: number; itemPrice: Prisma.Decimal }[] = [];
+        let totalPrice = new Prisma.Decimal(0);
 
         await Promise.all(
             requestedData.map(async (orderItem) => {
@@ -56,7 +56,7 @@ export class OrderService {
         // 주문 생성
         const order = await this.txHost.tx.order.create({
             data: {
-                orderNumber: uuid(),
+                orderNumber: randomUUIDv7(),
                 totalPrice,
                 memberId,
             },

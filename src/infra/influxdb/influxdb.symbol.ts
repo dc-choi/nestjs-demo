@@ -1,1 +1,0 @@
-export const INFLUXDB_CLIENT = 'INFLUXDB_CLIENT';

@@ -13,10 +13,10 @@ import Redis from 'ioredis';
 import Joi from 'joi';
 import { WinstonModule } from 'nest-winston';
 import { ClsModule } from 'nestjs-cls';
+import { randomUUIDv7 } from 'node:crypto';
 import { DaoModule } from 'prisma/dao.module';
 import { REPOSITORY } from 'prisma/repository';
 import Redlock from 'redlock';
-import { v7 } from 'uuid';
 import { AuthModule } from '~/api/v1/auth/auth.module';
 import { MemberModule } from '~/api/v1/member/member.module';
 import { OrderModule } from '~/api/v1/order/order.module';
@@ -30,7 +30,6 @@ import { AllExceptionFilter } from '~/global/filter/all.exception.filter';
 import { DefaultExceptionFilter } from '~/global/filter/default.exception.filter';
 import { HttpLoggingInterceptor } from '~/global/interceptor/http.logging.interceptor';
 import { TokenModule } from '~/global/jwt/token.module';
-import { InfluxDBModule } from '~/infra/influxdb/influxdb.module';
 import { MailModule } from '~/infra/mail/mail.module';
 import { QueueModule } from '~/infra/queue/queue.module';
 
@@ -59,9 +58,6 @@ import { QueueModule } from '~/infra/queue/queue.module';
                 MAIL_PASSWORD: Joi.string().required(),
                 MAIL_SIGNUP_ALERT_USER: Joi.string().required(),
                 REDIS_URL: Joi.string().required(),
-                INFLUX_URL: Joi.string().required(),
-                INFLUX_TOKEN: Joi.string().required(),
-                INFLUX_DATABASE: Joi.string().required(),
             }),
         }),
         // Logger
@@ -75,7 +71,7 @@ import { QueueModule } from '~/infra/queue/queue.module';
          * AsyncLocalStorage 컨텍스트에 저장합니다.
          *
          * - 요청 헤더에 x-request-id가 있으면 해당 값을 사용
-         * - 없으면 uuid.v7()로 새로 생성
+         * - 없으면 randomUUIDv7()로 새로 생성
          * - 응답 헤더에 x-request-id를 자동으로 추가
          * - 이후 모든 로그에 requestId가 자동으로 포함됨
          */
@@ -84,7 +80,7 @@ import { QueueModule } from '~/infra/queue/queue.module';
             middleware: {
                 mount: true,
                 generateId: true,
-                idGenerator: (req: Request) => req.header('x-request-id') || v7(),
+                idGenerator: (req: Request) => req.header('x-request-id') || randomUUIDv7(),
                 setup: (cls, req: Request, res: Response) => {
                     res.setHeader('x-request-id', cls.getId());
                 },
@@ -117,8 +113,6 @@ import { QueueModule } from '~/infra/queue/queue.module';
         QueueModule,
         // Prisma
         DaoModule,
-        // InfluxDB
-        InfluxDBModule,
         // Infra
         MailModule,
         // Token
