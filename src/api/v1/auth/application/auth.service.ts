@@ -23,6 +23,7 @@ export class AuthService {
         const salt = this.config.get<string>('SECRET');
         const { email, password } = loginRequestDto;
 
+        // 복제 지연 중에는 방금 가입한 계정이 로그인 조회에 보이지 않을 수 있다.
         const findMember = await this.repository.$replica().member.findFirst({
             where: {
                 email,

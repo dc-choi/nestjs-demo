@@ -24,6 +24,7 @@ export const createRepository = (
         return this.toString();
     };
 
+    // 로그 type은 SQL 종류가 아니라 각 client가 연결된 DB 역할을 나타낸다.
     const primaryPrisma = new PrismaClient({
         adapter,
         log: [{ emit: 'event', level: 'query' }],
@@ -33,7 +34,6 @@ export const createRepository = (
             isolationLevel: 'RepeatableRead',
         },
     })
-        // Prisma query 이벤트를 가로채서 구조화 로그 출력 (슬로우 쿼리 여부 포함)
         .$on('query' as never, (event: Prisma.QueryEvent) => {
             const { query, params, target, timestamp, duration } = event;
             sqlLog.log({
@@ -73,7 +73,6 @@ export const createRepository = (
             isolationLevel: 'RepeatableRead',
         },
     })
-        // Prisma query 이벤트를 가로채서 구조화 로그 출력 (슬로우 쿼리 여부 포함)
         .$on('query' as never, (event: Prisma.QueryEvent) => {
             const { query, params, target, timestamp, duration } = event;
             sqlLog.log({
@@ -104,7 +103,9 @@ export const createRepository = (
             })
         );
 
-    // Read Replica 확장 추가
+    // readReplicas 패키지 제약상 다른 client extension보다 마지막에 적용한다.
+    // 트랜잭션 밖의 Prisma 모델 조회만 replica로 자동 라우팅된다.
+    // 쓰기와 트랜잭션은 primary, raw query와 Kysely는 $primary()/$replica()로 명시 선택한다.
     return primaryPrisma.$extends(
         readReplicas({
             replicas: [replicaPrisma],

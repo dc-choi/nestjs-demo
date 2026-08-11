@@ -3,9 +3,8 @@ import { ClsServiceManager } from 'nestjs-cls';
 import winston from 'winston';
 import winstonDaily from 'winston-daily-rotate-file';
 
-/**
- * requestId를 로그에 자동으로 추가하는 Winston format
- */
+// CLS가 활성화된 요청에서 이 format을 사용하는 로그에만 requestId가 붙는다.
+// 앱 초기화와 백그라운드 작업, console transport에는 requestId가 없을 수 있다.
 const addRequestId = winston.format((info) => {
     const cls = ClsServiceManager.getClsService();
     const requestId = cls.getId();

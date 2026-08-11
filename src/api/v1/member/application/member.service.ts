@@ -27,6 +27,7 @@ export class MemberService {
 
         if (IdBlackList.includes(name)) throw new BadRequestException(new InvalidMember());
 
+        // replica의 사전 조회는 최근 또는 동시 가입을 놓칠 수 있으므로 유일성을 보장하지 않는다.
         const findMember = await this.repository.$replica().member.findFirst({
             where: {
                 name,
@@ -51,6 +52,7 @@ export class MemberService {
     }
 
     async findAll() {
+        // 목록 조회는 복제 지연을 허용하므로 replica를 사용한다.
         return FindAllMemberResponseDto.toDto(
             await this.repository
                 .$replica()
@@ -66,7 +68,6 @@ export class MemberService {
                     'm.lastLoginAt as lastLoginAt',
                     'm.createdAt as createdAt',
                 ])
-                // .forUpdate() // lock도 가능
                 .where('m.deletedAt', 'is', null)
                 .execute()
                 .then((results) =>

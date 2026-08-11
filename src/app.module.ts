@@ -64,17 +64,8 @@ import { QueueModule } from '~/infra/queue/queue.module';
         WinstonModule.forRoot({
             transports: winstonTransports,
         }),
-        /**
-         * Transactional, 요청 단위 추적을 위한 Middleware
-         *
-         * 각 HTTP 요청마다 고유한 x-request-id를 생성하거나 헤더에서 읽어와서
-         * AsyncLocalStorage 컨텍스트에 저장합니다.
-         *
-         * - 요청 헤더에 x-request-id가 있으면 해당 값을 사용
-         * - 없으면 randomUUIDv7()로 새로 생성
-         * - 응답 헤더에 x-request-id를 자동으로 추가
-         * - 이후 모든 로그에 requestId가 자동으로 포함됨
-         */
+        // 상위 서비스가 보낸 x-request-id는 형식을 검증하지 않고 그대로 이어서 추적한다.
+        // 이 CLS 범위는 HTTP 요청에만 생성되며 BullMQ 작업으로 자동 전파되지 않는다.
         ClsModule.forRoot({
             global: true,
             middleware: {

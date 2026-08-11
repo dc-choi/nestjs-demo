@@ -1,6 +1,7 @@
 version: "3.8"
 
 services:
+  # 로컬 구성은 MySQL 한 대만 실행하며 복제나 장애 전환을 설정하지 않는다.
   db:
     container_name: db
     image: mysql:8.0.42

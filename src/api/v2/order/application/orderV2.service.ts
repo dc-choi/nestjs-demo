@@ -25,6 +25,8 @@ export class OrderV2Service {
             for (const orderItem of requestedData) {
                 const { itemId, quantity } = orderItem;
 
+                // 재고 검증과 차감 사이를 직렬화하려면 같은 primary transaction에서 행 잠금을 유지해야 한다.
+                // 여러 품목은 요청 순서대로 잠기므로 서로 다른 순서의 요청끼리는 교착이 발생할 수 있다.
                 const item = await tx
                     .$primary()
                     .$kysely.selectFrom('items')
