@@ -111,6 +111,9 @@ export type MediaAsset = {
 export type Member = {
     id: Generated<number>;
     name: string;
+    /**
+     * 로그인 식별자는 탈퇴 이력을 포함해 전역에서 하나의 계정만 가리킨다.
+     */
     email: string;
     hashedPassword: string | null;
     phone: string;

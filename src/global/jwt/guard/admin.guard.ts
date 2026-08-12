@@ -1,18 +1,10 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
+import { Injectable } from '@nestjs/common';
+
+import { JwtAuthGuard } from './jwt-auth.guard';
 
 import { MemberRole } from 'prisma/generated/client/enums';
-import { Unauthorized } from '~/global/common/error/auth.error';
 
 @Injectable()
-export class AdminGuard extends AuthGuard('jwt') {
-    handleRequest(err: any, user: any) {
-        if (err) throw err;
-
-        if (!user || user.role !== MemberRole.ADMIN) {
-            throw new UnauthorizedException(new Unauthorized(user.role));
-        }
-
-        return user;
-    }
+export class AdminGuard extends JwtAuthGuard {
+    protected readonly allowedRoles = [MemberRole.ADMIN];
 }

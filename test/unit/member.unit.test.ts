@@ -1,4 +1,4 @@
-import { MemberDomain } from '~/api/v1/member/domain/member.domain';
+import { MemberDomain } from '~/api/member/domain/member.domain';
 
 describe('Member Unit Test', () => {
     describe('MemberDomain.generateHashedPassword', () => {

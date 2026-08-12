@@ -1,6 +1,6 @@
 import { LoggerService } from '@nestjs/common';
 
-import { httpLogger, sqlLogger, verboseLogger } from '~/global/config/logger/winston.config';
+import { graphqlLogger, sqlLogger, verboseLogger } from '~/global/config/logger/winston.config';
 
 interface TypedLogger<T> {
     log(entry: T): void;
@@ -28,7 +28,6 @@ export interface PrismaQueryLog {
     env: string;
     timestamp: Date;
     query: string;
-    params: string;
     durationMs: number;
     target: string;
     isSlowQuery: boolean;
@@ -37,31 +36,24 @@ export interface PrismaQueryLog {
 
 export const sqlLog: TypedLogger<PrismaQueryLog> = createTypedLogger<PrismaQueryLog>(sqlLogger);
 
-// HTTP channel
-export interface HttpRequestLog {
-    type: 'HTTP REQUEST';
+export interface GraphqlOperationLog {
+    type: 'GRAPHQL OPERATION';
     env: string;
-    version: string;
-    origin: string;
+    requestId: string;
     method: string;
-    url: string;
-    params: Record<string, string | string[]>;
-    query: Record<string, unknown>;
-    body: unknown;
+    path: string;
+    operationType: 'query' | 'mutation' | 'subscription' | 'unknown';
+    operationName: string;
+    topLevelFields: string[];
+    durationMs: number;
+    httpStatus: number;
+    success: boolean;
+    aborted: boolean;
+    errorCount: number;
+    errorCodes: string[];
 }
 
-export interface HttpResponseLog {
-    type: 'HTTP RESPONSE';
-    env: string;
-    origin: string;
-    method: string;
-    url: string;
-    response: unknown;
-}
-
-export type HttpLog = HttpRequestLog | HttpResponseLog;
-
-export const httpLog: TypedLogger<HttpLog> = createTypedLogger<HttpLog>(httpLogger);
+export const graphqlLog: TypedLogger<GraphqlOperationLog> = createTypedLogger<GraphqlOperationLog>(graphqlLogger);
 
 // Verbose channel (feature teams can further narrow with `createTypedLogger`)
 export interface VerbosePayload {

@@ -1,11 +1,12 @@
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService, TokenExpiredError } from '@nestjs/jwt';
 
-import { JwtPayload } from './payload/jwt.payload';
+import { JwtClaims } from './payload/jwt.payload';
 
 import Redis from 'ioredis';
 import { randomUUIDv7 } from 'node:crypto';
+import { MemberRole } from 'prisma/generated/client/enums';
 import { InvalidRefreshToken, NotExpiredAccessToken } from '~/global/common/error/auth.error';
 import { WEEK } from '~/global/common/utils/time';
 
@@ -19,7 +20,7 @@ export class TokenProvider {
     /**
      * accessToken, refreshToken 발급
      */
-    public async generateToken(memberId: bigint, role: string) {
+    public async generateToken(memberId: bigint, role: MemberRole) {
         const [accessToken, refreshToken] = await Promise.all([
             this.generateAccessToken(memberId, role),
             this.generateRefreshToken(memberId),
@@ -35,20 +36,22 @@ export class TokenProvider {
      * accessToken, refreshToken 검증
      */
     public async verifyToken(accessToken: string, refreshToken: string) {
-        const { memberId, role } = await this.verifyAccessToken(accessToken);
+        const memberId = await this.verifyExpiredAccessToken(accessToken);
         const redisToken = await this.verifyRefreshToken(memberId, refreshToken);
 
-        return { memberId, role, redisToken };
+        return { memberId, redisToken };
     }
 
     /**
      * accessToken 발급
      */
-    private async generateAccessToken(memberId: bigint, role: string) {
-        return this.jwtService.sign({
-            memberId,
+    private async generateAccessToken(memberId: bigint, role: MemberRole) {
+        const claims: JwtClaims = {
+            memberId: memberId.toString(),
             role,
-        });
+        };
+
+        return this.jwtService.sign(claims);
     }
 
     /**
@@ -69,21 +72,28 @@ export class TokenProvider {
     /**
      * accessToken 검증
      */
-    private async verifyAccessToken(accessToken: string) {
-        let memberId: bigint = BigInt(0);
-        let role: string = '';
-        let isNotExpired = true;
+    private async verifyExpiredAccessToken(accessToken: string) {
+        try {
+            await this.jwtService.verifyAsync(accessToken);
+        } catch (error: unknown) {
+            if (!(error instanceof TokenExpiredError)) {
+                throw new UnauthorizedException(new InvalidRefreshToken());
+            }
 
-        await this.jwtService.verifyAsync<JwtPayload>(accessToken).catch(() => {
-            const { memberId: parsedMemberId, role: parsedRole } = this.jwtService.decode<JwtPayload>(accessToken);
-            memberId = parsedMemberId;
-            role = parsedRole;
-            isNotExpired = false;
-        });
+            const claims = await this.jwtService
+                .verifyAsync<JwtClaims>(accessToken, { ignoreExpiration: true })
+                .catch(() => {
+                    throw new UnauthorizedException(new InvalidRefreshToken());
+                });
 
-        if (isNotExpired) throw new UnauthorizedException(new NotExpiredAccessToken());
+            if (typeof claims.memberId !== 'string' || !/^\d+$/.test(claims.memberId)) {
+                throw new UnauthorizedException(new InvalidRefreshToken());
+            }
 
-        return { memberId, role };
+            return BigInt(claims.memberId);
+        }
+
+        throw new UnauthorizedException(new NotExpiredAccessToken());
     }
 
     /**
