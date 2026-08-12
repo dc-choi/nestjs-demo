@@ -38,10 +38,23 @@ pnpm stage:build
 pnpm prod:build
 ```
 
+GraphQL e2e는 실행 중인 애플리케이션의 `/graphql`로 실제 요청을 보냅니다.
+
+```sh
+# terminal 1
+pnpm dev
+
+# terminal 2
+pnpm e2e
+```
+
+다른 endpoint를 검증하려면 `GRAPHQL_URL` 환경 변수로 지정합니다.
+
 ## 설계 문서
 
 - [Prisma 스키마 읽는 순서](prisma/README.md)
 - [상품 변경 이력과 주문 Snapshot 설계](docs/database/catalog-snapshots.md)
+- [GraphQL API 전환 설계](docs/graphql-api-migration.md)
 
 상품 도메인을 처음 본다면 `Product`, `Item`, `ProductSnapshot`, `ProductSnapshotItem`,
 `ProductPublication`, `OrderItemSnapshot` 순서로 읽는 것이 가장 빠릅니다. 옵션, 미디어,
@@ -49,16 +62,22 @@ pnpm prod:build
 
 ## 구현 범위
 
-- 주문 v1은 Prisma 트랜잭션과 조건부 재고 차감을 사용합니다.
-- 주문 v2는 Kysely의 Item 행 잠금과 Prisma 쓰기를 비교하는 구현입니다.
-- 주문 v3는 BullMQ worker에서 주문을 처리하는 실험입니다.
-- 상품 Snapshot 조회와 주문 Snapshot 저장은 세 주문 경로에 반영되어 있습니다.
+- 공개 주문 API는 `OrderService`를 사용하며, Item별 Redlock과 primary transaction의 조건부 재고
+  차감을 함께 적용합니다.
+- `OrderV1Service`는 Prisma 트랜잭션과 조건부 재고 차감, `OrderV2Service`는 Kysely의 Item 행 잠금과
+  Prisma 쓰기를 비교하기 위한 학습용 구현입니다. 두 서비스는 공개 GraphQL API에 연결하지 않습니다.
+- 상품 Snapshot 조회와 주문 Snapshot 저장은 공개 주문과 두 비교용 구현에 모두 반영되어 있습니다.
+- `Query.product`는 MySQL에서 현재 공개된 Product Revision과 Item, 옵션, 분류, 태그를 GraphQL 그래프로
+  반환합니다.
+- 미디어 이력은 DB에 보존하지만 전달 URL을 발급하는 계층이 아직 없으므로 공개 GraphQL 계약에서는
+  제외합니다.
 - 상품 작성/발행 명령, 결제, 배송, 재고 예약/원장은 스키마가 있지만 전체 흐름은 아직 구현되지 않았습니다.
 
 ## 주요 진입점
 
 - [Prisma 클라이언트와 Read Replica](prisma/repository.ts)
 - [애플리케이션 구성과 요청 컨텍스트](src/app.module.ts)
-- [주문 처리 v1](src/api/v1/order/application/order.service.ts)
-- [주문 처리 v2](src/api/v2/order/application/orderV2.service.ts)
-- [주문 처리 v3](src/api/v3/order/application/orderV3.service.ts)
+- [공개 주문 처리](src/api/order/application/order.service.ts)
+- [canonical 상품 조회](src/api/catalog/infrastructure/prisma-product.reader.ts)
+- [주문 처리 비교 구현 v1](src/api/order/application/order-v1.service.ts)
+- [주문 처리 비교 구현 v2](src/api/order/application/order-v2.service.ts)
