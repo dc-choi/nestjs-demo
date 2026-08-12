@@ -1,0 +1,151 @@
+// 상품 Snapshot과 주문 Snapshot의 차이: ../../docs/database/catalog-snapshots.md
+
+/// 주문의 현재 상태와 금액을 대표하는 집계 루트다. 품목, 결제 시도, 배송은 이 주문을 기준으로 묶인다.
+/// 멱등성 키는 회원 범위에서만 중복 요청을 막으며, 키가 같을 때 요청 지문까지 같은지는 애플리케이션이 확인해야 한다.
+/// 상태와 상태별 시각은 상태 이력 추가와 같은 트랜잭션에서 함께 갱신해야 한다.
+model Order {
+  id                 BigInt      @id @default(autoincrement()) @db.BigInt
+  orderNumber        String      @unique @map("order_number") @db.VarChar(255)
+  idempotencyKey     String?     @map("idempotency_key") @db.VarChar(128)
+  requestFingerprint String?     @map("request_fingerprint") @db.Char(64)
+  status             OrderStatus @default(PENDING)
+  currencyCode       String      @default("KRW") @map("currency_code") @db.Char(3)
+  totalPrice         Decimal     @map("total_price") @db.Decimal(19, 3)
+  placedAt           DateTime?   @map("placed_at") @db.DateTime(3)
+  cancelledAt        DateTime?   @map("cancelled_at") @db.DateTime(3)
+  completedAt        DateTime?   @map("completed_at") @db.DateTime(3)
+  createdAt          DateTime    @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt          DateTime    @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+  deletedAt          DateTime?   @map("deleted_at") @db.DateTime(0)
+
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  memberId BigInt @map("member_id") @db.BigInt
+
+  OrderItem          OrderItem[]
+  OrderAddress       OrderAddress[]
+  OrderStatusHistory OrderStatusHistory[]
+  PaymentAttempt     PaymentAttempt[]
+  Fulfillment        Fulfillment[]
+
+  @@unique([memberId, idempotencyKey])
+  @@index([memberId, createdAt])
+  @@index([status, createdAt])
+  @@map("orders")
+}
+
+/// 주문 수량과 실제 결제 대상 품목 합계를 보관하는 운영 행이다.
+/// 상품 표시 정보와 단가는 별도 OrderItemSnapshot에 고정하며 두 행은 주문 생성 트랜잭션에서 함께 만든다.
+/// 하나의 품목은 재고 예약을 최대 하나 가질 수 있으며, 여러 배송 품목에 나뉘어 부분 배송될 수 있다.
+model OrderItem {
+  id             BigInt   @id @default(autoincrement()) @db.BigInt
+  /// 주문 당시 unitTotalPrice와 quantity를 곱한 품목 합계이며 Order.totalPrice 계산의 근거다.
+  lineTotalPrice Decimal  @map("price") @db.Decimal(19, 3)
+  quantity       Int      @db.Int
+  createdAt      DateTime @default(now()) @map("created_at") @db.DateTime(0)
+
+  /// 주문과 재고 이력을 가진 SKU가 사라지지 않도록 hard delete를 제한한다.
+  item   Item   @relation(fields: [itemId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  itemId BigInt @map("item_id") @db.BigInt
+
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  orderId BigInt @map("order_id") @db.BigInt
+
+  /// FK가 OrderItemSnapshot 쪽에 있으므로 스키마상 선택 관계지만 주문 쓰기 경로에서는 항상 함께 생성한다.
+  snapshot             OrderItemSnapshot?
+  InventoryReservation InventoryReservation?
+  FulfillmentItem      FulfillmentItem[]
+
+  @@index([orderId])
+  @@index([itemId])
+  @@map("order_items")
+}
+
+/// 주문 시점에 고객이 구매한 상품 표시 정보와 실제 적용 단가를 고정한 불변 증거다.
+/// ProductSnapshotItem은 공개 카탈로그 원천을 가리키고, 이 모델은 할인이나 정책 변경과 무관한 주문 사실을 보존한다.
+/// 영수증, 환불, 주문 조회는 현재 상품을 다시 조합하지 않고 이 값만 사용해야 한다.
+model OrderItemSnapshot {
+  orderItemId             BigInt   @id @map("order_item_id") @db.BigInt
+  sourceProductSnapshotId BigInt   @map("source_product_snapshot_id") @db.BigInt
+  sourceItemId            BigInt   @map("source_item_id") @db.BigInt
+  productName             String   @map("product_name") @db.VarChar(255)
+  itemName                String   @map("item_name") @db.VarChar(255)
+  itemSku                 String   @map("item_sku") @db.VarChar(255)
+  productDescription      String?  @map("product_description") @db.LongText
+  productReturnPolicy     String?  @map("product_return_policy") @db.Text
+  unitSupplyPrice         Decimal  @map("unit_supply_price") @db.Decimal(10, 3)
+  unitVat                 Decimal  @map("unit_vat") @db.Decimal(10, 3)
+  unitTotalPrice          Decimal  @map("unit_total_price") @db.Decimal(10, 3)
+  isTaxFree               Boolean  @default(false) @map("is_tax_free")
+  /// 선택한 옵션의 optionCode, optionName, valueCode, valueName을 배열로 보존한다.
+  /// 주문 시점 순서를 유지해 이후 옵션 편집과 무관하게 영수증을 재현한다.
+  selectedOptions         Json     @map("selected_options")
+  createdAt               DateTime @default(now()) @map("created_at") @db.DateTime(3)
+
+  orderItem OrderItem           @relation(fields: [orderItemId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  /// 원천 snapshot 품목과 Item을 복합 FK로 묶어 다른 상품 버전의 가격을 잘못 저장하지 않게 한다.
+  source    ProductSnapshotItem @relation(fields: [sourceProductSnapshotId, sourceItemId], references: [productSnapshotId, itemId], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([sourceProductSnapshotId, sourceItemId])
+  @@map("order_item_snapshots")
+}
+
+/// 회원 주소와 독립된 주문 전용 주소 snapshot이다. 이후 주소록 변경이 과거 주문에 영향을 주지 않는다.
+/// 주문별 주소 유형 unique 제약으로 청구지와 배송지는 각각 최대 하나만 저장된다.
+model OrderAddress {
+  id            BigInt           @id @default(autoincrement()) @db.BigInt
+  type          OrderAddressType
+  recipientName String           @map("recipient_name") @db.VarChar(255)
+  phone         String           @db.VarChar(32)
+  postalCode    String           @map("postal_code") @db.VarChar(32)
+  countryCode   String           @map("country_code") @db.Char(2)
+  province      String?          @db.VarChar(255)
+  city          String           @db.VarChar(255)
+  line1         String           @db.VarChar(255)
+  line2         String?          @db.VarChar(255)
+  createdAt     DateTime         @default(now()) @map("created_at") @db.DateTime(3)
+
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  orderId BigInt @map("order_id") @db.BigInt
+
+  @@unique([orderId, type])
+  @@map("order_addresses")
+}
+
+/// 상태 전이의 감사 기록이다. 조회용 현재 상태는 Order.status에 두고 이 모델은 추가만 허용하는 방식으로 운용한다.
+/// 상태 변경과 이력 추가는 같은 트랜잭션에서 처리하며, requestId는 추적용 인덱스일 뿐 중복 방지 키는 아니다.
+model OrderStatusHistory {
+  id         BigInt         @id @default(autoincrement()) @db.BigInt
+  fromStatus OrderStatus?   @map("from_status")
+  toStatus   OrderStatus    @map("to_status")
+  reason     String?        @db.VarChar(255)
+  actorType  OrderActorType @default(SYSTEM) @map("actor_type")
+  actorId    String?        @map("actor_id") @db.VarChar(255)
+  requestId  String?        @map("request_id") @db.VarChar(255)
+  metadata   Json?
+  createdAt  DateTime       @default(now()) @map("created_at") @db.DateTime(3)
+
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  orderId BigInt @map("order_id") @db.BigInt
+
+  @@index([orderId, createdAt])
+  @@index([requestId])
+  @@map("order_status_histories")
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum OrderAddressType {
+  BILLING
+  SHIPPING
+}
+
+enum OrderActorType {
+  MEMBER
+  SYSTEM
+  PROVIDER
+}

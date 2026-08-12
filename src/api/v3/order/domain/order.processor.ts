@@ -1,16 +1,20 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { BadRequestException, Inject, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Inject } from '@nestjs/common';
 
 import { REPOSITORY, Repository } from '../../../../../prisma/repository';
 
 import { Job } from 'bullmq';
 import { randomUUIDv7 } from 'node:crypto';
 import { Prisma } from 'prisma/generated/client/client';
-import { ItemSaleStatus } from 'prisma/generated/client/enums';
-import { OrderedItemInterface } from '~/api/v2/order/domain/interface/orderedItem.interface';
+import {
+    OrderedItem,
+    orderableSnapshotItemSelect,
+    orderableSnapshotItemWhere,
+    toOrderItemCreate,
+    toOrderedItem,
+} from '~/api/order/domain/ordered-item';
 import { OrderQueueRequest } from '~/api/v3/order/domain/message/order-queue.message';
 import { ItemStockShortage, NotExistingItem } from '~/global/common/error/item.error';
-import { OrderServerError } from '~/global/common/error/order.error';
 import { QueueResponse, queueErrorHandler } from '~/global/common/message/queue.message';
 import { ORDER_QUEUE } from '~/infra/queue/queue.symbol';
 
@@ -26,7 +30,7 @@ export class OrderProcessor extends WorkerHost {
         const { memberId } = jwt;
         const { data: requestedData } = payload;
 
-        const items: OrderedItemInterface[] = [];
+        const items: OrderedItem[] = [];
         let totalPrice = new Prisma.Decimal(0);
 
         try {
@@ -34,25 +38,28 @@ export class OrderProcessor extends WorkerHost {
                 for (const orderItem of requestedData) {
                     const { itemId, quantity } = orderItem;
 
-                    // 주문 요청한 상품의 존재 여부 확인, 재고 확인, 판매여부 확인
-                    const item = await tx.$primary().item.findFirst({
-                        where: {
-                            id: itemId,
-                            itemSaleStatus: ItemSaleStatus.ALLOW,
-                        },
+                    // queue 지연 중 상품이 바뀌었을 수 있으므로 처리 시점의 현재 발행본만 주문 원천으로 사용한다.
+                    const snapshotItem = await tx.$primary().productSnapshotItem.findFirst({
+                        where: orderableSnapshotItemWhere(itemId),
+                        select: orderableSnapshotItemSelect,
                     });
-                    if (!item) throw new BadRequestException(new NotExistingItem());
-                    if (item.stock < quantity) throw new BadRequestException(new ItemStockShortage());
+                    if (!snapshotItem) throw new BadRequestException(new NotExistingItem());
+                    if (snapshotItem.item.stock < quantity) {
+                        throw new BadRequestException(new ItemStockShortage());
+                    }
 
-                    // 주문 가격 계산
-                    const itemPrice = item.totalPrice.mul(quantity);
-                    totalPrice = totalPrice.add(itemPrice);
-                    items.push({ itemId, quantity, itemPrice });
+                    const orderedItem = toOrderedItem(itemId, quantity, snapshotItem);
+                    totalPrice = totalPrice.add(orderedItem.lineTotalPrice);
+                    items.push(orderedItem);
 
-                    // 주문 요청한 상품의 재고 차감
-                    await tx.item.update({
+                    // 조건부 차감으로 동시에 실행되는 worker 사이에서도 stock이 음수가 되는 것을 막는다.
+                    const { count } = await tx.item.updateMany({
                         where: {
                             id: itemId,
+                            deletedAt: null,
+                            stock: {
+                                gte: quantity,
+                            },
                         },
                         data: {
                             stock: {
@@ -60,25 +67,19 @@ export class OrderProcessor extends WorkerHost {
                             },
                         },
                     });
+                    if (count !== 1) throw new BadRequestException(new ItemStockShortage());
                 }
 
-                // 주문 생성
                 const { id } = await tx.order.create({
                     data: {
                         orderNumber: randomUUIDv7(),
                         totalPrice,
                         memberId,
+                        OrderItem: {
+                            create: items.map(toOrderItemCreate),
+                        },
                     },
                 });
-                const { count } = await tx.orderItem.createMany({
-                    data: items.map(({ itemId, quantity, itemPrice }) => ({
-                        orderId: id,
-                        itemId,
-                        quantity,
-                        price: itemPrice,
-                    })),
-                });
-                if (items.length !== count) throw new InternalServerErrorException(new OrderServerError());
 
                 return id;
             });

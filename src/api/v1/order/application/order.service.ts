@@ -1,12 +1,18 @@
 import { TransactionHost, Transactional } from '@nestjs-cls/transactional';
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
-import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 import { randomUUIDv7 } from 'node:crypto';
 import { Prisma } from 'prisma/generated/client/client';
+import {
+    OrderedItem,
+    orderableSnapshotItemSelect,
+    orderableSnapshotItemWhere,
+    toOrderItemCreate,
+    toOrderedItem,
+} from '~/api/order/domain/ordered-item';
 import { OrderRequestDto, OrderResponseDto } from '~/api/v1/order/domain/dto/order.dto';
 import { ItemStockShortage, NotExistingItem } from '~/global/common/error/item.error';
-import { OrderServerError } from '~/global/common/error/order.error';
 import { JwtPayload } from '~/global/jwt/payload/jwt.payload';
 
 @Injectable()
@@ -18,58 +24,52 @@ export class OrderService {
         const { memberId } = jwtPayload;
         const { data: requestedData } = orderRequestDto;
 
-        const items: { itemId: bigint; quantity: number; itemPrice: Prisma.Decimal }[] = [];
+        const items: OrderedItem[] = [];
         let totalPrice = new Prisma.Decimal(0);
 
-        await Promise.all(
-            requestedData.map(async (orderItem) => {
-                const { itemId, quantity } = orderItem;
+        for (const orderItem of requestedData) {
+            const { itemId, quantity } = orderItem;
 
-                // 주문 요청한 상품의 존재 여부 확인, 재고 확인
-                const item = await this.txHost.tx.item.findFirst({
-                    where: {
-                        id: itemId,
+            // 현재 발행 포인터에 연결된 판매 가능 버전만 주문 원천으로 사용한다.
+            const snapshotItem = await this.txHost.tx.productSnapshotItem.findFirst({
+                where: orderableSnapshotItemWhere(itemId),
+                select: orderableSnapshotItemSelect,
+            });
+            if (!snapshotItem) throw new BadRequestException(new NotExistingItem());
+            if (snapshotItem.item.stock < quantity) throw new BadRequestException(new ItemStockShortage());
+
+            const orderedItem = toOrderedItem(itemId, quantity, snapshotItem);
+            totalPrice = totalPrice.add(orderedItem.lineTotalPrice);
+            items.push(orderedItem);
+
+            // 조건부 차감으로 동시 주문에서도 stock이 음수가 되는 것을 막는다.
+            const { count } = await this.txHost.tx.item.updateMany({
+                where: {
+                    id: itemId,
+                    deletedAt: null,
+                    stock: {
+                        gte: quantity,
                     },
-                });
-                if (!item) throw new BadRequestException(new NotExistingItem());
-                if (item.stock < quantity) throw new BadRequestException(new ItemStockShortage());
-
-                // 주문 가격 계산
-                const itemPrice = item.totalPrice.mul(quantity);
-                totalPrice = totalPrice.add(itemPrice);
-                items.push({ itemId, quantity, itemPrice });
-
-                // 주문 요청한 상품의 재고 차감
-                await this.txHost.tx.item.update({
-                    where: {
-                        id: itemId,
+                },
+                data: {
+                    stock: {
+                        decrement: quantity,
                     },
-                    data: {
-                        stock: {
-                            decrement: quantity,
-                        },
-                    },
-                });
-            })
-        );
+                },
+            });
+            if (count !== 1) throw new BadRequestException(new ItemStockShortage());
+        }
 
-        // 주문 생성
         const order = await this.txHost.tx.order.create({
             data: {
                 orderNumber: randomUUIDv7(),
                 totalPrice,
                 memberId,
+                OrderItem: {
+                    create: items.map(toOrderItemCreate),
+                },
             },
         });
-        const { count } = await this.txHost.tx.orderItem.createMany({
-            data: items.map(({ itemId, quantity, itemPrice }) => ({
-                orderId: order.id,
-                itemId,
-                quantity,
-                price: itemPrice,
-            })),
-        });
-        if (items.length !== count) throw new InternalServerErrorException(new OrderServerError());
 
         return new OrderResponseDto(order.id);
     }

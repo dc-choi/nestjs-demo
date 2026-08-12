@@ -1,5 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// Prisma 다중 파일 스키마의 진입점이다.
+// generator와 datasource 같은 전역 설정만 두고, 도메인 모델은 models/*.prisma에서 관리한다.
 
 generator client {
   provider        = "prisma-client"
@@ -16,92 +16,4 @@ generator kysely {
 
 datasource db {
   provider = "mysql"
-}
-
-model Member {
-  id             BigInt     @id @default(autoincrement()) @db.BigInt
-  name           String     @db.VarChar(255)
-  email          String     @db.VarChar(255)
-  hashedPassword String?    @map("hashed_password") @db.VarChar(128)
-  phone          String     @db.VarChar(255)
-  role           MemberRole @default(GUEST)
-  lastLoginAt    DateTime?  @map("last_login_at") @db.DateTime(0)
-  membershipAt   DateTime?  @map("membership_at") @db.DateTime(0)
-  createdAt      DateTime   @default(now()) @map("created_at") @db.DateTime(0)
-  updatedAt      DateTime   @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
-  deletedAt      DateTime?  @map("deleted_at") @db.DateTime(0)
-
-  Item  Item[]
-  Order Order[]
-
-  @@map("members")
-}
-
-enum MemberRole {
-  ADMIN
-  SELLER
-  CUSTOMER
-  GUEST
-}
-
-model Item {
-  id             BigInt         @id @default(autoincrement()) @db.BigInt
-  name           String         @db.VarChar(255)
-  supplyPrice    Decimal        @map("supply_price") @db.Decimal(10, 3)
-  vat            Decimal        @map("vat") @db.Decimal(10, 3)
-  totalPrice     Decimal        @map("total_price") @db.Decimal(10, 3)
-  isTaxFree      Boolean        @default(false) @map("is_tax_free")
-  sku            String         @default(uuid(7)) @db.VarChar(255)
-  stock          Int            @default(0) @db.Int
-  description    String?        @db.Text
-  itemSaleStatus ItemSaleStatus @default(DENY) @map("item_sale_status")
-  createdAt      DateTime       @default(now()) @map("created_at") @db.DateTime(0)
-  updatedAt      DateTime       @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
-  deletedAt      DateTime?      @map("deleted_at") @db.DateTime(0)
-
-  member   Member @relation(fields: [memberId], references: [id])
-  memberId BigInt @map("member_id") @db.BigInt
-
-  OrderItem OrderItem[]
-
-  @@map("items")
-}
-
-enum ItemSaleStatus {
-  ALLOW
-  DENY
-}
-
-model Order {
-  id          BigInt    @id @default(autoincrement()) @db.BigInt
-  orderNumber String    @map("order_number") @db.VarChar(255)
-  totalPrice  Decimal   @map("total_price") @db.Decimal(10, 3)
-  createdAt   DateTime  @default(now()) @map("created_at") @db.DateTime(0)
-  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
-  deletedAt   DateTime? @map("deleted_at") @db.DateTime(0)
-
-  member   Member @relation(fields: [memberId], references: [id])
-  memberId BigInt @map("member_id") @db.BigInt
-
-  OrderItem OrderItem[]
-
-  @@map("orders")
-}
-
-model OrderItem {
-  id        BigInt    @id @default(autoincrement()) @db.BigInt
-  price     Decimal   @db.Decimal(10, 3)
-  quantity  Int       @default(0) @db.Int
-  isTaxFree Boolean   @default(false) @map("is_tax_free")
-  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(0)
-  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
-  deletedAt DateTime? @map("deleted_at") @db.DateTime(0)
-
-  item   Item   @relation(fields: [itemId], references: [id])
-  itemId BigInt @map("item_id") @db.BigInt
-
-  order   Order  @relation(fields: [orderId], references: [id])
-  orderId BigInt @map("order_id") @db.BigInt
-
-  @@map("order_items")
 }

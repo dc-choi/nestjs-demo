@@ -1,0 +1,69 @@
+/// 결제 대기 중 Item.stock에서 선차감한 수량의 생명주기를 기록한다.
+///
+/// 예약 생성과 재고 차감은 같은 주 DB 트랜잭션에서 한 번만 실행한다. CONSUMED 전환은 재고를
+/// 다시 차감하지 않으며 RELEASED 또는 EXPIRED 전환은 재고를 정확히 한 번 복구해야 한다.
+/// orderItemId의 고유 제약은 한 주문 항목에 예약이 하나만 존재하도록 보장한다. 수량은 양수여야 하며
+/// 상태와 consumedAt/releasedAt 조합의 일관성은 예약 상태를 변경하는 쓰기 경로에서 검증한다.
+model InventoryReservation {
+  id         BigInt                     @id @default(autoincrement()) @db.BigInt
+  quantity   Int                        @db.Int
+  status     InventoryReservationStatus @default(RESERVED)
+  expiresAt  DateTime                   @map("expires_at") @db.DateTime(3)
+  consumedAt DateTime?                  @map("consumed_at") @db.DateTime(3)
+  releasedAt DateTime?                  @map("released_at") @db.DateTime(3)
+  createdAt  DateTime                   @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt  DateTime                   @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
+
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  orderItemId BigInt    @unique @map("order_item_id") @db.BigInt
+
+  @@index([status, expiresAt])
+  @@map("inventory_reservations")
+}
+
+/// Item.stock 변경의 근거를 보존하는 추가 전용 재고 원장이다.
+///
+/// Item이 존재하는 동안 현재 잔액은 Item.stock이며 stockAfter는 각 변경 직후 잔액을 감사하기 위한
+/// 값이다. Item.stock 갱신과 원장 추가는 같은 주 DB 트랜잭션에서 처리하고 기존 원장은 수정하거나
+/// 삭제하지 않는다. 발행 또는 주문 이력이 있는 Item은 hard delete하지 않고 deletedAt으로 비활성화한다.
+model InventoryMovement {
+  id             BigInt                @id @default(autoincrement()) @db.BigInt
+  type           InventoryMovementType
+  /// 양수는 입고, 음수는 차감을 뜻하며 0인 변경은 기록하지 않는다.
+  quantityDelta  Int                   @map("quantity_delta") @db.Int
+  /// 같은 트랜잭션에서 변경을 반영한 뒤의 Item.stock과 일치해야 한다.
+  stockAfter     Int                   @map("stock_after") @db.Int
+  /// 원장 생성 시 Item.sku를 복사하며 이후 원장에서는 변경하지 않는다.
+  itemSku        String                @map("item_sku") @db.VarChar(255)
+  idempotencyKey String                @map("idempotency_key") @db.VarChar(128)
+  /// 외부 업무 객체를 느슨하게 참조한다. 두 값의 동시 유무와 유효성은 애플리케이션이 보장한다.
+  referenceType  String?               @map("reference_type") @db.VarChar(64)
+  referenceId    String?               @map("reference_id") @db.VarChar(128)
+  reason         String?               @db.VarChar(255)
+  createdAt      DateTime              @default(now()) @map("created_at") @db.DateTime(3)
+
+  item   Item   @relation(fields: [itemId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  itemId BigInt @map("item_id") @db.BigInt
+
+  @@unique([itemId, idempotencyKey])
+  @@index([itemId, createdAt])
+  @@index([itemSku, createdAt])
+  @@index([referenceType, referenceId])
+  @@map("inventory_movements")
+}
+
+enum InventoryReservationStatus {
+  RESERVED
+  CONSUMED
+  RELEASED
+  EXPIRED
+}
+
+enum InventoryMovementType {
+  RECEIPT
+  ADJUSTMENT
+  RESERVATION
+  RELEASE
+  SALE
+  RETURN
+}

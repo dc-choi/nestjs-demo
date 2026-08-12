@@ -1,0 +1,161 @@
+// 발행 이력 관계 구조
+// 전체 개념과 변경/발행/주문 흐름: ../../docs/database/catalog-snapshots.md
+//
+// Product 1 -> N ProductSnapshot
+// Product 1 -> 0..1 ProductPublication -> ProductSnapshot
+// ProductSnapshot N <-> N Item (ProductSnapshotItem이 연결)
+// ProductSnapshot N <-> N Category (ProductSnapshotCategory가 연결)
+// ProductSnapshot 1 -> N ProductSnapshotMedia, ProductSnapshotTag
+//
+// DRAFT 상태에서는 subtree를 작성할 수 있지만 firstPublishedAt이 기록된 뒤에는 snapshot과 모든 하위 행을
+// 수정하거나 삭제하지 않는다. PUBLISHED는 다시 DRAFT로 되돌리지 않으며 새 버전이 현재 발행본이 되어도
+// 과거 발행본은 PUBLISHED로 유지한다. 재발행은 새 snapshot을 만들고 ProductPublication 포인터를 교체한다.
+
+/// 구매자에게 노출되는 상품 내용과 SKU 구성을 보존하는 append-only 버전이다.
+/// DRAFT에서 PUBLISHED로 전환하고 최초 발행 시각을 기록한 뒤에는 snapshot과 subtree를 덮어쓰지 않는다.
+model ProductSnapshot {
+  id               BigInt                @id @default(autoincrement()) @db.BigInt
+  version          Int                   @db.UnsignedInt
+  name             String                @db.VarChar(255)
+  description      String?               @db.LongText
+  returnPolicy     String?               @map("return_policy") @db.Text
+  status           ProductSnapshotStatus @default(DRAFT)
+  createdAt        DateTime              @default(now()) @map("created_at") @db.DateTime(3)
+  firstPublishedAt DateTime?             @map("first_published_at") @db.DateTime(3)
+
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  productId BigInt  @map("product_id") @db.BigInt
+
+  publication ProductPublication?
+  items       ProductSnapshotItem[]
+  options     ProductSnapshotOption[]
+  categories  ProductSnapshotCategory[]
+  media       ProductSnapshotMedia[]
+  tags        ProductSnapshotTag[]
+
+  /// 한 상품 안에서 버전 번호를 고유하게 유지한다.
+  @@unique([productId, version])
+  /// ProductPublication과 ProductSnapshotItem의 복합 FK가 snapshot의 상품 소속을 함께 검증할 수 있게 한다.
+  @@unique([id, productId])
+  @@index([productId, status, createdAt])
+  @@map("product_snapshots")
+}
+
+/// 상품마다 현재 공개된 snapshot 하나를 명시적으로 가리키는 포인터다.
+/// 최신 생성 시각을 추측하지 않으므로 이전 snapshot으로 되돌리는 재발행도 같은 방식으로 처리한다.
+/// 현재 발행본은 이 포인터만으로 결정하며, 포인터가 바뀌어도 이전 snapshot은 PUBLISHED 상태를 유지한다.
+model ProductPublication {
+  productId         BigInt   @id @map("product_id") @db.BigInt
+  productSnapshotId BigInt   @unique @map("product_snapshot_id") @db.BigInt
+  publishedAt       DateTime @default(now()) @map("published_at") @db.DateTime(3)
+
+  product  Product         @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  /// 복합 FK로 현재 snapshot이 반드시 같은 Product에 속하도록 보장한다.
+  /// DB FK가 status까지 제한할 수 없으므로 서비스는 PUBLISHED snapshot만 가리키도록 발행 트랜잭션에서 검증한다.
+  snapshot ProductSnapshot @relation(fields: [productSnapshotId, productId], references: [id, productId], onDelete: Restrict, onUpdate: Cascade)
+
+  /// Prisma가 복합 1:1 관계의 정의 측을 고유하게 식별하는 데 필요하다.
+  @@unique([productSnapshotId, productId])
+  @@map("product_publications")
+}
+
+/// 안정적인 Item을 특정 상품 snapshot에 배치하고 그 버전의 표시 정보와 가격을 보존한다.
+/// 가격, 세금, SKU 판매 상태의 source of truth는 이 모델 하나뿐이며 Item에는 복제하지 않는다.
+model ProductSnapshotItem {
+  productSnapshotId BigInt         @map("product_snapshot_id") @db.BigInt
+  itemId            BigInt         @map("item_id") @db.BigInt
+  productId         BigInt         @map("product_id") @db.BigInt
+  name              String         @db.VarChar(255)
+  /// snapshot을 조회할 때 현재 Item 행에 의존하지 않도록 발행 시점의 불변 SKU를 복사한다.
+  itemSku           String         @map("item_sku") @db.VarChar(255)
+  /// 세 값은 모두 한 개 기준이며 발행 전에 totalPrice가 supplyPrice와 vat의 합인지 검증한다.
+  /// isTaxFree가 true이면 vat가 0인지도 같은 발행 검증에서 확인한다.
+  supplyPrice       Decimal        @map("supply_price") @db.Decimal(10, 3)
+  vat               Decimal        @db.Decimal(10, 3)
+  totalPrice        Decimal        @map("total_price") @db.Decimal(10, 3)
+  isTaxFree         Boolean        @default(false) @map("is_tax_free")
+  itemSaleStatus    ItemSaleStatus @default(DENY) @map("item_sale_status")
+  sequence          Int            @db.UnsignedInt
+  /// option code 순으로 정렬한 option-code/value-code 쌍의 SHA-256 값이다.
+  optionSignature   String         @map("option_signature") @db.Char(64)
+
+  /// 두 복합 FK가 snapshot과 Item이 모두 같은 Product에 속하도록 보장한다.
+  snapshot ProductSnapshot @relation(fields: [productSnapshotId, productId], references: [id, productId], onDelete: Restrict, onUpdate: Cascade)
+  item     Item            @relation(fields: [itemId, productId], references: [id, productId], onDelete: Restrict, onUpdate: Cascade)
+
+  optionValues       ProductSnapshotItemOptionValue[]
+  orderItemSnapshots OrderItemSnapshot[]
+
+  @@id([productSnapshotId, itemId])
+  /// 한 snapshot 안에서 표시 순서와 의미상 같은 옵션 조합이 중복되지 않도록 한다.
+  @@unique([productSnapshotId, sequence])
+  @@unique([productSnapshotId, optionSignature])
+  @@index([itemId, productId])
+  @@map("product_snapshot_items")
+}
+
+/// 상품 snapshot에 노출할 asset과 역할, 표시 순서를 연결한다.
+model ProductSnapshotMedia {
+  id                BigInt           @id @default(autoincrement()) @db.BigInt
+  role              ProductMediaRole @default(GALLERY)
+  altText           String?          @map("alt_text") @db.VarChar(255)
+  sequence          Int              @db.UnsignedInt
+  productSnapshotId BigInt           @map("product_snapshot_id") @db.BigInt
+  mediaAssetId      BigInt           @map("media_asset_id") @db.BigInt
+
+  snapshot ProductSnapshot @relation(fields: [productSnapshotId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  asset    MediaAsset      @relation(fields: [mediaAssetId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([productSnapshotId, role, sequence])
+  @@unique([productSnapshotId, mediaAssetId, role])
+  @@index([mediaAssetId])
+  @@map("product_snapshot_media")
+}
+
+/// 상품의 분류 소속도 snapshot에 묶어 발행 당시 탐색 구조를 보존한다.
+/// 가장 낮은 sequence를 대표 분류로 사용한다.
+model ProductSnapshotCategory {
+  productSnapshotId BigInt @map("product_snapshot_id") @db.BigInt
+  /// 원본 분류의 추적과 운영상 영향 범위 조회에만 사용한다. 과거 화면은 아래 복사본 필드를 사용한다.
+  categoryId        BigInt @map("category_id") @db.BigInt
+  /// Category가 나중에 변경되어도 발행 당시의 이름과 URL 식별자를 재현하도록 복사한다.
+  categoryName      String @map("category_name") @db.VarChar(255)
+  categorySlug      String @map("category_slug") @db.VarChar(255)
+  /// 발행 당시 루트부터 현재 분류까지의 계층 정보를 복사한다. 각 원소는 id, name, slug를 가진다.
+  /// 조회 시 mutable Category 트리를 다시 조합하지 않는다.
+  categoryPath      Json   @map("category_path")
+  sequence          Int    @db.UnsignedInt
+
+  snapshot ProductSnapshot @relation(fields: [productSnapshotId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  category Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@id([productSnapshotId, categoryId])
+  @@unique([productSnapshotId, sequence])
+  @@index([categoryId, sequence])
+  @@map("product_snapshot_categories")
+}
+
+/// 검색과 노출 보조에 사용한 자유 태그를 상품 snapshot별로 보존한다.
+model ProductSnapshotTag {
+  productSnapshotId BigInt @map("product_snapshot_id") @db.BigInt
+  value             String @db.VarChar(64)
+  sequence          Int    @db.UnsignedInt
+
+  snapshot ProductSnapshot @relation(fields: [productSnapshotId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@id([productSnapshotId, value])
+  @@unique([productSnapshotId, sequence])
+  @@index([value])
+  @@map("product_snapshot_tags")
+}
+
+enum ProductSnapshotStatus {
+  DRAFT
+  /// 한 번 발행된 snapshot은 현재 포인터에서 제외된 뒤에도 이 상태를 유지한다.
+  PUBLISHED
+}
+
+enum ItemSaleStatus {
+  ALLOW
+  DENY
+}

@@ -1,0 +1,99 @@
+// 안정 엔터티 관계 구조
+//
+// Member(판매자) 1 -> N Product 1 -> N ProductSnapshot
+// Product 1 -> N Item
+// Category와 MediaAsset은 여러 snapshot에서 재사용한다.
+//
+// Product와 Item에는 수명 동안 유지되는 식별 및 운영 상태만 둔다.
+// 구매자에게 보이는 이름, 설명, 가격, 옵션, 미디어, 분류는 ProductSnapshot 하위에서 버전 관리한다.
+
+/// 상품의 안정적인 식별자와 판매 주체, 현재 운영 상태를 보관한다.
+/// 구매자에게 노출되는 내용은 ProductSnapshot에만 저장해 과거 발행본을 덮어쓰지 않는다.
+model Product {
+  id        BigInt        @id @default(autoincrement()) @db.BigInt
+  /// 상품명이 바뀌어도 URL과 외부 참조가 유지되도록 별도 고유 식별자를 사용한다.
+  /// snapshot과 주문이 같은 상품을 계속 추적할 수 있도록 생성 후에는 변경하지 않는다.
+  slug      String        @unique @db.VarChar(255)
+  status    ProductStatus @default(DRAFT)
+  createdAt DateTime      @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt DateTime      @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
+  deletedAt DateTime?     @map("deleted_at") @db.DateTime(3)
+
+  /// 판매자를 삭제해 상품의 소유 관계가 사라지지 않도록 삭제를 제한한다.
+  seller   Member @relation(fields: [sellerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  /// 소유권 이전은 별도 이력 모델 없이 과거 책임 주체를 바꾸므로 생성 후에는 변경하지 않는다.
+  sellerId BigInt @map("seller_id") @db.BigInt
+
+  snapshots   ProductSnapshot[]
+  publication ProductPublication?
+  items       Item[]
+
+  /// 판매자별 운영 상태 조회와 전체 상태별 최신 상품 조회를 각각 지원한다.
+  @@index([sellerId, status])
+  @@index([status, createdAt])
+  @@map("products")
+}
+
+/// 여러 상품 snapshot이 공유하는 분류 트리다.
+model Category {
+  id        BigInt    @id @default(autoincrement()) @db.BigInt
+  name      String    @db.VarChar(255)
+  /// 이름 변경과 무관하게 URL과 외부 참조에서 사용할 전역 식별자다.
+  slug      String    @unique @db.VarChar(255)
+  sequence  Int       @default(0) @db.UnsignedInt
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
+  deletedAt DateTime? @map("deleted_at") @db.DateTime(3)
+
+  /// 자식이 남은 분류를 삭제해 트리가 끊기지 않도록 삭제를 제한한다.
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  parentId BigInt?    @map("parent_id") @db.BigInt
+  children Category[] @relation("CategoryTree")
+
+  snapshots ProductSnapshotCategory[]
+
+  /// 같은 부모 아래의 중복 이름을 막고 활성 자식을 표시 순서대로 찾는다.
+  @@unique([parentId, name])
+  @@index([parentId, isActive, sequence])
+  @@map("categories")
+}
+
+/// 객체 스토리지 파일의 안정적인 메타데이터다.
+/// 생성 후에는 파일과 모든 메타데이터를 변경하지 않는다. 내용이나 메타데이터가 달라지면 새 asset을 만들고
+/// 새 snapshot에서 다시 연결해야 과거 발행본이 가리키는 파일을 그대로 재현할 수 있다.
+/// 만료되는 signed URL은 저장하지 않고 조회 시 storageKey로 생성한다.
+model MediaAsset {
+  id           BigInt   @id @default(autoincrement()) @db.BigInt
+  /// 실제 파일을 가리키는 영속 키이며 동일 객체의 중복 등록을 막는다.
+  storageKey   String   @unique @map("storage_key") @db.VarChar(512)
+  originalName String?  @map("original_name") @db.VarChar(255)
+  mimeType     String   @map("mime_type") @db.VarChar(127)
+  byteSize     BigInt   @map("byte_size") @db.UnsignedBigInt
+  /// 업로드 무결성 확인과 동일 파일 탐색에 사용하는 SHA-256 값이다.
+  checksum     String   @db.Char(64)
+  width        Int?     @db.UnsignedInt
+  height       Int?     @db.UnsignedInt
+  createdAt    DateTime @default(now()) @map("created_at") @db.DateTime(3)
+
+  snapshotMedia ProductSnapshotMedia[]
+
+  /// 중복 파일 후보를 찾되 실제 재사용 여부는 업로드 정책에서 결정한다.
+  @@index([checksum])
+  @@map("media_assets")
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  SUSPENDED
+  CLOSED
+}
+
+enum ProductMediaRole {
+  THUMBNAIL
+  GALLERY
+  DETAIL
+  ATTACHMENT
+}
