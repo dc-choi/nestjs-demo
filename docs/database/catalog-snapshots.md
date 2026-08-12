@@ -10,14 +10,14 @@
 > `ProductPublication`은 그중 현재 발행본을 가리키고, `OrderItemSnapshot`은 주문 접수 당시 값을
 > 별도로 고정합니다.
 
-| 모델 | 책임 |
-| --- | --- |
-| `Product` | 안정적인 상품 ID, slug, 판매자, 운영 상태 |
-| `Item` | 실제 SKU와 현재 재고 |
-| `ProductSnapshot` | 버전별 상품명, 설명, 반품 정책 |
-| `ProductSnapshotItem` | 해당 버전의 SKU 표시명, 가격, 세금, 판매 상태 |
-| `ProductPublication` | Product마다 현재 발행본 하나를 선택하는 포인터 |
-| `OrderItemSnapshot` | 주문 접수 시 실제 사용한 표시 정보, 단가, 옵션 |
+| 모델                  | 책임                                           |
+| --------------------- | ---------------------------------------------- |
+| `Product`             | 안정적인 상품 ID, slug, 판매자, 운영 상태      |
+| `Item`                | 실제 SKU와 현재 재고                           |
+| `ProductSnapshot`     | 버전별 상품명, 설명, 반품 정책                 |
+| `ProductSnapshotItem` | 해당 버전의 SKU 표시명, 가격, 세금, 판매 상태  |
+| `ProductPublication`  | Product마다 현재 발행본 하나를 선택하는 포인터 |
+| `OrderItemSnapshot`   | 주문 접수 시 실제 사용한 표시 정보, 단가, 옵션 |
 
 ```mermaid
 flowchart LR
@@ -31,25 +31,28 @@ flowchart LR
 
 현재 구현 범위도 먼저 구분해야 합니다.
 
-| 기능 | 현재 상태 |
-| --- | --- |
-| 현재 발행본 조회와 주문 Snapshot 생성 | v1, v2, v3 주문 경로에 구현 |
-| 조건부 재고 차감 | v1, v3에 구현 |
-| Item 행 잠금 후 재고 차감 | v2에 구현 |
-| DRAFT 작성, 복사, 발행 명령 | 아직 미구현 |
-| 재고 예약/원장, 결제, 배송 | 모델만 존재하며 주문 경로에는 미연결 |
+| 기능                                  | 현재 상태                            |
+| ------------------------------------- | ------------------------------------ |
+| 현재 발행본 조회와 주문 Snapshot 생성 | v1, v2, v3 주문 경로에 구현          |
+| 조건부 재고 차감                      | v1, v3에 구현                        |
+| Item 행 잠금 후 재고 차감             | v2에 구현                            |
+| DRAFT 작성, 복사, 발행 명령           | 아직 미구현                          |
+| 재고 예약/원장, 결제, 배송            | 모델만 존재하며 주문 경로에는 미연결 |
+
+외부 주문 API에는 v3 queue 흐름만 `Mutation.placeOrder`로 연결됩니다. v1과 v2는 Snapshot과 동시성 처리
+방식을 비교하기 위한 application service이며 runtime module에는 등록되지 않습니다.
 
 ## 왜 나누는가
 
 상품 정보는 서로 다른 속도로 변합니다.
 
-| 변화 종류 | 예시 | 저장 위치 |
-| --- | --- | --- |
-| 안정적인 식별 정보 | Product ID, 판매자, slug | `Product` |
-| SKU 식별과 실시간 재고 | sku, 현재 stock | `Item` |
+| 변화 종류                  | 예시                           | 저장 위치              |
+| -------------------------- | ------------------------------ | ---------------------- |
+| 안정적인 식별 정보         | Product ID, 판매자, slug       | `Product`              |
+| SKU 식별과 실시간 재고     | sku, 현재 stock                | `Item`                 |
 | 판매자가 발행하는 카탈로그 | 이름, 설명, 가격, 옵션, 미디어 | `ProductSnapshot` 하위 |
-| 주문 접수 당시 값 | 적용 가격, 옵션명, 반품 정책 | `OrderItemSnapshot` |
-| 재고 변화의 원인 | 입고, 예약, 판매, 반품 | `InventoryMovement` |
+| 주문 접수 당시 값          | 적용 가격, 옵션명, 반품 정책   | `OrderItemSnapshot`    |
+| 재고 변화의 원인           | 입고, 예약, 판매, 반품         | `InventoryMovement`    |
 
 모든 필드를 Product나 Item 한 행에 넣으면 수정할 때 과거 값이 사라집니다. 반대로 stock까지 상품
 스냅샷에 넣으면 주문마다 상품 버전을 만들어야 합니다. 그래서 카탈로그 변경 이력과 실시간 재고를
@@ -153,6 +156,9 @@ Product #1
 상품을 일시 중지해도 Publication은 유지할 수 있습니다. 현재 주문 코드는 Product가 `ACTIVE`인지와
 현재 Publication이 유효한지를 각각 검사합니다.
 
+현재 Publication을 OpenSearch 검색 read model로 투영하는 경계와 구현 순서는
+[OpenSearch GraphQL 상품 검색 구현 계획](../search/opensearch-product-search.md)을 참고합니다.
+
 ### OrderItemSnapshot
 
 `OrderItemSnapshot`은 PENDING 주문을 접수할 때 `OrderItem`과 함께 생성됩니다. 현재 구현은
@@ -168,12 +174,12 @@ ProductSnapshotItem 가격을 그대로 복사하며 할인 계산은 없습니�
 
 ```json
 [
-  {
-    "optionCode": "color",
-    "optionName": "색상",
-    "valueCode": "black",
-    "valueName": "검정"
-  }
+    {
+        "optionCode": "color",
+        "optionName": "색상",
+        "valueCode": "black",
+        "valueName": "검정"
+    }
 ]
 ```
 
@@ -298,41 +304,41 @@ Snapshot에 연결합니다.
 
 ## DB가 보장하는 것
 
-| 규칙 | 수단 |
-| --- | --- |
-| Product 안에서 version이 중복되지 않음 | `@@unique([productId, version])` |
-| Product마다 Publication이 최대 하나 | `ProductPublication.productId @id` |
-| Publication이 같은 Product의 Snapshot을 가리킴 | 복합 FK |
-| SnapshotItem의 Snapshot과 Item이 같은 Product 소속 | 두 복합 FK |
-| 같은 Snapshot에서 Item, 순서, 서명 문자열이 중복되지 않음 | PK와 unique |
-| 옵션 값이 올바른 옵션과 같은 Snapshot에 연결됨 | 옵션 선택의 복합 FK |
-| OrderItem당 주문 Snapshot이 최대 하나 | `OrderItemSnapshot.orderItemId @id` |
-| 주문 Snapshot의 원천 SnapshotItem이 실제로 존재함 | 복합 FK |
-| SnapshotItem이나 주문이 참조하는 Item의 hard delete 제한 | `onDelete: Restrict` |
+| 규칙                                                      | 수단                                |
+| --------------------------------------------------------- | ----------------------------------- |
+| Product 안에서 version이 중복되지 않음                    | `@@unique([productId, version])`    |
+| Product마다 Publication이 최대 하나                       | `ProductPublication.productId @id`  |
+| Publication이 같은 Product의 Snapshot을 가리킴            | 복합 FK                             |
+| SnapshotItem의 Snapshot과 Item이 같은 Product 소속        | 두 복합 FK                          |
+| 같은 Snapshot에서 Item, 순서, 서명 문자열이 중복되지 않음 | PK와 unique                         |
+| 옵션 값이 올바른 옵션과 같은 Snapshot에 연결됨            | 옵션 선택의 복합 FK                 |
+| OrderItem당 주문 Snapshot이 최대 하나                     | `OrderItemSnapshot.orderItemId @id` |
+| 주문 Snapshot의 원천 SnapshotItem이 실제로 존재함         | 복합 FK                             |
+| SnapshotItem이나 주문이 참조하는 Item의 hard delete 제한  | `onDelete: Restrict`                |
 
 DB 제약은 최소 하나의 하위 행 존재, 상태 전이, 금액 합계, 발행 후 불변성을 보장하지 않습니다.
 
 ## 서비스가 보장해야 하는 것
 
-| 규칙 | 책임 |
-| --- | --- |
-| Product.slug/sellerId, Item.sku/productId 불변 | 상품 명령 서비스 |
-| 발행된 Snapshot과 모든 하위 행 수정/삭제 금지 | 상품 명령 서비스 |
-| Publication은 PUBLISHED Snapshot만 참조 | 발행 트랜잭션 |
-| `firstPublishedAt`, `publishedAt` 정확히 기록 | 발행 트랜잭션 |
-| `totalPrice = supplyPrice + vat`, 면세 VAT 0 | 발행 검증 |
-| required 옵션 완전성과 optionSignature 일치 | 발행 검증 |
-| SnapshotItem.itemSku가 Item.sku와 일치 | Snapshot 작성 서비스 |
-| 카테고리 복사 컬럼과 categoryPath 형식이 원본과 일치 | Snapshot 작성 서비스 |
-| MediaAsset 생성 후 불변 | 미디어 명령 서비스 |
-| soft delete 행을 일반 조회에서 제외 | 모든 조회 서비스 |
-| 수량이 양수 | 요청 검증과 주문 서비스 |
-| 주문 원천이 처리 시점의 현재 Publication | 주문 조회 조건 |
-| 주문 Snapshot 복사 필드가 원천과 일치 | 공용 `toOrderedItem` 변환기 |
-| OrderItem.itemId와 주문 Snapshot의 sourceItemId가 일치 | 공용 주문 생성기 |
-| 모든 OrderItem에 주문 Snapshot을 함께 생성 | 주문 트랜잭션 |
-| lineTotalPrice와 Order.totalPrice가 품목 합계와 일치 | 주문 트랜잭션 |
-| stock이 음수가 되지 않음 | 행 잠금 또는 조건부 차감 |
+| 규칙                                                   | 책임                        |
+| ------------------------------------------------------ | --------------------------- |
+| Product.slug/sellerId, Item.sku/productId 불변         | 상품 명령 서비스            |
+| 발행된 Snapshot과 모든 하위 행 수정/삭제 금지          | 상품 명령 서비스            |
+| Publication은 PUBLISHED Snapshot만 참조                | 발행 트랜잭션               |
+| `firstPublishedAt`, `publishedAt` 정확히 기록          | 발행 트랜잭션               |
+| `totalPrice = supplyPrice + vat`, 면세 VAT 0           | 발행 검증                   |
+| required 옵션 완전성과 optionSignature 일치            | 발행 검증                   |
+| SnapshotItem.itemSku가 Item.sku와 일치                 | Snapshot 작성 서비스        |
+| 카테고리 복사 컬럼과 categoryPath 형식이 원본과 일치   | Snapshot 작성 서비스        |
+| MediaAsset 생성 후 불변                                | 미디어 명령 서비스          |
+| soft delete 행을 일반 조회에서 제외                    | 모든 조회 서비스            |
+| 수량이 양수                                            | 요청 검증과 주문 서비스     |
+| 주문 원천이 처리 시점의 현재 Publication               | 주문 조회 조건              |
+| 주문 Snapshot 복사 필드가 원천과 일치                  | 공용 `toOrderedItem` 변환기 |
+| OrderItem.itemId와 주문 Snapshot의 sourceItemId가 일치 | 공용 주문 생성기            |
+| 모든 OrderItem에 주문 Snapshot을 함께 생성             | 주문 트랜잭션               |
+| lineTotalPrice와 Order.totalPrice가 품목 합계와 일치   | 주문 트랜잭션               |
+| stock이 음수가 되지 않음                               | 행 잠금 또는 조건부 차감    |
 
 스키마의 “불변”, “추가 전용” 주석은 DB가 UPDATE를 자동 차단한다는 뜻이 아닙니다. 현재 Prisma Client는
 UPDATE와 DELETE를 수행할 수 있으므로 쓰기 경로가 정책을 강제해야 합니다. `deletedAt`도 자동 필터가
