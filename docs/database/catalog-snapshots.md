@@ -33,14 +33,15 @@ flowchart LR
 
 | 기능                                  | 현재 상태                            |
 | ------------------------------------- | ------------------------------------ |
-| 현재 발행본 조회와 주문 Snapshot 생성 | v1, v2, v3 주문 경로에 구현          |
-| 조건부 재고 차감                      | v1, v3에 구현                        |
-| Item 행 잠금 후 재고 차감             | v2에 구현                            |
+| 현재 발행본 조회와 주문 Snapshot 생성 | 공개 주문과 두 비교용 구현에 적용    |
+| 조건부 재고 차감                      | 공개 주문과 `OrderV1Service`에 적용  |
+| Item 행 잠금 후 재고 차감             | 비교용 `OrderV2Service`에 적용       |
 | DRAFT 작성, 복사, 발행 명령           | 아직 미구현                          |
 | 재고 예약/원장, 결제, 배송            | 모델만 존재하며 주문 경로에는 미연결 |
 
-외부 주문 API에는 v3 queue 흐름만 `Mutation.placeOrder`로 연결됩니다. v1과 v2는 Snapshot과 동시성 처리
-방식을 비교하기 위한 application service이며 runtime module에는 등록되지 않습니다.
+외부 주문 API에는 `OrderService`만 `Mutation.placeOrder`로 연결됩니다. `OrderV1Service`와
+`OrderV2Service`는 Snapshot과 동시성 처리 방식을 비교하기 위한 application service이며 runtime
+module에는 등록되지 않습니다. 세 구현은 API 버전 디렉터리로 나누지 않고 `src/api/order`에 함께 둡니다.
 
 ## 왜 나누는가
 
@@ -302,6 +303,10 @@ NULL을 서로 다른 값으로 취급하므로 `@@unique([parentId, name])`은 
 파일과 메타데이터를 바꾸지 않는 서비스 규칙을 사용합니다. 파일이 바뀌면 새 asset을 만들고 새
 Snapshot에 연결합니다.
 
+이 저장 구조와 공개 파일 전달 계약은 별개입니다. 현재는 object storage의 URL signer나 CDN adapter가
+없으므로 GraphQL에 미디어를 노출하지 않습니다. 전달 계층을 구현한 뒤에도 `storageKey`는 내부 값으로
+유지하고, 공개 API에는 짧은 수명의 URL만 제공합니다.
+
 ## DB가 보장하는 것
 
 | 규칙                                                      | 수단                                |
@@ -372,4 +377,6 @@ UPDATE와 DELETE를 수행할 수 있으므로 쓰기 경로가 정책을 강제
 - [`catalog-option.prisma`](../../prisma/models/catalog-option.prisma): Snapshot 옵션
 - [`order.prisma`](../../prisma/models/order.prisma): OrderItem과 OrderItemSnapshot
 - [`inventory.prisma`](../../prisma/models/inventory.prisma): 재고 예약과 원장
-- [`ordered-item.ts`](../../src/api/order/domain/ordered-item.ts): 주문 Snapshot 공용 변환
+- [`order.ts`](../../src/api/order/domain/order.ts): 주문 합계와 저장 상태를 보호하는 domain 객체
+- [`orderable-snapshot-item.ts`](../../src/api/order/infrastructure/orderable-snapshot-item.ts): 현재 발행 상품을 주문 품목으로 변환
+- [`order.persistence.ts`](../../src/api/order/infrastructure/order.persistence.ts): 주문 domain과 Prisma 쓰기 형식의 변환

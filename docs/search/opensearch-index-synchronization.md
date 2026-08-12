@@ -35,7 +35,7 @@ Outbox relay
   -> 문서 전체 upsert 또는 versioned delete
 ```
 
-DB commit 뒤 바로 BullMQ에 job을 넣는 것만으로는 충분하지 않습니다. Commit은 성공했지만 job 발행이
+DB commit 뒤 바로 외부 queue에 message를 넣는 것만으로는 충분하지 않습니다. Commit은 성공했지만 발행이
 실패하는 구간이 생기므로 Publication, Product별 revision과 Outbox를 같은 MySQL transaction에
 저장합니다. 기존 주문 큐와 검색 색인 큐도 분리합니다.
 

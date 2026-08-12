@@ -43,7 +43,8 @@ Query.searchProducts ---> catalog-products-read (read Alias) ---> 같은 물리 
 - OpenSearch 장애가 상품 발행이나 주문의 DB 트랜잭션을 실패시키면 안 됩니다.
 - 주문 가능 여부와 결제 금액은 OpenSearch 결과로 확정하지 않습니다.
 
-현재 주문 경로도 `ProductPublication`이 가리키는 `PUBLISHED` Snapshot과 판매 가능한 Item을 MySQL에서
+현재 `/graphql`의 `Mutation.placeOrder`는 `OrderResolver`에서 버전 없는 `OrderService`로 연결됩니다.
+`OrderService`도 `ProductPublication`이 가리키는 `PUBLISHED` Snapshot과 판매 가능한 Item을 MySQL에서
 다시 조회합니다. 검색 결과가 제공한 `itemId`는 주문 요청의 후보일 뿐 최종 판정이 아닙니다.
 현재 주문 요청에는 고객이 본 Snapshot이나 예상 가격도 포함되지 않으므로 검색 화면의 가격과 실제
 주문 접수 가격이 같다는 보장은 없습니다.
@@ -75,16 +76,17 @@ Query.searchProducts ---> catalog-products-read (read Alias) ---> 같은 물리 
 
 ## 현재 저장소 상태
 
-| 항목                                        | 현재 상태                |
-| ------------------------------------------- | ------------------------ |
-| Product, Item, Snapshot, Publication 스키마 | 구현됨                   |
-| 현재 발행본을 사용하는 주문 조회            | 주문 v1, v2, v3에 구현됨 |
-| 상품 DRAFT 작성과 발행 명령                 | 미구현                   |
-| 상품 조회와 GraphQL 검색 Query              | 미구현                   |
-| OpenSearch client, Mapping, Alias           | 미구현                   |
-| 전체 재색인과 증분 색인                     | 미구현                   |
-| Outbox 또는 CDC                             | 미구현                   |
-| 로컬 OpenSearch 구성                        | 미구현                   |
+| 항목                                        | 현재 상태               |
+| ------------------------------------------- | ----------------------- |
+| Product, Item, Snapshot, Publication 스키마 | 구현됨                  |
+| 현재 발행본을 사용하는 공개 주문 조회       | `OrderService`에 구현됨 |
+| 상품 DRAFT 작성과 발행 명령                 | 미구현                  |
+| canonical `product` GraphQL Query           | 구현됨                  |
+| OpenSearch `searchProducts` Query           | 미구현                  |
+| OpenSearch client, Mapping, Alias           | 미구현                  |
+| 전체 재색인과 증분 색인                     | 미구현                  |
+| Outbox 또는 CDC                             | 미구현                  |
+| 로컬 OpenSearch 구성                        | 미구현                  |
 
 따라서 첫 구현은 상품 발행 이벤트가 아니라 현재 DB 상태를 읽는 전체 재색인부터 시작합니다. 검색이
 실제로 동작하고 문서 계약이 안정된 뒤 발행 명령과 Outbox를 연결합니다.
@@ -254,7 +256,8 @@ Analyzer 정의가 달라지므로 새 물리 인덱스와 전체 rebuild가 필
 
 ## GraphQL 상품 검색 계약
 
-첫 공개 API는 `/api/graphql`의 `Query.searchProducts`입니다. GraphQL 공통 context, 인증, scalar와 오류
+첫 검색 API는 `/graphql`의 `Query.searchProducts`입니다. MySQL canonical 조회인 `Query.product`와
+GraphQL 공통 context, 인증, scalar와 오류
 정책은 [GraphQL API 전환 설계](../graphql-api-migration.md)를 따릅니다.
 
 ```graphql
@@ -298,12 +301,12 @@ type ProductSearchNode {
     name: String!
     itemId: ID!
     itemName: String!
-    price: Decimal!
+    price: Money!
     thumbnail: ProductSearchThumbnail
 }
 
 type ProductSearchThumbnail {
-    storageKey: String!
+    url: String!
     altText: String
 }
 
@@ -325,9 +328,12 @@ query SearchProducts($input: ProductSearchInput!) {
             name
             itemId
             itemName
-            price
+            price {
+                amount
+                currencyCode
+            }
             thumbnail {
-                storageKey
+                url
                 altText
             }
         }
@@ -363,7 +369,9 @@ query SearchProducts($input: ProductSearchInput!) {
 - `first`: 기본 20, 최대 50
 - `after`: 서버가 만든 불투명 PIT와 정렬 cursor
 
-Product/Item ID는 GraphQL `ID` 10진 문자열로, 가격은 정밀도를 보존하는 `Decimal` 문자열로 노출합니다.
+Product/Item ID는 GraphQL `ID` 10진 문자열로 노출합니다. 가격 출력은 공통
+`Money { amount, currencyCode }`를 사용하고 amount는 정밀도를 보존하는 decimal 문자열입니다.
+가격 범위 input은 별도의 문자열 기반 `Decimal` scalar를 사용합니다.
 옵션 input은 Resolver에서 정규화된 `option-code:value-code` token으로 변환합니다.
 
 Schema coercion 이후의 의미 검증 실패는 `extensions.code=INVALID_SEARCH_INPUT`으로 통일합니다. 예를 들어
@@ -418,7 +426,9 @@ PIT 자체는 query에 묶이지 않으므로 이 검증이 없으면 같은 cur
 
 검색 응답은 OpenSearch 내부 `_source`, `_score`, sort 배열을 그대로 노출하지 않고 GraphQL type으로
 변환합니다. 주문에 필요한 `itemId`는 포함하되 검색 결과의 가격과 상태가 확정값은 아니라는 경계를
-유지합니다.
+유지합니다. 인덱스의 `thumbnailStorageKey`도 공개하지 않고 응답을 조립할 때 미디어 전달 계층에서
+URL로 변환합니다. 현재는 그 전달 계층이 없으므로 검색 문서에는 내부 projection용 `storageKey`만
+보존하고 공개 검색 응답에는 썸네일을 포함하지 않습니다.
 
 ```json
 {
@@ -431,9 +441,12 @@ PIT 자체는 query에 묶이지 않으므로 이 검증이 없으면 같은 cur
                     "name": "무선 기계식 키보드",
                     "itemId": "101",
                     "itemName": "검정, 적축",
-                    "price": "89000.000",
+                    "price": {
+                        "amount": "89000.000",
+                        "currencyCode": "KRW"
+                    },
                     "thumbnail": {
-                        "storageKey": "products/1/thumbnail.webp",
+                        "url": "https://cdn.example.test/products/1/thumbnail.webp",
                         "altText": "검정 무선 기계식 키보드"
                     }
                 }
@@ -472,8 +485,8 @@ PIT 자체는 query에 묶이지 않으므로 이 검증이 없으면 같은 cur
 호환성 표가 아직 3.x 조합을 명시하지 않으므로 core API에 대한 통합 테스트를 통과한 조합만 이
 프로젝트의 지원 조합으로 기록합니다.
 
-현재 애플리케이션 Dockerfile은 `.env`를 이미지에 복사합니다. 이후 인증이 있는 OpenSearch를 연결할
-때 자격 증명을 이미지에 포함하지 않고 런타임 환경 변수나 secret으로 주입하도록 먼저 바꿔야 합니다.
+애플리케이션 이미지는 `.env`를 포함하지 않습니다. 이후 인증이 있는 OpenSearch를 연결할 때도 자격
+증명은 Dockerfile이나 이미지 계층에 넣지 않고 런타임 환경 변수나 secret으로 주입합니다.
 
 Feature flag 동작은 1단계의 client와 2단계의 `searchProducts` Query가 함께 따를 계약으로 고정합니다.
 
@@ -588,14 +601,14 @@ src/infra/search/
   search-outbox.relay.ts
   search-reconciliation.service.ts
 
-src/api/product/
+src/api/catalog/
   application/
     product-search.service.ts
   domain/
     catalog-projector.ts
     product-search.document.ts
     product-search.query.ts
-  presentation/graphql/
+  presentation/
     product-search.resolver.ts
     product-search.input.ts
     product-search.type.ts
@@ -651,7 +664,7 @@ test/integration/search/
 - stage/prod build
 - OpenSearch disabled 상태의 애플리케이션 부팅
 - OpenSearch 장애 중 다른 GraphQL Query/Mutation의 독립성
-- 공개 주문 v3와 비교용 v1/v2 service가 검색 client를 참조하지 않음
+- 공개 `OrderService`와 비교용 `OrderV1Service`/`OrderV2Service`가 검색 client를 참조하지 않음
 
 ## 의도적으로 보류하는 범위
 
