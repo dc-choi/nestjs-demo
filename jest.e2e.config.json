@@ -1,15 +1,14 @@
 {
-  "moduleFileExtensions": ["js", "json", "ts"],
-  "passWithNoTests": true,
-  "rootDir": ".",
-  "testEnvironment": "node",
-  "testRegex": ".e2e.test.ts$",
-  "transform": {
-    "^.+\\.(t|j)s$": "ts-jest"
-  },
-  "moduleNameMapper": {
-    "^~/(.*)$": "<rootDir>/src/$1",
-    "^prisma/(.*)$": "<rootDir>/prisma/$1",
-    "^test/(.*)$": "<rootDir>/test/$1"
-  }
+    "moduleFileExtensions": ["js", "json", "ts"],
+    "rootDir": ".",
+    "testEnvironment": "node",
+    "testRegex": "\\.e2e\\.test\\.ts$",
+    "transform": {
+        "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "moduleNameMapper": {
+        "^~/(.*)$": "<rootDir>/src/$1",
+        "^prisma/(.*)$": "<rootDir>/prisma/$1",
+        "^test/(.*)$": "<rootDir>/test/$1"
+    }
 }

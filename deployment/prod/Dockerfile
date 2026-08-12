@@ -19,7 +19,8 @@ RUN pnpm i --prod;
 
 COPY .. .
 
-RUN pnpm prebuild && \
+RUN export DATABASE_URL=mysql://prisma:prisma@127.0.0.1:3306/prisma && \
+    pnpm prebuild && \
     pnpm prod:build
 
 # Production stage
@@ -38,7 +39,6 @@ RUN apk add --no-cache tzdata && \
 
 COPY --from=builder /home/node/dist ./dist
 COPY --from=builder /home/node/node_modules ./node_modules
-COPY --from=builder /home/node/.env ./
 COPY --from=builder /home/node/package.json ./
 
 CMD ["pnpm", "prod:boot"]

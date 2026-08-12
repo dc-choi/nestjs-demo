@@ -1,37 +1,27 @@
 import { ClsPluginTransactional } from '@nestjs-cls/transactional';
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { RedisModule } from '@nestjs-modules/ioredis';
-import { BullModule } from '@nestjs/bullmq';
 import { Module, ValidationPipe } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
-
-import { DistributedLockInterceptor } from './global/common/lock/DistributedLock.interceptor';
+import { APP_PIPE } from '@nestjs/core';
 
 import { Request, Response } from 'express';
-import Redis from 'ioredis';
 import Joi from 'joi';
 import { WinstonModule } from 'nest-winston';
 import { ClsModule } from 'nestjs-cls';
 import { randomUUIDv7 } from 'node:crypto';
 import { DaoModule } from 'prisma/dao.module';
 import { REPOSITORY } from 'prisma/repository';
-import Redlock from 'redlock';
-import { AuthModule } from '~/api/v1/auth/auth.module';
-import { MemberModule } from '~/api/v1/member/member.module';
-import { OrderModule } from '~/api/v1/order/order.module';
-import { OrderV2Module } from '~/api/v2/order/orderV2.module';
-import { OrderV3Module } from '~/api/v3/order/orderV3.module';
-import { DEFAULT_LOCK_BASE_DELAY, DEFAULT_LOCK_MAX_RETRIES, RED_LOCK } from '~/global/common/lock/DistributedLock';
-import { MutexModule } from '~/global/common/lock/mutex.module';
+import { AuthModule } from '~/api/auth/auth.module';
+import { CatalogModule } from '~/api/catalog/catalog.module';
+import { MemberModule } from '~/api/member/member.module';
+import { OrderModule } from '~/api/order/order.module';
+import { DistributedLockModule } from '~/global/common/lock/distributed-lock.module';
 import { EnvConfig } from '~/global/config/env/env.config';
 import { winstonTransports } from '~/global/config/logger/winston.config';
-import { AllExceptionFilter } from '~/global/filter/all.exception.filter';
-import { DefaultExceptionFilter } from '~/global/filter/default.exception.filter';
-import { HttpLoggingInterceptor } from '~/global/interceptor/http.logging.interceptor';
+import { GlobalGraphqlModule } from '~/global/graphql/graphql.module';
 import { TokenModule } from '~/global/jwt/token.module';
 import { MailModule } from '~/infra/mail/mail.module';
-import { QueueModule } from '~/infra/queue/queue.module';
 
 @Module({
     imports: [
@@ -65,7 +55,7 @@ import { QueueModule } from '~/infra/queue/queue.module';
             transports: winstonTransports,
         }),
         // 상위 서비스가 보낸 x-request-id는 형식을 검증하지 않고 그대로 이어서 추적한다.
-        // 이 CLS 범위는 HTTP 요청에만 생성되며 BullMQ 작업으로 자동 전파되지 않는다.
+        // GraphQL도 HTTP transport를 사용하므로 이 middleware가 요청 전체의 requestId를 만든다.
         ClsModule.forRoot({
             global: true,
             middleware: {
@@ -92,36 +82,21 @@ import { QueueModule } from '~/infra/queue/queue.module';
                 url: configService.get<string>('REDIS_URL'),
             }),
         }),
-        // BullMQ
-        BullModule.forRootAsync({
-            inject: [ConfigService],
-            useFactory: (configService: ConfigService<EnvConfig, true>) => ({
-                connection: {
-                    url: configService.get<string>('REDIS_URL'),
-                },
-            }),
-        }),
-        QueueModule,
+        DistributedLockModule,
         // Prisma
         DaoModule,
         // Infra
         MailModule,
         // Token
         TokenModule,
-        // Mutex
-        MutexModule,
+        GlobalGraphqlModule,
         // Business Logic
         AuthModule,
+        CatalogModule,
         MemberModule,
         OrderModule,
-        OrderV2Module,
-        OrderV3Module,
     ],
     providers: [
-        {
-            provide: APP_INTERCEPTOR,
-            useClass: HttpLoggingInterceptor,
-        },
         {
             provide: APP_PIPE,
             useFactory: () =>
@@ -130,28 +105,6 @@ import { QueueModule } from '~/infra/queue/queue.module';
                     stopAtFirstError: true,
                     // whitelist: true, forbidNonWhitelisted: true, 등 필요 옵션 추가 가능
                 }),
-        },
-        {
-            provide: APP_FILTER,
-            useClass: AllExceptionFilter,
-        },
-        {
-            provide: APP_FILTER,
-            useClass: DefaultExceptionFilter,
-        },
-        {
-            provide: RED_LOCK,
-            inject: [],
-            useFactory: (redis: Redis) => {
-                return new Redlock([redis], {
-                    retryCount: DEFAULT_LOCK_MAX_RETRIES,
-                    retryDelay: DEFAULT_LOCK_BASE_DELAY,
-                });
-            },
-        },
-        {
-            provide: APP_INTERCEPTOR,
-            useClass: DistributedLockInterceptor,
         },
     ],
     exports: [],

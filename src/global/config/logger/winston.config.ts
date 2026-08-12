@@ -60,7 +60,7 @@ export const sqlLogger = WinstonModule.createLogger({
     ],
 });
 
-export const httpLogger = WinstonModule.createLogger({
+export const graphqlLogger = WinstonModule.createLogger({
     level: 'http',
     format: winston.format.combine(winston.format.timestamp(), utilities.format.nestLike('My-Own-App')),
     transports: [
@@ -70,10 +70,9 @@ export const httpLogger = WinstonModule.createLogger({
                 winston.format.timestamp({
                     format: 'YYYY-MM-DD HH:mm:ss',
                 }),
-                addRequestId(),
                 winston.format.json()
             ),
-            dirname: 'logs_json/http',
+            dirname: 'logs_json/graphql',
             filename: '%DATE%.log',
             datePattern: 'YYYY-MM-DD',
             zippedArchive: false,

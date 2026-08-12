@@ -1,5 +1,6 @@
 import { Prisma } from 'prisma/generated/client/client';
-import { toOrderedItem, toOrderItemCreate } from '~/api/order/domain/ordered-item';
+import { toOrderItemCreate } from '~/api/order/infrastructure/order.persistence';
+import { toOrderLine } from '~/api/order/infrastructure/orderable-snapshot-item';
 
 describe('ordered item snapshot', () => {
     const source = {
@@ -33,11 +34,11 @@ describe('ordered item snapshot', () => {
     };
 
     it('현재 상품 버전을 주문 시점 값으로 복사한다', () => {
-        const orderedItem = toOrderedItem(20n, 2, source);
+        const orderedItem = toOrderLine(20n, 2, source);
 
         expect(orderedItem.lineTotalPrice.toString()).toBe('2200');
-        expect(orderedItem.productName).toBe('기본 티셔츠');
-        expect(orderedItem.selectedOptions).toEqual([
+        expect(orderedItem.snapshot.productName).toBe('기본 티셔츠');
+        expect(orderedItem.snapshot.selectedOptions).toEqual([
             {
                 optionCode: 'color',
                 optionName: '색상',
@@ -48,7 +49,7 @@ describe('ordered item snapshot', () => {
     });
 
     it('주문 품목과 원천 snapshot을 같은 Item으로 연결한다', () => {
-        const create = toOrderItemCreate(toOrderedItem(20n, 2, source));
+        const create = toOrderItemCreate(toOrderLine(20n, 2, source));
 
         expect(create.item).toEqual({ connect: { id: 20n } });
         expect(create.snapshot).toMatchObject({

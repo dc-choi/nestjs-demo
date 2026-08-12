@@ -2,7 +2,7 @@ import { MailerService } from '@nestjs-modules/mailer';
 import { ConfigService } from '@nestjs/config';
 import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
 
-import { SignupEvent } from '~/api/v1/member/application/event/signup.event';
+import { SignupEvent } from '~/api/member/application/event/signup.event';
 import { verboseLog } from '~/global/common/logger/channel.logger';
 import { EnvConfig } from '~/global/config/env/env.config';
 

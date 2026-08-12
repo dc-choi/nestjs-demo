@@ -6,6 +6,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 
 import { SignupMailHandler } from './handler/signup.mail.handler';
 
+import { join } from 'node:path';
 import { EnvConfig } from '~/global/config/env/env.config';
 
 @Module({
@@ -27,7 +28,8 @@ import { EnvConfig } from '~/global/config/env/env.config';
                         from: 'Choi Dond Chul',
                     },
                     template: {
-                        dir: 'src/global/templates',
+                        // __dirname 기준으로 source, Nest build, SWC build에서 같은 상대 위치를 사용한다.
+                        dir: join(__dirname, '../../global/templates'),
                         adapter: new HandlebarsAdapter(),
                         options: {
                             strict: true,

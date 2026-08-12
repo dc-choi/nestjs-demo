@@ -4,6 +4,8 @@ logs
 node_modules
 test
 deployment
+.env
+.env.*
 
 .git
 .github/**

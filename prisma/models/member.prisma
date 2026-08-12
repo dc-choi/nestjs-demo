@@ -5,7 +5,8 @@
 model Member {
   id             BigInt     @id @default(autoincrement()) @db.BigInt
   name           String     @db.VarChar(255)
-  email          String     @db.VarChar(255)
+  /// 로그인 식별자는 탈퇴 이력을 포함해 전역에서 하나의 계정만 가리킨다.
+  email          String     @unique @db.VarChar(255)
   hashedPassword String?    @map("hashed_password") @db.VarChar(128)
   phone          String     @db.VarChar(255)
   role           MemberRole @default(GUEST)

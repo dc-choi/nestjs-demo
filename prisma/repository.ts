@@ -35,13 +35,12 @@ export const createRepository = (
         },
     })
         .$on('query' as never, (event: Prisma.QueryEvent) => {
-            const { query, params, target, timestamp, duration } = event;
+            const { query, target, timestamp, duration } = event;
             sqlLog.log({
                 type: 'PRISMA QUERY',
                 env: configService.get<string>('ENV'),
                 timestamp,
                 query,
-                params,
                 durationMs: duration,
                 target,
                 isSlowQuery: duration >= 500,
@@ -74,13 +73,12 @@ export const createRepository = (
         },
     })
         .$on('query' as never, (event: Prisma.QueryEvent) => {
-            const { query, params, target, timestamp, duration } = event;
+            const { query, target, timestamp, duration } = event;
             sqlLog.log({
                 type: 'PRISMA REPLICA QUERY',
                 env: configService.get<string>('ENV'),
                 timestamp,
                 query,
-                params,
                 durationMs: duration,
                 target,
                 isSlowQuery: duration >= 500,
