@@ -1,53 +1,128 @@
 name: SonarCloud Analysis
 
 on:
-  pull_request:
-    types:
-      - opened
-      - synchronize
-      - reopened
-  push:
-    branches:
-      - main
+    pull_request:
+        types:
+            - opened
+            - synchronize
+            - reopened
+    push:
+        branches:
+            - main
 
 jobs:
-  sonarqube:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # SonarCloud가 git history를 분석하려면 필요
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '26.7.0'
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.11.0
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Generate Prisma Client
-        run: pnpm stage:build
-
-      - name: Run tests with coverage
-        run: pnpm coverage
-
-      - name: SonarCloud Scan
-        uses: sonarsource/sonarcloud-github-action@master
+    sonarqube:
+        runs-on: ubuntu-latest
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+            ENV: test
+            SERVER_PORT: 3000
+            MYSQL_HOST: 127.0.0.1
+            MYSQL_PORT: 3306
+            MYSQL_USER: demo_nest
+            MYSQL_PASSWORD: demo_nest_ci
+            MYSQL_DATABASE: demo_nest_integration
+            MYSQL_READ_REPLICA_HOST: 127.0.0.1
+            MYSQL_READ_REPLICA_PORT: 3306
+            MYSQL_READ_REPLICA_USER: demo_nest
+            MYSQL_READ_REPLICA_PASSWORD: demo_nest_ci
+            MYSQL_READ_REPLICA_DATABASE: demo_nest_integration
+            SECRET: ci-only-jwt-secret-with-at-least-32-characters
+            PAYMENT_WEBHOOK_SECRET: ci-only-webhook-secret-with-at-least-32-characters
+            MAIL_USER: ci@example.com
+            MAIL_PASSWORD: ci-only-mail-password
+            MAIL_SIGNUP_ALERT_USER: ci@example.com
+            REDIS_URL: redis://127.0.0.1:6379
+            OPENSEARCH_ENABLED: false
 
-      - name: SonarCloud Quality Gate Check
-        uses: sonarsource/sonarqube-quality-gate-action@master
-        timeout-minutes: 5
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: https://sonarcloud.io
+        services:
+            mysql:
+                image: mysql:8.0.42
+                env:
+                    MYSQL_DATABASE: demo_nest_integration
+                    MYSQL_USER: demo_nest
+                    MYSQL_PASSWORD: demo_nest_ci
+                    MYSQL_ROOT_PASSWORD: demo_nest_root_ci
+                ports:
+                    - 3306:3306
+                options: >-
+                    --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -pdemo_nest_root_ci --silent"
+                    --health-interval=5s
+                    --health-timeout=3s
+                    --health-retries=20
+            redis:
+                image: redis:8.0.2-alpine3.21
+                ports:
+                    - 6379:6379
+                options: >-
+                    --health-cmd="redis-cli ping"
+                    --health-interval=5s
+                    --health-timeout=3s
+                    --health-retries=10
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0 # SonarCloud가 git history를 분석하려면 필요
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '26.7.0'
+
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 11.21.0
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Build application
+              run: pnpm stage:build
+
+            - name: Lint source
+              run: pnpm lint
+
+            - name: Apply and verify database migrations
+              run: |
+                  pnpm database:migrate
+                  pnpm database:migration:check
+
+            - name: Run MySQL integration tests
+              run: pnpm integration:mysql
+
+            - name: Run GraphQL end-to-end tests
+              run: |
+                  pnpm prod:build
+                  pnpm prod:boot > /tmp/demo-nest.log 2>&1 &
+                  for attempt in $(seq 1 30); do
+                      if curl --fail --silent \
+                          --header 'content-type: application/json' \
+                          --data '{"query":"{ __typename }"}' \
+                          http://127.0.0.1:3000/graphql >/dev/null; then
+                          break
+                      fi
+                      if [ "$attempt" -eq 30 ]; then
+                          sed -n '1,240p' /tmp/demo-nest.log
+                          exit 1
+                      fi
+                      sleep 1
+                  done
+                  pnpm e2e
+
+            - name: Run tests with coverage
+              run: pnpm coverage
+
+            - name: SonarCloud Scan
+              uses: sonarsource/sonarcloud-github-action@master
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+            - name: SonarCloud Quality Gate Check
+              uses: sonarsource/sonarqube-quality-gate-action@master
+              timeout-minutes: 5
+              env:
+                  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+                  SONAR_HOST_URL: https://sonarcloud.io
