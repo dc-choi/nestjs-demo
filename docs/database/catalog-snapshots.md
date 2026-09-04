@@ -1,382 +1,305 @@
-# 상품 변경 이력과 주문 Snapshot 설계
+# Live Catalog, 변경 이력과 주문 Snapshot 설계
 
-이 문서에서 스냅샷은 캐시나 변경된 필드의 목록이 아닙니다. 판매할 상품 상태 전체를 버전별로
-보존하는 변경 이력입니다. DRAFT는 여러 번 편집할 수 있고, 새로운 판매 상태를 공개할 때 새 버전을
-발행합니다.
+이 문서는 서로 다른 세 가지 상태를 구분합니다.
+
+1. `Product`/`Item` graph는 현재 판매 상태의 권위 있는 모델입니다.
+2. `ProductSnapshot`은 Product 변경 당시의 전체 상태를 JSON으로 남기는 append-only 감사 이력입니다.
+3. `OrderItemSnapshot`은 주문 접수 시점의 상품과 가격을 복사한 거래 증거입니다.
+
+`ProductSnapshot`과 `OrderItemSnapshot`은 이름에 Snapshot이 들어가지만 사용 목적과
+생명주기가 다릅니다. 하나로 합치거나 서로 FK로 연결하지 않습니다.
+
+상태 전이와 Entity/Service 책임은
+[모델 경계 원칙](../architecture/model-boundaries.md)을 따릅니다.
 
 ## 1분 요약
 
-> `Product`와 `Item`은 계속 유지되는 실체이고, `ProductSnapshot`은 고객에게 공개한 상품 버전이며,
-> `ProductPublication`은 그중 현재 발행본을 가리키고, `OrderItemSnapshot`은 주문 접수 당시 값을
-> 별도로 고정합니다.
-
-| 모델                  | 책임                                           |
-| --------------------- | ---------------------------------------------- |
-| `Product`             | 안정적인 상품 ID, slug, 판매자, 운영 상태      |
-| `Item`                | 실제 SKU와 현재 재고                           |
-| `ProductSnapshot`     | 버전별 상품명, 설명, 반품 정책                 |
-| `ProductSnapshotItem` | 해당 버전의 SKU 표시명, 가격, 세금, 판매 상태  |
-| `ProductPublication`  | Product마다 현재 발행본 하나를 선택하는 포인터 |
-| `OrderItemSnapshot`   | 주문 접수 시 실제 사용한 표시 정보, 단가, 옵션 |
+| 모델                | 책임                                                  | 일반 조회/주문에서 사용    |
+| ------------------- | ----------------------------------------------------- | -------------------------- |
+| `Product`           | 현재 상품 정보, 운영 상태, `revision`                 | 사용                       |
+| `Item`              | 현재 SKU, 표시명, 가격, 세금, 판매 상태, 재고         | 사용                       |
+| Product 하위 관계   | 현재 옵션, 카테고리, 미디어, 태그                     | 사용                       |
+| `ProductSnapshot`   | revision별 전체 판매 상태 JSON, 변경 유형/사유/행위자 | 사용 금지                  |
+| `OrderItemSnapshot` | 주문 접수 시점의 표시 정보, 가격, 옵션                | 주문 저장/사후 증빙에 사용 |
 
 ```mermaid
 flowchart LR
-    Product -->|버전 이력| ProductSnapshot
-    Product -->|안정적인 SKU| Item
-    ProductSnapshot -->|버전별 SKU 구성| ProductSnapshotItem
-    Item -->|여러 버전에서 재사용| ProductSnapshotItem
-    ProductPublication -->|현재 발행본| ProductSnapshot
-    OrderItemSnapshot -->|주문 원천| ProductSnapshotItem
+    Product --> Item
+    Product --> Option[ProductOption]
+    Product --> Category[ProductCategory]
+    Product --> Media[ProductMedia]
+    Product --> Tag[ProductTag]
+
+    Product -. 전체 상태를 JSON으로 기록 .-> ProductSnapshot
+    Item --> OrderItem
+    Product -->|ID/revision만 복사| OrderItemSnapshot
+    Item -->|표시 정보/가격/옵션 복사| OrderItemSnapshot
+    OrderItem --> OrderItemSnapshot
 ```
 
-현재 구현 범위도 먼저 구분해야 합니다.
+점선은 실제 FK나 일반 조회 join이 아니라 변경 command가 남겨야 하는 감사 기록을
+의미합니다. `OrderItemSnapshot` 안의 원천 ID/revision도 FK가 아닌 스칼라 증거입니다.
 
-| 기능                                  | 현재 상태                            |
-| ------------------------------------- | ------------------------------------ |
-| 현재 발행본 조회와 주문 Snapshot 생성 | 공개 주문과 두 비교용 구현에 적용    |
-| 조건부 재고 차감                      | 공개 주문과 `OrderV1Service`에 적용  |
-| Item 행 잠금 후 재고 차감             | 비교용 `OrderV2Service`에 적용       |
-| DRAFT 작성, 복사, 발행 명령           | 아직 미구현                          |
-| 재고 예약/원장, 결제, 배송            | 모델만 존재하며 주문 경로에는 미연결 |
+## 현재 구현과 계약
 
-외부 주문 API에는 `OrderService`만 `Mutation.placeOrder`로 연결됩니다. `OrderV1Service`와
-`OrderV2Service`는 Snapshot과 동시성 처리 방식을 비교하기 위한 application service이며 runtime
-module에는 등록되지 않습니다. 세 구현은 API 버전 디렉터리로 나누지 않고 `src/api/order`에 함께 둡니다.
+| 기능                                    | 현재 상태                                           |
+| --------------------------------------- | --------------------------------------------------- |
+| live `Query.product`                    | 구현, Product/Item/옵션/카테고리/태그 join          |
+| live Item 기반 주문                     | 구현, Product/Item 잠금, 상태와 합산 재고 검증      |
+| `OrderItemSnapshot` 생성                | 구현, 주문 aggregate와 같은 transaction에 저장      |
+| `ProductSnapshot` Entity/payload 스키마 | 구현                                                |
+| Product 작성/수정/삭제/복원 command     | 구현, Seller 소유권 또는 Admin 권한 검사            |
+| Item/옵션/분류/태그 graph 변경 command  | 구현, 개별 Item과 전체 graph 교체 지원              |
+| live 변경과 감사 Snapshot의 원자적 저장 | 구현, 검색 Outbox까지 같은 transaction에 저장       |
+| 감사 이력 조회/복원 API                 | 구현, metadata 최신순 최대 100건과 새 revision 복원 |
 
-## 왜 나누는가
+Entity hook가 임의 변경의 이력을 자동 생성하는 구조는 아닙니다. 모든 Catalog 쓰기를
+`ProductCommandService`로 통과시켜 아래 transaction 계약을 지킵니다. EntityManager로 live graph를
+직접 수정하면 이 보장을 우회하므로 금지합니다.
 
-상품 정보는 서로 다른 속도로 변합니다.
+현재 복원 command는 Product의 slug/이름/설명/반품 정책/상태, Item, 옵션, 카테고리와 태그를 과거 payload
+값으로 되돌립니다.
+Snapshot에 기록된 과거 media metadata는 감사용이며 복원 입력으로 적용하지 않습니다. 복원 시점의 live
+media 연결은 그대로 보존됩니다. 카테고리는 과거 ID 연결만 다시 적용하며 공유 `Category`의 이름, slug와
+상위 경로는 현재 값을 바꾸지 않습니다.
 
-| 변화 종류                  | 예시                           | 저장 위치              |
-| -------------------------- | ------------------------------ | ---------------------- |
-| 안정적인 식별 정보         | Product ID, 판매자, slug       | `Product`              |
-| SKU 식별과 실시간 재고     | sku, 현재 stock                | `Item`                 |
-| 판매자가 발행하는 카탈로그 | 이름, 설명, 가격, 옵션, 미디어 | `ProductSnapshot` 하위 |
-| 주문 접수 당시 값          | 적용 가격, 옵션명, 반품 정책   | `OrderItemSnapshot`    |
-| 재고 변화의 원인           | 입고, 예약, 판매, 반품         | `InventoryMovement`    |
+`productSnapshots` Query는 ID, revision, schema version, 변경 유형/사유/행위자/시각 metadata만
+반환합니다. 내부 `payload`와 media `storageKey`는 GraphQL에 노출하지 않으며 `restoreProduct`가 선택한
+revision을 서버 안에서 읽습니다.
 
-모든 필드를 Product나 Item 한 행에 넣으면 수정할 때 과거 값이 사라집니다. 반대로 stock까지 상품
-스냅샷에 넣으면 주문마다 상품 버전을 만들어야 합니다. 그래서 카탈로그 변경 이력과 실시간 재고를
-분리합니다.
+## Live Catalog이 권위 있는 현재 상태다
 
-## 관계 지도
+`ProductEntity`는 현재 상품의 공통 정보를 갖습니다.
 
-```mermaid
-erDiagram
-    PRODUCT ||--o{ ITEM : owns
-    PRODUCT ||--o{ PRODUCT_SNAPSHOT : versions
-    PRODUCT ||--o| PRODUCT_PUBLICATION : has_current_pointer
-    PRODUCT_SNAPSHOT ||--o| PRODUCT_PUBLICATION : selected_by
+- 식별자, seller, slug
+- 이름, 설명, 반품 정책
+- `DRAFT`, `ACTIVE`, `PAUSED`, `SUSPENDED`, `CLOSED` 운영 상태
+- 현재 상태의 버전인 `revision`
+- Item, 옵션, 카테고리, 미디어, 태그 관계
 
-    PRODUCT_SNAPSHOT ||--o{ PRODUCT_SNAPSHOT_ITEM : contains
-    ITEM ||--o{ PRODUCT_SNAPSHOT_ITEM : reused_by
+`ItemEntity`는 현재 판매 단위입니다.
 
-    PRODUCT_SNAPSHOT ||--o{ PRODUCT_SNAPSHOT_OPTION : defines
-    PRODUCT_SNAPSHOT_OPTION ||--o{ PRODUCT_SNAPSHOT_OPTION_VALUE : offers
-    PRODUCT_SNAPSHOT_ITEM ||--o{ PRODUCT_SNAPSHOT_ITEM_OPTION_VALUE : selects
-    PRODUCT_SNAPSHOT_OPTION_VALUE ||--o{ PRODUCT_SNAPSHOT_ITEM_OPTION_VALUE : selected_as
+- SKU와 표시명
+- 공급가, 부가세, 총액, 면세 여부
+- 판매 허용 상태와 표시 순서
+- 옵션 조합과 `optionSignature`
+- 현재 재고 `stock`
 
-    PRODUCT_SNAPSHOT ||--o{ PRODUCT_SNAPSHOT_CATEGORY : categorized_as
-    PRODUCT_SNAPSHOT ||--o{ PRODUCT_SNAPSHOT_MEDIA : displays
-    PRODUCT_SNAPSHOT ||--o{ PRODUCT_SNAPSHOT_TAG : tagged_with
-
-    ORDER ||--o{ ORDER_ITEM : contains
-    ORDER_ITEM ||--o| ORDER_ITEM_SNAPSHOT : freezes
-    PRODUCT_SNAPSHOT_ITEM ||--o{ ORDER_ITEM_SNAPSHOT : source
-```
-
-`ProductPublication`은 Snapshot 하나를 반드시 참조하지만, 대부분의 DRAFT와 과거 발행본에는 자신을
-가리키는 Publication이 없습니다.
-
-## 핵심 모델
-
-### Product와 Item
-
-`Product`는 상품의 정체성입니다. slug와 판매자는 생성 후 바꾸지 않는 서비스 규칙으로 취급합니다.
-상품명이나 가격은 여기에 두지 않습니다.
-
-`Item`은 주문 요청의 `itemId`가 가리키는 실제 재고 단위입니다. 일반적인 커머스 용어로 SKU 또는
-Variant에 가깝습니다.
+따라서 일반 상품 조회와 주문 가격 판정은 다음 graph를 사용합니다.
 
 ```text
-Product: 기본 티셔츠
-  Item #101: 검정/M, stock 20
-  Item #102: 검정/L, stock 15
+Product
+  -> Items
+     -> ItemOptionValues
+        -> ProductOption / ProductOptionValue
+  -> ProductOptions / ProductOptionValues
+  -> ProductCategories / Category
+  -> ProductMedia / MediaAsset
+  -> ProductTags
 ```
 
-정확히는 `Item`에 옵션 표시명은 없습니다. Item은 불변 sku 문자열과 현재 stock을 갖고,
-`ProductSnapshotItem.name`이 버전별 SKU 표시명을 갖습니다. 같은 Item은 Snapshot v1, v2, v3에서
-계속 재사용됩니다.
+`ProductSnapshot`을 join해 현재본을 찾거나, 가장 큰 revision을 읽어 현재 상태로
+사용하지 않습니다. live table 자체가 현재본입니다.
 
-### ProductSnapshot과 ProductSnapshotItem
+## ProductSnapshot은 append-only 감사 이력이다
 
-`ProductSnapshot`은 한 상품 버전의 공통 정보를 보존합니다.
+`ProductSnapshotEntity`는 정규화된 현재 상태를 대체하지 않습니다. Product의 한 revision을
+사후에 설명하고 지원되는 필드를 복원할 수 있게 전체 graph를 JSON `payload`로 기록합니다.
 
-- 상품명
-- 설명
-- 반품 정책
-- 해당 버전의 옵션, 카테고리, 미디어, 태그
+| 필드                   | 의미                                    |
+| ---------------------- | --------------------------------------- |
+| `product_id`           | 이력의 소유 Product FK                  |
+| `revision`             | 기록한 live Product revision            |
+| `schema_version`       | JSON payload 형식 버전                  |
+| `change_type`          | `CREATE`, `UPDATE`, `RESTORE`, `DELETE` |
+| `payload`              | 변경 후 전체 Catalog 상태 JSON          |
+| `reason`               | 선택적 변경 사유                        |
+| `changed_by_member_id` | 변경 행위자                             |
+| `created_at`           | 이력 생성 시각                          |
 
-`ProductSnapshotItem`은 그 버전에서 Item이 어떻게 판매됐는지 보존합니다.
+Product당 `(product_id, revision)`은 unique입니다. 과거 행을 UPDATE하거나 DELETE하지 않고
+새로운 revision 행만 INSERT합니다. DB metadata가 UPDATE/DELETE를 물리적으로 차단하지는
+않으므로, 모든 Catalog 쓰기를 전용 command Service로 제한해 이 정책을 보호합니다.
 
-- SKU 표시명과 당시 sku 문자열
-- 공급가, 부가세, 단위 총액
-- 면세 여부와 판매 허용 상태
-- 표시 순서와 옵션 조합 서명
+### Payload 범위
 
-가격의 source of truth는 `ProductSnapshotItem` 하나입니다. Item에는 가격이 없습니다. 현재 가격은
-Publication이 가리키는 현재 발행본의 SnapshotItem에서 읽습니다.
+payload는 다음 판매 정보를 전체 상태로 보존합니다.
 
-Snapshot 상태는 두 개입니다.
+- Product의 seller, slug, 이름, 설명, 반품 정책, 운영 상태
+- Item의 ID, SKU, 표시명, 가격, 세금, 판매 상태, 순서, 옵션 서명
+- 옵션과 값, Item의 선택 옵션
+- 카테고리와 당시 경로
+- 미디어 metadata와 역할
+- 태그
 
-- `DRAFT`: 작성 중이며 편집할 수 있음
-- `PUBLISHED`: 발행된 변경 이력이며 이후 수정하거나 삭제하지 않아야 함
+payload에는 `Item.stock`을 넣지 않습니다. 재고는 주문, 취소, 입고 등으로 빈번히
+바뀌는 운영 상태이며 상품 편집 revision이 아닙니다. 현재 재고는 `Item.stock`, 변경 근거는
+`InventoryMovement`가 권위를 가져야 합니다.
 
-여러 PUBLISHED 버전이 존재할 수 있습니다. 현재 발행본은 가장 큰 version이나 상태로 추측하지 않고
-반드시 `ProductPublication`으로 찾습니다.
+### Snapshot payload는 schema version을 갖는다
 
-### ProductPublication
+JSON 구조가 바뀌어도 과거 이력을 읽을 수 있어야 합니다. `schemaVersion`을 기준으로
+파서와 복원기를 버전별로 구분합니다. 기존 payload를 제자리에서 대량 수정하지 않습니다.
 
-`ProductPublication`은 Product마다 최대 하나 존재하는 현재 발행본 포인터입니다.
+## Revision과 Snapshot의 원자적 계약
+
+Product 변경 한 번은 live graph와 감사 이력을 함께 바꾸는 하나의 command입니다.
+성공한 변경 후에는 다음 조건이 모두 성립해야 합니다.
 
 ```text
-Product #1
-  ProductSnapshot v1: PUBLISHED
-  ProductSnapshot v2: PUBLISHED <- ProductPublication
+Product.revision == 방금 삽입한 ProductSnapshot.revision
+ProductSnapshot.payload == 방금 commit한 live Product graph에서 캡처한 전체 감사 상태
 ```
 
-롤백도 과거 Snapshot을 수정하지 않고 포인터를 v1으로 옮기는 방식입니다. `publishedAt`은 포인터를
-교체할 때 서비스가 명시적으로 갱신해야 합니다. Prisma 필드의 `@default(now())`는 최초 생성 시각만
-자동으로 채웁니다.
+현재 변경 command는 writer transaction에서 다음 순서를 보장합니다.
 
-`ProductPublication`과 `Product.status`는 다른 축입니다.
+1. Product를 잠그거나 기대 revision으로 동시 변경을 검증합니다.
+2. 입력과 도메인 규칙을 검증하고 live Product/Item/하위 관계를 변경합니다.
+3. `nextRevision = revisionBeforeChange + 1`을 계산해 `Product.revision`에 반영합니다.
+4. 변경 후 live graph를 정규화된 JSON payload로 캡처합니다.
+5. 같은 `nextRevision`으로 `ProductSnapshot` 한 행을 INSERT합니다.
+6. live 변경과 Snapshot INSERT를 같은 transaction에서 commit합니다.
 
-- Publication은 어떤 콘텐츠 버전을 현재본으로 사용할지 결정합니다.
-- Product.status는 주문 가능한 운영 상태인지 결정합니다.
+Snapshot INSERT가 실패하면 live 변경도 rollback해야 하고, live 변경이 실패하면 Snapshot도
+남지 않아야 합니다. Snapshot을 queue나 별도 transaction으로 느슨하게 기록하면 감사
+이력에 빈 revision이나 실제로 존재하지 않았던 상태가 남을 수 있습니다.
 
-상품을 일시 중지해도 Publication은 유지할 수 있습니다. 현재 주문 코드는 Product가 `ACTIVE`인지와
-현재 Publication이 유효한지를 각각 검사합니다.
+최초 Product 생성은 revision 1의 live graph와 revision 1 Snapshot을 같은 transaction에서 만듭니다.
+이후 수정, 하위 graph 교체, soft delete와 복원은 pessimistic row lock과 `expectedRevision`으로 동시
+변경을 막고 revision을 하나씩 증가시킵니다.
 
-현재 Publication을 OpenSearch 검색 read model로 투영하는 경계와 구현 순서는
-[OpenSearch GraphQL 상품 검색 구현 계획](../search/opensearch-product-search.md)을 참고합니다.
+### 복원은 과거 revision을 재사용하지 않는다
 
-### OrderItemSnapshot
+revision 3을 revision 8 시점에 복원하더라도 `Product.revision`을 3으로 낮추지 않습니다.
 
-`OrderItemSnapshot`은 PENDING 주문을 접수할 때 `OrderItem`과 함께 생성됩니다. 현재 구현은
-ProductSnapshotItem 가격을 그대로 복사하며 할인 계산은 없습니다.
+```text
+과거 revision 3 payload 선택
+  -> live graph에 적용
+  -> Product.revision = 9
+  -> changeType RESTORE, revision 9 Snapshot 추가
+```
 
-복사하는 값:
+이렇게 해야 변경 순서가 단조 증가하고 복원 행위 자체도 감사 이력에 남습니다.
 
-- 원천 ProductSnapshot과 Item ID
-- 상품명, SKU 표시명, sku 문자열
-- 상품 설명과 반품 정책
+현재 `restoreProduct`가 적용하는 범위는 Product의 slug/이름/설명/반품 정책/상태, Item, 옵션,
+카테고리와 태그입니다. 과거 payload의 media metadata는 적용하지 않고 현재 live media 연결을
+유지합니다. media 연결까지 되돌려야 한다면 별도 Catalog command와 소유권/파일 수명 규칙을 먼저
+추가해야 합니다.
+
+카테고리 복원도 Snapshot의 과거 ID를 Product에 다시 연결하는 범위입니다. 당시 이름, slug와 경로는
+감사 payload에 남지만 공유 `Category` Entity 자체를 과거 값으로 되돌리지는 않습니다.
+
+## 일반 조회와 주문에서 ProductSnapshot을 금지한다
+
+`ProductSnapshot`을 일반 조회의 현재본으로 쓰면 다음 문제가 생깁니다.
+
+- 정규화된 live 상태와 JSON 복제본 중 어느 것이 권위 있는지 다시 불분명해집니다.
+- 일반 query가 JSON schema version과 이력 파서에 의존합니다.
+- 주문이 감사 행에 FK로 묶여 이력 보존과 Catalog 운영이 서로 제한됩니다.
+- 과거 이력 정리나 schema 변환이 온라인 주문의 가용성에 영향을 줍니다.
+
+따라서 다음을 금지합니다.
+
+- `Query.product`에서 `ProductSnapshot` 조회
+- `OrderService`에서 `ProductSnapshot` 조회
+- `ProductSnapshot`을 `OrderItem`/`OrderItemSnapshot`의 FK 원천으로 사용
+- 가장 큰 Snapshot revision을 live revision으로 추측
+- Snapshot payload를 MikroORM live Entity로 그대로 반환
+
+Snapshot을 읽을 수 있는 기능은 감사 이력 조회, 지원 범위의 복원 command, 데이터 검증과 재구성
+도구로 한정합니다.
+
+## OrderItemSnapshot은 별도의 주문 증거다
+
+`OrderItemSnapshotEntity`는 PENDING 주문을 접수할 때 live Product/Item에서 다음 값을
+복사합니다.
+
+- Product ID, Item ID, Product revision
+- 상품명, Item 표시명, SKU
+- 설명과 반품 정책
 - 공급가, 부가세, 단위 총액, 면세 여부
-- 선택 옵션의 코드와 표시명
+- 선택 옵션의 코드와 당시 표시명
 
-```json
-[
-    {
-        "optionCode": "color",
-        "optionName": "색상",
-        "valueCode": "black",
-        "valueName": "검정"
-    }
-]
-```
-
-현재는 주문 Snapshot을 읽는 영수증이나 환불 API가 없습니다. 그런 기능을 추가할 때 현재 상품을 다시
-조합하지 않고 이 값을 사용해야 과거 주문을 재현할 수 있습니다. 할인 기능을 추가한다면 원천 가격과
-실제 주문 가격이 달라진 근거도 별도로 모델링해야 합니다.
-
-## 변경, 발행, 주문 예시
-
-### 최초 발행
+`sourceProductId`, `sourceItemId`, `sourceProductRevision`은 숫자 출처를 남기는 스칼라이며
+`ProductSnapshot` FK가 아닙니다. 관련 Catalog 행이 나중에 바뀌거나 삭제되어도 주문
+증거는 자체 값으로 완전해야 합니다.
 
 ```text
-Product #1
-  slug: basic-tshirt
-
-Item #101
-  sku: 019c...
-  stock: 30
-
-ProductSnapshot #1001, version 1, PUBLISHED
-  name: 기본 티셔츠
-  description: 매일 입는 면 티셔츠
-
-ProductSnapshotItem (#1001, #101)
-  name: 검정 / L
-  totalPrice: 11,000
-  itemSaleStatus: ALLOW
-
-ProductPublication -> ProductSnapshot #1001
-```
-
-### 가격과 상품명 변경
-
-v1을 UPDATE하지 않습니다. 현재 발행본 전체를 v2 DRAFT로 복사한 뒤 변경합니다. 새 스냅샷은 다른
-버전과 합치지 않아도 그 시점의 판매 상태를 전부 읽을 수 있어야 합니다.
-
-```text
-ProductSnapshot #1001, v1, PUBLISHED
-  name: 기본 티셔츠
-  ProductSnapshotItem #101 totalPrice: 11,000
-
-ProductSnapshot #1002, v2, DRAFT
-  name: 프리미엄 기본 티셔츠
-  ProductSnapshotItem #101 totalPrice: 12,000
-```
-
-발행 서비스는 한 primary 트랜잭션에서 다음을 수행해야 합니다. 이 서비스는 아직 구현되지 않았습니다.
-
-1. Product와 Publication을 잠급니다.
-2. Snapshot의 구성, 가격, 옵션을 검증합니다.
-3. v2를 PUBLISHED로 바꾸고 최초 발행 시각을 기록합니다.
-4. Publication 포인터를 v2로 바꾸고 `publishedAt`을 갱신합니다.
-
-Product를 자동으로 ACTIVE로 바꾸지는 않습니다. 운영 상태 전이는 별도 정책으로 처리합니다.
-
-### 주문 접수
-
-Item #101을 2개 주문하면 처리 시점의 현재 발행본에서 가격 12,000원을 읽습니다.
-
-```text
-OrderItem
-  itemId: 101
-  quantity: 2
-  lineTotalPrice: 24,000
+주문 시점 live Product revision 7
+  Product.name: 기본 티셔츠
+  Item.totalPrice: 12,000
 
 OrderItemSnapshot
-  sourceProductSnapshotId: 1002
+  sourceProductId: 1
   sourceItemId: 101
-  productName: 프리미엄 기본 티셔츠
-  itemName: 검정 / L
+  sourceProductRevision: 7
+  productName: 기본 티셔츠
   unitTotalPrice: 12,000
 ```
 
-이후 상품 스냅샷 version 3에서 가격이 13,000원이 되어도 이 주문 Snapshot은 12,000원으로 남습니다.
+이후 live Product가 revision 8, 9로 변경되어도 주문 Snapshot은 revision 7의 주문
+조건을 그대로 유지합니다. 영수증, 환불, 고객 문의는 live Catalog나 감사 Snapshot을 다시
+조합하지 말고 `OrderItemSnapshot`을 사용해야 합니다.
 
-현재 요청은 itemId와 quantity만 전달하므로 고객이 화면에서 본 Snapshot이나 가격을 고정하지 않습니다.
-주문 코드는 처리 시점의 권위 있는 현재 발행본을 primary에서 읽습니다. 화면에서 본 가격과 반드시 같게
-하려면 요청에 예상 Snapshot ID 또는 가격을 추가하고, 달라졌을 때 재확인을 요구하는 계약이 필요합니다.
+현재 주문 입력은 `itemId`/`quantity`만 받으므로 화면에서 본 revision을 요청 계약으로
+고정하지 않습니다. 처리 시점의 live 가격을 적용합니다. 가격 변경 재확인이 필요하면
+예상 Product revision 또는 기대 가격을 input에 추가하는 별도 API 계약을 설계해야 합니다.
 
-## 옵션, 카테고리, 미디어
+## DB와 애플리케이션의 보장 범위
 
-### 옵션
+### DB가 보장하는 것
 
-옵션 이름과 값도 변경 이력의 일부이므로 Snapshot 아래에 있습니다.
+| 규칙                                      | 수단                                            |
+| ----------------------------------------- | ----------------------------------------------- |
+| Product당 Snapshot revision 중복 금지     | `(product_id, revision)` unique                 |
+| Snapshot의 Product/행위자 참조            | FK, 행위자는 nullable                           |
+| Item/옵션/값 참조와 Item당 옵션 중복 방지 | 단일 FK와 `(item_id, product_option_id)` unique |
+| Product 내 Item 순서/옵션 서명 중복 금지  | unique                                          |
+| OrderItem당 주문 Snapshot 최대 하나       | `order_item_id` primary key                     |
 
-```text
-ProductSnapshotOption: 색상
-  ProductSnapshotOptionValue: 검정
-  ProductSnapshotOptionValue: 흰색
+DB만으로는 Snapshot append-only, payload와 live graph의 일치, revision의 원자적 증가,
+가격 합계와 옵션 완전성을 자동으로 보장하지 않습니다.
 
-ProductSnapshotItem: 검정 / L
-  ProductSnapshotItemOptionValue -> 색상: 검정
-  ProductSnapshotItemOptionValue -> 사이즈: L
-```
+### 애플리케이션이 보장해야 하는 것
 
-복합 FK는 다른 Snapshot의 옵션이나 다른 옵션에 속한 값을 연결하는 오류를 막습니다. DB는 저장된
-`optionSignature` 문자열의 중복만 막습니다. 서명이 실제 옵션 선택과 일치하는지와 required 옵션이
-모두 선택됐는지는 발행 서비스가 검사해야 합니다.
+| 규칙                                                 | 책임                              |
+| ---------------------------------------------------- | --------------------------------- |
+| Product 변경과 revision/Snapshot 삽입의 원자성       | `ProductCommandService`           |
+| Snapshot append-only와 schemaVersion 해석            | Catalog command/이력 Service      |
+| 복원 시 현재 media 연결 보존                         | Catalog command/writer            |
+| payload에 stock 제외                                 | Snapshot projector/factory        |
+| 가격 합계, 면세, required 옵션, optionSignature 검증 | Catalog writer/명령               |
+| Item/옵션/값의 Product와 옵션 소속 일치              | Catalog writer/명령               |
+| soft delete 행을 일반 조회에서 제외                  | Query/Command Service             |
+| 주문 가능 Product/Item을 writer에서 조회             | `OrderService`                    |
+| Product/Item 고정 순서 잠금, Item별 합산 검사와 차감 | `OrderService`/`InventoryService` |
+| 주문 Snapshot 복사와 주문 aggregate 함께 저장        | Order rich Entity/transaction     |
 
-### 카테고리
+## 스키마를 바꿀 때 판단 기준
 
-`ProductSnapshotCategory`는 원본 Category ID와 다음 복사 컬럼을 가집니다.
+새 필드를 추가할 때는 다음 순서로 묻습니다.
 
-```text
-categoryName: 반팔 티셔츠
-categorySlug: short-sleeve
-categoryPath:
-  - { id: "10", name: "의류", slug: "clothing" }
-  - { id: "11", name: "상의", slug: "tops" }
-  - { id: "12", name: "반팔 티셔츠", slug: "short-sleeve" }
-```
+1. 현재 상품 조회/주문에 필요한가?
+2. Product 편집 revision에 포함되어 과거 상태를 복원해야 하는가?
+3. 주문 시점의 거래 증거로 별도 복사해야 하는가?
+4. 재고처럼 Catalog 편집과 독립적으로 자주 바뀌는가?
 
-현재 Category 트리가 바뀌어도 과거 Snapshot은 복사된 경로를 사용합니다. MySQL은 nullable unique에서
-NULL을 서로 다른 값으로 취급하므로 `@@unique([parentId, name])`은 루트 Category 이름 중복을 완전히
-막지 못합니다. 전역 slug unique는 루트에도 적용됩니다.
+적용 기준:
 
-### 미디어
-
-`ProductSnapshotMedia`는 당시 역할, 대체 텍스트, 표시 순서를 보존합니다. `MediaAsset`은 생성 후
-파일과 메타데이터를 바꾸지 않는 서비스 규칙을 사용합니다. 파일이 바뀌면 새 asset을 만들고 새
-Snapshot에 연결합니다.
-
-이 저장 구조와 공개 파일 전달 계약은 별개입니다. 현재는 object storage의 URL signer나 CDN adapter가
-없으므로 GraphQL에 미디어를 노출하지 않습니다. 전달 계층을 구현한 뒤에도 `storageKey`는 내부 값으로
-유지하고, 공개 API에는 짧은 수명의 URL만 제공합니다.
-
-## DB가 보장하는 것
-
-| 규칙                                                      | 수단                                |
-| --------------------------------------------------------- | ----------------------------------- |
-| Product 안에서 version이 중복되지 않음                    | `@@unique([productId, version])`    |
-| Product마다 Publication이 최대 하나                       | `ProductPublication.productId @id`  |
-| Publication이 같은 Product의 Snapshot을 가리킴            | 복합 FK                             |
-| SnapshotItem의 Snapshot과 Item이 같은 Product 소속        | 두 복합 FK                          |
-| 같은 Snapshot에서 Item, 순서, 서명 문자열이 중복되지 않음 | PK와 unique                         |
-| 옵션 값이 올바른 옵션과 같은 Snapshot에 연결됨            | 옵션 선택의 복합 FK                 |
-| OrderItem당 주문 Snapshot이 최대 하나                     | `OrderItemSnapshot.orderItemId @id` |
-| 주문 Snapshot의 원천 SnapshotItem이 실제로 존재함         | 복합 FK                             |
-| SnapshotItem이나 주문이 참조하는 Item의 hard delete 제한  | `onDelete: Restrict`                |
-
-DB 제약은 최소 하나의 하위 행 존재, 상태 전이, 금액 합계, 발행 후 불변성을 보장하지 않습니다.
-
-## 서비스가 보장해야 하는 것
-
-| 규칙                                                   | 책임                        |
-| ------------------------------------------------------ | --------------------------- |
-| Product.slug/sellerId, Item.sku/productId 불변         | 상품 명령 서비스            |
-| 발행된 Snapshot과 모든 하위 행 수정/삭제 금지          | 상품 명령 서비스            |
-| Publication은 PUBLISHED Snapshot만 참조                | 발행 트랜잭션               |
-| `firstPublishedAt`, `publishedAt` 정확히 기록          | 발행 트랜잭션               |
-| `totalPrice = supplyPrice + vat`, 면세 VAT 0           | 발행 검증                   |
-| required 옵션 완전성과 optionSignature 일치            | 발행 검증                   |
-| SnapshotItem.itemSku가 Item.sku와 일치                 | Snapshot 작성 서비스        |
-| 카테고리 복사 컬럼과 categoryPath 형식이 원본과 일치   | Snapshot 작성 서비스        |
-| MediaAsset 생성 후 불변                                | 미디어 명령 서비스          |
-| soft delete 행을 일반 조회에서 제외                    | 모든 조회 서비스            |
-| 수량이 양수                                            | 요청 검증과 주문 서비스     |
-| 주문 원천이 처리 시점의 현재 Publication               | 주문 조회 조건              |
-| 주문 Snapshot 복사 필드가 원천과 일치                  | 공용 `toOrderedItem` 변환기 |
-| OrderItem.itemId와 주문 Snapshot의 sourceItemId가 일치 | 공용 주문 생성기            |
-| 모든 OrderItem에 주문 Snapshot을 함께 생성             | 주문 트랜잭션               |
-| lineTotalPrice와 Order.totalPrice가 품목 합계와 일치   | 주문 트랜잭션               |
-| stock이 음수가 되지 않음                               | 행 잠금 또는 조건부 차감    |
-
-스키마의 “불변”, “추가 전용” 주석은 DB가 UPDATE를 자동 차단한다는 뜻이 아닙니다. 현재 Prisma Client는
-UPDATE와 DELETE를 수행할 수 있으므로 쓰기 경로가 정책을 강제해야 합니다. `deletedAt`도 자동 필터가
-아니므로 조회 조건에 `deletedAt: null`을 명시해야 합니다.
-
-`OrderItem.snapshot`과 `OrderItem.InventoryReservation`은 FK가 반대쪽에 있어 Prisma 스키마상 선택
-관계입니다. DB가 보장하는 것은 각각 최대 하나라는 사실뿐입니다. 현재 주문 코드는 주문 Snapshot을
-항상 함께 만들지만 InventoryReservation은 생성하지 않습니다.
-
-## 스키마를 수정할 때 판단 기준
-
-새 필드를 추가하기 전에 물어봅니다.
-
-1. 상품 수명 동안 변하지 않는가?
-2. 고객에게 노출되며 과거 버전을 복원해야 하는가?
-3. 주문 접수 당시 값을 별도로 보존해야 하는가?
-4. 재고처럼 카탈로그 편집과 독립적으로 자주 변하는가?
-
-저장 위치:
-
-- 안정 식별 정보는 Product 또는 Item
-- 발행되는 판매 정보는 ProductSnapshot 하위
-- 주문 접수 당시 값은 OrderItemSnapshot
-- 재고 현재값과 변경 원인은 Item.stock과 InventoryMovement
+- 현재 판매 상태는 live Product/Item 하위 Entity에 저장합니다.
+- 복원할 Catalog 판매 상태는 `ProductSnapshot.payload`에도 포함하고 command의 실제 복원 범위를 명시합니다.
+- 주문 접수 조건은 `OrderItemSnapshot`에 복사합니다.
+- 재고 현재값과 변경 원인은 `Item.stock`/`InventoryMovement`에 둡니다.
 
 ## 관련 파일
 
-- [`catalog.prisma`](../../prisma/models/catalog.prisma): Product, Category, MediaAsset
-- [`item.prisma`](../../prisma/models/item.prisma): Item
-- [`catalog-snapshot.prisma`](../../prisma/models/catalog-snapshot.prisma): Snapshot, Publication, SnapshotItem
-- [`catalog-option.prisma`](../../prisma/models/catalog-option.prisma): Snapshot 옵션
-- [`order.prisma`](../../prisma/models/order.prisma): OrderItem과 OrderItemSnapshot
-- [`inventory.prisma`](../../prisma/models/inventory.prisma): 재고 예약과 원장
-- [`order.ts`](../../src/api/order/domain/order.ts): 주문 합계와 저장 상태를 보호하는 domain 객체
-- [`orderable-snapshot-item.ts`](../../src/api/order/infrastructure/orderable-snapshot-item.ts): 현재 발행 상품을 주문 품목으로 변환
-- [`order.persistence.ts`](../../src/api/order/infrastructure/order.persistence.ts): 주문 domain과 Prisma 쓰기 형식의 변환
+- [`product.entity.ts`](../../src/api/catalog/domain/entity/product.entity.ts): live Product와 revision
+- [`item.entity.ts`](../../src/api/catalog/domain/entity/item.entity.ts): live Item 판매 정보와 재고
+- [`product-snapshot.entity.ts`](../../src/api/catalog/domain/entity/product-snapshot.entity.ts): append-only 변경 이력 metadata
+- [`product-snapshot-payload.ts`](../../src/api/catalog/domain/entity/product-snapshot-payload.ts): JSON payload 계약
+- [`product.service.ts`](../../src/api/catalog/application/product.service.ts): live canonical Product 조회
+- [`order.service.ts`](../../src/api/order/application/order.service.ts): live Item 검증, 재고 예약과 주문 저장
+- [`product-command.service.ts`](../../src/api/catalog/application/product-command.service.ts): revision/Snapshot/Outbox 원자 저장
+- [`product-snapshot.service.ts`](../../src/api/catalog/application/product-snapshot.service.ts): 권한이 적용된 이력 조회
+- [`order-item-snapshot.entity.ts`](../../src/api/order/domain/entity/order-item-snapshot.entity.ts): 주문 시점 증거
+- [`entities.ts`](../../src/infra/database/entities.ts): 전체 MikroORM Entity 등록 목록
