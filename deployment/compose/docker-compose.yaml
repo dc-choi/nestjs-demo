@@ -1,23 +1,35 @@
-version: "3.8"
-
 services:
-  # 로컬 구성은 MySQL 한 대만 실행하며 복제나 장애 전환을 설정하지 않는다.
-  db:
-    container_name: db
-    image: mysql:8.0.42
-    environment:
-      - MYSQL_DATABASE=${MYSQL_DATABASE}
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - MYSQL_USER=${MYSQL_USER}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-    ports:
-      - 3306:3306
-    command:
-      - --character-set-server=utf8mb4
-      - --collation-server=utf8mb4_unicode_ci
+    db:
+        container_name: demo-nest-db
+        image: mysql:8.0.42
+        environment:
+            MYSQL_DATABASE: ${COMPOSE_MYSQL_DATABASE:-demo_nest}
+            MYSQL_USER: ${COMPOSE_MYSQL_USER:-demo_nest}
+            MYSQL_PASSWORD: ${COMPOSE_MYSQL_PASSWORD:-demo_nest_local}
+            MYSQL_ROOT_PASSWORD: ${COMPOSE_MYSQL_ROOT_PASSWORD:-demo_nest_root_local}
+        command:
+            - --character-set-server=utf8mb4
+            - --collation-server=utf8mb4_unicode_ci
+        ports:
+            - ${COMPOSE_MYSQL_PORT:-3306}:3306
+        volumes:
+            - demo-nest-mysql:/var/lib/mysql
+        healthcheck:
+            test: [CMD-SHELL, 'mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent']
+            interval: 5s
+            timeout: 3s
+            retries: 20
 
-  cache:
-    container_name: cache
-    image: redis:8.0.2-alpine3.21
-    ports:
-      - 6379:6379
+    cache:
+        container_name: demo-nest-cache
+        image: redis:8.0.2-alpine3.21
+        ports:
+            - ${COMPOSE_REDIS_PORT:-6379}:6379
+        healthcheck:
+            test: [CMD, redis-cli, ping]
+            interval: 5s
+            timeout: 3s
+            retries: 10
+
+volumes:
+    demo-nest-mysql:
