@@ -1,10 +1,11 @@
 # OpenSearch 한국어 검색 품질 평가
 
-상태: 3단계 계획, 구현 전
+상태: 비교 CLI와 지표 계산 구현, 평가 corpus/judgment는 실험별 준비
 
-이 문서는 [상품 검색 구현 계획](opensearch-product-search.md)의 전체 재색인과 GraphQL 상품 검색 Query가 완성된
-뒤 `standard` Analyzer와 Nori 후보를 같은 조건에서 비교하는 방법을 정합니다. Nori를 설치했다는 사실이
-개선을 의미하지 않으며, 관련도 judgment와 회귀 수치로 채택 여부를 결정합니다.
+이 문서는 [상품 검색 구현](opensearch-product-search.md)의 전체 재색인과 GraphQL 상품 검색 Query를
+기반으로 `standard` Analyzer와 Nori 후보를 같은 조건에서 비교하는 방법을 정합니다. 비교 CLI는
+`pnpm search:evaluate`로 구현되어 있습니다. Nori를 설치했다는 사실이 개선을 의미하지 않으며, 실험별
+관련도 judgment와 회귀 수치로 채택 여부를 결정합니다.
 
 ## 선행 조건
 
@@ -12,6 +13,8 @@
 - 검색 문서와 Query Builder 계약이 테스트로 고정됨
 - `_analyze`로 실제 token을 확인할 수 있음
 - 평가 실행마다 사용할 index build ID, image digest와 설정 commit을 기록할 수 있음
+
+실행 순서와 fixture 예시는 [로컬 실행과 운영 Runbook](../operations/local-runtime-runbook.md)을 따릅니다.
 
 ## 평가 자료
 
@@ -27,14 +30,17 @@ p95도 warm-up, 반복 횟수, cache 상태와 동시성을 고정한 로컬 비
 
 ## 비교 절차
 
-1. `catalog-products-v001-*`에 `catalog_text_index`와 `catalog_text_search`를 명시하고 두 구현 모두
+1. `catalog-products-v001-*`에 `catalog_text_index`와 `catalog_text_search`를 명시하고 기준선을
    `standard`로 구성합니다.
 2. 전체 문서를 새 v001 build에 색인하고 모든 평가 query의 결과를 저장합니다.
 3. `_analyze`로 문서와 query token을 기록합니다.
 4. `catalog-products-v002-*`에는 같은 Analyzer 이름으로 Nori 후보 설정을 적용합니다.
 5. 같은 문서, query, judgment와 Query Builder로 v002 결과를 저장합니다.
 6. 한 번에 하나의 Analyzer 또는 Query 변수만 바꿉니다.
-7. 품질과 비용 기준을 통과한 경우에만 read/write Alias를 검증된 v002 build로 전환합니다.
+7. 품질과 비용 기준을 통과한 경우에만 별도 rebuild로 read/write Alias를 검증된 build로 전환합니다.
+
+현재 활성 rebuild에는 온라인 catch-up barrier가 없으므로 마지막 read/write Alias 전환은 Catalog 쓰기를
+차단한 유지보수 구간에서 수행합니다.
 
 Nori tokenizer, 사용자 사전처럼 index-time 분석을 바꾸면 기존 term은 변하지 않습니다. 설정을 바꿀
 때마다 새 물리 인덱스를 만들고 전체 문서를 다시 색인하며, image digest, plugin과 사용자 사전 버전을
