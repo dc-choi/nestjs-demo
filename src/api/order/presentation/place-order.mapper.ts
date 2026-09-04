@@ -9,6 +9,7 @@ const MAX_SIGNED_BIGINT = 9_223_372_036_854_775_807n;
 
 export function toPlaceOrderCommand(input: PlaceOrderInput): PlaceOrderCommand {
     return {
+        idempotencyKey: input.idempotencyKey,
         items: input.items.map(({ itemId, quantity }) => ({
             itemId: parseItemId(itemId),
             quantity,

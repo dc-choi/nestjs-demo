@@ -1,10 +1,10 @@
-import { Order } from '~/api/order/domain/order';
-import { OrderLine } from '~/api/order/domain/order-line';
+import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
+import { OrderEntity } from '~/api/order/domain/entity/order.entity';
 import { OrderItemType } from '~/api/order/presentation/order-item.type';
 import { OrderType } from '~/api/order/presentation/order.type';
 
-export function toOrderType(order: Order): OrderType {
-    if (order.id === null || order.createdAt === null) {
+export function toOrderType(order: OrderEntity): OrderType {
+    if (order.id == null || order.createdAt == null) {
         throw new Error('저장되지 않은 주문은 GraphQL 응답으로 변환할 수 없습니다.');
     }
 
@@ -15,22 +15,24 @@ export function toOrderType(order: Order): OrderType {
         currencyCode: order.currencyCode,
         totalPrice: toMoney(order.totalPrice, order.currencyCode),
         createdAt: order.createdAt,
-        items: order.items.map((item) => toOrderItemType(item, order.currencyCode)),
+        items: order.items.getItems().map((item) => toOrderItemType(item, order.currencyCode)),
     };
 }
 
-function toOrderItemType(item: OrderLine, currencyCode: string): OrderItemType {
-    if (item.id === null) throw new Error('저장되지 않은 주문 품목은 GraphQL 응답으로 변환할 수 없습니다.');
+function toOrderItemType(item: OrderItemEntity, currencyCode: string): OrderItemType {
+    if (item.id == null) throw new Error('저장되지 않은 주문 품목은 GraphQL 응답으로 변환할 수 없습니다.');
+    if (!item.snapshot) throw new Error('주문 품목 Snapshot이 없습니다.');
 
     const { snapshot } = item;
 
     return {
         id: item.id.toString(),
-        itemId: item.itemId.toString(),
+        itemId: item.item.id.toString(),
         quantity: item.quantity,
         lineTotalPrice: toMoney(item.lineTotalPrice, currencyCode),
         snapshot: {
-            productSnapshotId: snapshot.productSnapshotId.toString(),
+            productId: snapshot.sourceProductId.toString(),
+            productRevision: snapshot.sourceProductRevision,
             productName: snapshot.productName,
             itemName: snapshot.itemName,
             itemSku: snapshot.itemSku,

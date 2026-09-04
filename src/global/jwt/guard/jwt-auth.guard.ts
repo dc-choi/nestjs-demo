@@ -4,7 +4,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { JwtPayload } from '../payload/jwt.payload';
 
 import { Request, Response } from 'express';
-import { MemberRole } from 'prisma/generated/client/enums';
+import type { MemberRole } from '~/api/member/domain/member-role';
 import { Unauthorized } from '~/global/common/error/auth.error';
 import { getRequestFromContext, getResponseFromContext } from '~/global/graphql/graphql-context';
 

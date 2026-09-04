@@ -22,19 +22,19 @@ const createTypedLogger = <T>(
     };
 };
 
-// SQL (Prisma) channel
-export interface PrismaQueryLog {
-    type: 'PRISMA QUERY' | 'PRISMA REPLICA QUERY';
+export interface MikroOrmQueryLog {
+    type: 'MIKROORM QUERY' | 'MIKROORM SLOW QUERY';
     env: string;
     timestamp: Date;
     query: string;
     durationMs: number;
     target: string;
+    connectionType: string;
     isSlowQuery: boolean;
     slowQueryThresholdMs: number;
 }
 
-export const sqlLog: TypedLogger<PrismaQueryLog> = createTypedLogger<PrismaQueryLog>(sqlLogger);
+export const sqlLog: TypedLogger<MikroOrmQueryLog> = createTypedLogger<MikroOrmQueryLog>(sqlLogger);
 
 export interface GraphqlOperationLog {
     type: 'GRAPHQL OPERATION';

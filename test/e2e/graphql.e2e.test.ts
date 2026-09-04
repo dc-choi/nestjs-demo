@@ -25,6 +25,15 @@ const sendGraphqlRequest = async <T>(query: string, requestId: string, variables
 };
 
 describe('GraphQL API', () => {
+    it('exposes search health without requiring OpenSearch when disabled', async () => {
+        const response = await fetch(new URL('/health/search', endpoint), {
+            signal: AbortSignal.timeout(5_000),
+        });
+
+        await expect(response.json()).resolves.toEqual({ enabled: false, reachable: false });
+        expect(response.status).toBe(200);
+    });
+
     it('accepts a GraphQL request and propagates x-request-id', async () => {
         const requestId = 'graphql-e2e-smoke';
         const { response, body } = await sendGraphqlRequest<{ __typename: 'Query' }>(
@@ -42,31 +51,29 @@ describe('GraphQL API', () => {
         const { response, body } = await sendGraphqlRequest(
             'mutation PlaceOrder($input: PlaceOrderInput!) { placeOrder(input: $input) { order { id } } }',
             requestId,
-            { input: { items: [{ itemId: '1', quantity: 1 }] } }
+            { input: { idempotencyKey: 'e2e-unauthorized-order', items: [{ itemId: '1', quantity: 1 }] } }
         );
 
         expect(response.status).toBe(200);
         expect(body.errors?.[0]?.extensions).toMatchObject({ code: 'UNAUTHORIZED', requestId });
     });
 
-    it('exposes the canonical product graph and returns null for an unpublished ID', async () => {
+    it('exposes the canonical live product graph and returns null for a missing ID', async () => {
         const requestId = 'graphql-e2e-product-schema';
         const { response, body } = await sendGraphqlRequest<{ product: null }>(
             `query Product($id: ID!) {
                 product(id: $id) {
                     id
                     slug
-                    currentRevision {
+                    revision
+                    name
+                    items {
                         id
-                        name
-                        items {
-                            id
-                            price { amount currencyCode }
-                            selectedOptions { optionCode valueCode }
-                        }
-                        categories { id path { id slug } }
-                        tags
+                        price { amount currencyCode }
+                        selectedOptions { optionCode valueCode }
                     }
+                    categories { id slug }
+                    tags
                 }
             }`,
             requestId,

@@ -1,18 +1,15 @@
+import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { Module } from '@nestjs/common';
 
-import { ORDER_REPOSITORY } from '~/api/order/application/order.repository';
+import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
+import { InventoryModule } from '~/api/inventory/inventory.module';
+import { MemberEntity } from '~/api/member/domain/member.entity';
 import { OrderService } from '~/api/order/application/order.service';
-import { PrismaOrderRepository } from '~/api/order/infrastructure/prisma-order.repository';
+import { OrderEntity } from '~/api/order/domain/entity/order.entity';
 import { OrderResolver } from '~/api/order/presentation/place-order.resolver';
 
 @Module({
-    providers: [
-        OrderService,
-        {
-            provide: ORDER_REPOSITORY,
-            useClass: PrismaOrderRepository,
-        },
-        OrderResolver,
-    ],
+    imports: [MikroOrmModule.forFeature([ItemEntity, MemberEntity, OrderEntity]), InventoryModule],
+    providers: [OrderService, OrderResolver],
 })
 export class OrderModule {}

@@ -1,4 +1,4 @@
-import { MemberRole } from 'prisma/generated/client/enums';
+import type { MemberRole } from '~/api/member/domain/member-role';
 
 export class Unauthorized {
     constructor(role?: MemberRole) {
