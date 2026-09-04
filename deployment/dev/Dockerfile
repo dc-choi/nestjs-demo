@@ -11,16 +11,15 @@ ENV NODE_ENV=${NODE_ENV} \
 RUN apk add --no-cache tzdata && \
     cp /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone && \
-    npm i -g pnpm@10.11.0
+    npm i -g pnpm@11.21.0
 
-COPY package.json pnpm-lock.yaml prisma tsconfig.json tsconfig.build.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json tsconfig.build.json ./
 
-RUN pnpm i;
+RUN pnpm install --frozen-lockfile
 
-COPY .. .
+COPY . .
 
-RUN export DATABASE_URL=mysql://prisma:prisma@127.0.0.1:3306/prisma && \
-    pnpm prebuild && \
+RUN pnpm prebuild && \
     pnpm stage:build
 
 # Production stage
@@ -30,12 +29,12 @@ ARG NODE_ENV
 
 WORKDIR /home/node
 
-ENV TZ=Asia/Seoul
+ENV NODE_ENV=${NODE_ENV} \
+    TZ=Asia/Seoul
 
 RUN apk add --no-cache tzdata && \
     cp /usr/share/zoneinfo/$TZ /etc/localtime && \
-    echo $TZ > /etc/timezone && \
-    npm i -g pnpm@10.11.0
+    echo $TZ > /etc/timezone
 
 COPY --from=builder /home/node/dist ./dist
 COPY --from=builder /home/node/node_modules ./node_modules
@@ -43,4 +42,4 @@ COPY --from=builder /home/node/package.json ./
 COPY --from=builder /home/node/tsconfig.json ./
 COPY --from=builder /home/node/tsconfig.build.json ./
 
-CMD ["pnpm", "stage:boot"]
+CMD ["node", "dist/src/main.js"]
