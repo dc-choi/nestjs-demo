@@ -1,18 +1,11 @@
 export interface ProductReadResult {
     id: bigint;
     slug: string;
-    publishedAt: Date;
-    currentRevision: ProductRevisionReadResult;
-}
-
-export interface ProductRevisionReadResult {
-    id: bigint;
-    version: number;
+    revision: number;
     name: string;
     description: string | null;
     returnPolicy: string | null;
-    createdAt: Date;
-    firstPublishedAt: Date | null;
+    updatedAt: Date;
     items: ProductItemReadResult[];
     options: ProductOptionReadResult[];
     categories: ProductCategoryReadResult[];
@@ -62,11 +55,4 @@ export interface ProductCategoryReadResult {
     name: string;
     slug: string;
     sequence: number;
-    path: ProductCategoryPathNodeReadResult[];
-}
-
-export interface ProductCategoryPathNodeReadResult {
-    id: string;
-    name: string;
-    slug: string;
 }

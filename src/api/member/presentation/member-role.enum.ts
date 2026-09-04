@@ -1,6 +1,6 @@
 import { registerEnumType } from '@nestjs/graphql';
 
-import { MemberRole } from 'prisma/generated/client/enums';
+import { MemberRole } from '../domain/member-role';
 
 registerEnumType(MemberRole, {
     name: 'MemberRole',

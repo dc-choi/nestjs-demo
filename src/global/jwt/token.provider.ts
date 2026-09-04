@@ -6,7 +6,7 @@ import { JwtClaims } from './payload/jwt.payload';
 
 import Redis from 'ioredis';
 import { randomUUIDv7 } from 'node:crypto';
-import { MemberRole } from 'prisma/generated/client/enums';
+import type { MemberRole } from '~/api/member/domain/member-role';
 import { InvalidRefreshToken, NotExpiredAccessToken } from '~/global/common/error/auth.error';
 import { WEEK } from '~/global/common/utils/time';
 

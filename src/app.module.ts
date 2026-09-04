@@ -1,27 +1,28 @@
-import { ClsPluginTransactional } from '@nestjs-cls/transactional';
-import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { Module, ValidationPipe } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_PIPE } from '@nestjs/core';
 
 import { Request, Response } from 'express';
-import Joi from 'joi';
 import { WinstonModule } from 'nest-winston';
 import { ClsModule } from 'nestjs-cls';
 import { randomUUIDv7 } from 'node:crypto';
-import { DaoModule } from 'prisma/dao.module';
-import { REPOSITORY } from 'prisma/repository';
 import { AuthModule } from '~/api/auth/auth.module';
 import { CatalogModule } from '~/api/catalog/catalog.module';
+import { FulfillmentModule } from '~/api/fulfillment/fulfillment.module';
+import { InventoryModule } from '~/api/inventory/inventory.module';
 import { MemberModule } from '~/api/member/member.module';
 import { OrderModule } from '~/api/order/order.module';
+import { PaymentModule } from '~/api/payment/payment.module';
 import { DistributedLockModule } from '~/global/common/lock/distributed-lock.module';
 import { EnvConfig } from '~/global/config/env/env.config';
+import { envValidationSchema } from '~/global/config/env/env.validation';
 import { winstonTransports } from '~/global/config/logger/winston.config';
 import { GlobalGraphqlModule } from '~/global/graphql/graphql.module';
 import { TokenModule } from '~/global/jwt/token.module';
+import { DatabaseModule } from '~/infra/database/database.module';
 import { MailModule } from '~/infra/mail/mail.module';
+import { SearchModule } from '~/infra/search/search.module';
 
 @Module({
     imports: [
@@ -29,26 +30,7 @@ import { MailModule } from '~/infra/mail/mail.module';
         ConfigModule.forRoot({
             isGlobal: true,
             envFilePath: '.env',
-            validationSchema: Joi.object({
-                SERVER_PORT: Joi.number().optional().default(3000),
-                DATABASE_URL: Joi.string().required(),
-                MYSQL_HOST: Joi.string().required(),
-                MYSQL_PORT: Joi.number().required(),
-                MYSQL_USER: Joi.string().required(),
-                MYSQL_PASSWORD: Joi.string().required(),
-                MYSQL_DATABASE: Joi.string().required(),
-                MYSQL_READ_REPLICA_HOST: Joi.string().required(),
-                MYSQL_READ_REPLICA_PORT: Joi.number().required(),
-                MYSQL_READ_REPLICA_USER: Joi.string().required(),
-                MYSQL_READ_REPLICA_PASSWORD: Joi.string().required(),
-                MYSQL_READ_REPLICA_DATABASE: Joi.string().required(),
-                SECRET: Joi.string().required(),
-                ENV: Joi.string().required(),
-                MAIL_USER: Joi.string().required(),
-                MAIL_PASSWORD: Joi.string().required(),
-                MAIL_SIGNUP_ALERT_USER: Joi.string().required(),
-                REDIS_URL: Joi.string().required(),
-            }),
+            validationSchema: envValidationSchema,
         }),
         // Logger
         WinstonModule.forRoot({
@@ -66,13 +48,6 @@ import { MailModule } from '~/infra/mail/mail.module';
                     res.setHeader('x-request-id', cls.getId());
                 },
             },
-            plugins: [
-                new ClsPluginTransactional({
-                    adapter: new TransactionalAdapterPrisma({
-                        prismaInjectionToken: REPOSITORY,
-                    }),
-                }),
-            ],
         }),
         // Redis
         RedisModule.forRootAsync({
@@ -83,18 +58,22 @@ import { MailModule } from '~/infra/mail/mail.module';
             }),
         }),
         DistributedLockModule,
-        // Prisma
-        DaoModule,
         // Infra
+        DatabaseModule,
         MailModule,
+        SearchModule,
         // Token
         TokenModule,
+        // Graphql
         GlobalGraphqlModule,
         // Business Logic
         AuthModule,
         CatalogModule,
+        InventoryModule,
         MemberModule,
         OrderModule,
+        PaymentModule,
+        FulfillmentModule,
     ],
     providers: [
         {

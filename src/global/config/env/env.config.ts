@@ -1,8 +1,6 @@
 export interface EnvConfig {
     SERVER_PORT: number;
 
-    DATABASE_URL: string;
-
     MYSQL_HOST: string;
     MYSQL_PORT: number;
     MYSQL_USER: string;
@@ -24,6 +22,15 @@ export interface EnvConfig {
     MAIL_SIGNUP_ALERT_USER: string;
 
     REDIS_URL: string;
+
+    PAYMENT_WEBHOOK_SECRET?: string;
+
+    OPENSEARCH_ENABLED?: boolean;
+    OPENSEARCH_NODE_URL?: string;
+    OPENSEARCH_READ_ALIAS?: string;
+    OPENSEARCH_WRITE_ALIAS?: string;
+    OPENSEARCH_CURSOR_SECRET?: string;
+    OPENSEARCH_REQUEST_TIMEOUT_MS?: number;
 
     // INFLUX_URL: string;
     // INFLUX_TOKEN: string;

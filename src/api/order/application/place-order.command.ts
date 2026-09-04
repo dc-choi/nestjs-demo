@@ -4,5 +4,6 @@ export interface PlaceOrderItemCommand {
 }
 
 export interface PlaceOrderCommand {
+    readonly idempotencyKey: string;
     readonly items: readonly PlaceOrderItemCommand[];
 }
