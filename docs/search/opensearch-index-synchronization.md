@@ -1,200 +1,158 @@
 # OpenSearch 증분 동기화와 재구축
 
-상태: 4, 5단계 계획, 구현 전
+상태: 기본 Outbox relay, external version 동기화, 전체 rebuild와 reconciliation 구현
 
-이 문서는 [상품 검색 구현 계획](opensearch-product-search.md)의 고급 단계입니다. 전체 rebuild와 최소
-`searchProducts` Query가 동작하고, DRAFT 생성/수정, 발행 검증, `ProductPublication` 교체를 하나의 서비스로 구현해
-transaction 계약을 테스트한 뒤에만 시작합니다.
+이 문서는 [상품 검색 구현](opensearch-product-search.md)의 MySQL/OpenSearch 정합성 경계를 설명합니다.
+실행 명령은 [로컬 실행과 운영 Runbook](../operations/local-runtime-runbook.md)을 따릅니다.
 
-## 보장하려는 것과 허용하는 것
+## 보장과 허용 범위
 
-- 상품 발행 DB transaction은 OpenSearch 장애와 무관하게 성공할 수 있음
-- Commit된 변경은 Outbox에 남아 재시도할 수 있음
-- 늦게 도착한 과거 작업은 최신 검색 문서를 덮지 못함
-- OpenSearch는 언제든 MySQL 현재 상태에서 다시 만들 수 있음
-- 검색 문서의 짧은 지연과 reconciliation 전의 일시적 불일치는 허용함
+- 상품 변경 DB transaction은 OpenSearch 장애와 무관하게 성공할 수 있습니다.
+- Commit된 Catalog 변경은 같은 transaction의 Outbox에 남아 재시도할 수 있습니다.
+- 늦게 도착한 과거 작업은 최신 검색 문서를 덮지 못합니다.
+- OpenSearch는 MySQL의 live Catalog 현재 상태에서 다시 만들 수 있습니다.
+- 검색 문서의 짧은 지연과 reconciliation 전의 일시적 불일치는 허용합니다.
 
-이번 실습은 영속 tombstone이나 Product별 장기 worker lease를 만들지 않습니다. 따라서 삭제 전 payload를
-읽은 Worker가 아주 오래 멈춘 경우에는 문서가 일시적으로 되살아날 수 있으며, reconciliation으로 다시
-수렴시키는 한계를 의도적으로 받아들입니다.
+MySQL이 source of truth입니다. 감사용 `ProductSnapshot.payload`와 OpenSearch 문서는 현재 상태를
+확정하는 원본이 아닙니다.
 
-## 상품 발행과 Outbox
+## 현재 증분 경로
 
 ```text
-상품 발행 MySQL transaction
-  +-- Snapshot 검증
-  +-- PUBLISHED 전환
-  +-- ProductPublication 교체
-  +-- Product별 projectionRevision 증가
-  +-- SearchProjectionOutbox 기록
+상품 변경 MySQL transaction
+  +-- Product/Item/live relation 변경
+  +-- Product row lock 아래 Product.revision 증가
+  +-- ProductSnapshot append-only 감사 이력 추가
+  +-- SearchProjectionOutbox(productId, productRevision) 추가
 
-Outbox relay
-  -> CATALOG_SEARCH_QUEUE
-  -> 검색 worker
-  -> MySQL primary에서 현재 Publication과 revision 재조회
-  -> 문서 전체 upsert 또는 versioned delete
+application background worker 또는 search:outbox:drain
+  -> 처리 가능한 Outbox row lease
+  -> MySQL primary에서 현재 live Catalog와 revision 재조회
+  -> write Alias에 문서 전체 upsert 또는 versioned delete
+  -> PROCESSED 또는 backoff/DEAD_LETTER 기록
 ```
 
-DB commit 뒤 바로 외부 queue에 message를 넣는 것만으로는 충분하지 않습니다. Commit은 성공했지만 발행이
-실패하는 구간이 생기므로 Publication, Product별 revision과 Outbox를 같은 MySQL transaction에
-저장합니다. 기존 주문 큐와 검색 색인 큐도 분리합니다.
+현재 relay는 외부 message broker를 거치지 않습니다. 검색을 활성화한 애플리케이션의 background worker가
+1초 간격으로 relay를 호출하고, 수동 CLI도 같은 relay를 사용합니다. `FOR UPDATE SKIP LOCKED`로 기본 50개
+row를 한 batch로 lease하므로 여러 애플리케이션 인스턴스와 수동 drain이 겹쳐도 같은 행을 동시에 처리하지
+않습니다. 한 번의 drain은 최대 100 batch, background poll은 최대 20 batch를 처리하며, 5분이 지난 lease는
+다시 가져올 수 있습니다. 실패는 제한된 exponential backoff 뒤 재시도하고 열 번째 시도까지 실패하면
+`DEAD_LETTER`로 남깁니다.
 
-### Worker 재조회 계약
+최초 rebuild 전처럼 write Alias가 아직 없으면 background worker는 Outbox를 claim하지 않고 기다립니다.
+Alias가 생긴 다음 poll부터 자동으로 전달을 시작하므로 초기화 순서 때문에 정상 event가
+`DEAD_LETTER`로 소진되지 않습니다.
 
-Worker는 event에 담긴 과거 Snapshot payload를 그대로 색인하지 않습니다. MySQL primary에서 현재
-Publication, projection 원본과 `currentProjectionRevision`을 한 consistent read로 가져옵니다.
-OpenSearch 요청에는 trigger message의 revision이 아니라 이 조회에서 함께 얻은 현재 revision을
-사용합니다.
+`ProductSnapshot.payload`는 감사와 복원용입니다. Outbox에는 Product ID와 trigger revision만 저장하며,
+worker는 항상 MySQL primary의 현재 graph를 다시 읽습니다. 검색 문서에 stock을 넣지 않으므로 독립적인
+재고 변경은 Catalog revision/검색 Outbox 대상이 아닙니다.
 
-- `eventRevision < currentProjectionRevision`: 더 최신 상태를 읽은 것이므로 현재 payload/revision으로 처리
-- `eventRevision == currentProjectionRevision`: 해당 현재 상태로 처리
-- `eventRevision > currentProjectionRevision`: primary read 또는 DB 불변식 오류로 보고 재시도
+### Worker revision 규칙
 
-이 규칙은 오래된 event도 현재본으로 수렴시키며 같은 revision이 서로 다른 payload를 가리키지 않게
-합니다. 검색 문서 결과에 영향을 주는 Publication, Product 상태/삭제, Item 노출 상태 변경은 모두 같은
-Product row lock 아래에서 revision 증가와 Outbox 기록을 수행해야 합니다.
+Worker가 primary에서 읽은 `currentProductRevision`을 실제 OpenSearch external version으로 사용합니다.
 
-## Product별 projectionRevision
+- `eventRevision < currentProductRevision`: 최신 현재본과 현재 revision으로 수렴
+- `eventRevision == currentProductRevision`: 해당 현재본으로 수렴
+- `eventRevision > currentProductRevision`: DB 불변식 또는 primary read 오류로 실패
 
-`ProductSnapshot.version`은 OpenSearch 외부 version으로 사용할 수 없습니다. 과거 Snapshot을 다시
-발행하는 정상 롤백에서 값이 작아질 수 있기 때문입니다.
+별도 `projectionRevision`이나 전역 Outbox ID를 version으로 사용하지 않습니다. 같은 Product row를 잠근
+상태에서 증가시킨 `Product.revision`만 Product별 commit 순서를 표현합니다. 유효 범위는
+`1..2,147,483,647`입니다.
+
+## External version과 Bulk
+
+증분 upsert/delete는 write Alias의 Bulk API를 사용합니다.
+
+- `version_type=external`
+- version은 현재 `Product.revision`
+- `require_alias=true`
+- NDJSON 마지막 newline 보장
+- HTTP 응답뿐 아니라 모든 Bulk item의 status/error 검사
+- `429`와 `5xx`만 제한 재시도
+
+동일하거나 오래된 revision은 409가 될 수 있습니다. Worker는 오류 문자열을 정합성 판단 근거로 쓰지
+않고 현재 문서를 GET해 external version과 결정적 source가 MySQL desired projection에 이미 수렴했는지
+확인합니다. Alias가 없으면 같은 이름의 물리 인덱스를 자동 생성하지 않고 실패합니다.
+
+Delete version 표식은 `index.gc_deletes` 기간 뒤 영구 보장되지 않습니다. 삭제 전 요청이 그보다 오래
+멈춘 뒤 재개되는 극단적인 상황에서는 문서가 잠시 되살아날 수 있습니다. 현재 구현은 영속 tombstone이나
+Product별 장기 lease 대신 reconciliation으로 이를 다시 삭제하는 사후 수렴 모델을 사용합니다.
+
+## 전체 rebuild와 Alias 전환
+
+Mapping/Analyzer가 바뀌면 기존 인덱스를 제자리 수정하지 않고 새 물리 인덱스를 MySQL에서 만듭니다.
 
 ```text
-Snapshot v1 발행: projectionRevision 41
-Snapshot v2 발행: projectionRevision 42
-Snapshot v1 재발행: projectionRevision 43
+새 strict Mapping 인덱스 생성
+  -> MySQL live Catalog를 Product ID batch로 읽음
+  -> Product.revision external version으로 Bulk 색인
+  -> 한 번 refresh
+  -> MySQL/root Count 일치 검사
+  -> 표본 document와 기본 query 검사
+  -> read/write Alias를 한 _aliases 요청으로 전환
 ```
 
-전역 자동 증가 Outbox ID도 그대로 사용하지 않습니다. 동시 transaction에서는 ID 할당 순서와 commit
-순서가 다를 수 있습니다. Product별 projection 상태를 같은 Product row lock 아래에서 증가시키고 그
-값을 Outbox에 복사합니다. 같은 Product의 revision만 commit 순서대로 단조 증가하면 됩니다.
+Bulk 일부가 실패하거나 count/sample/query 검사가 실패하면 Alias를 전환하지 않습니다. `nested` Item은
+내부 Lucene document를 추가하므로 `_cat/indices`의 저수준 `docs.count`가 아니라 root Count API를
+Product 수로 사용합니다.
 
-DB에는 signed `BIGINT`로 저장해 row lock 아래에서 원자적으로 증가시키고 애플리케이션 내부에서는
-JavaScript `bigint`로 유지합니다. Queue JSON과 `_source` 경계에서만 10진 문자열로 바꾸며 `number`로
-변환하지 않습니다. opensearch-js의 typed version 필드에 unsafe cast하지 않고, 좁은 Bulk NDJSON action
-serializer가 문자열을 non-negative long으로 검증한 뒤 따옴표 없는 JSON integer token으로 기록합니다.
-`Long.MAX_VALUE` 경계까지 실제 OpenSearch에 전달하는 통합 테스트를 이 adapter의 계약으로 둡니다.
+`--no-activate --evaluation-alias <alias>`를 사용하면 read/write Alias는 그대로 두고 평가 후보 Alias만
+새 인덱스에 연결할 수 있습니다.
 
-## OpenSearch 외부 version
+### 현재 rebuild의 동시 쓰기 한계
 
-증분 upsert와 delete는 write Alias를 대상으로 Bulk API로 통일합니다.
+현재 rebuild는 후보 인덱스별 Outbox delivery 상태, dual sink replay 또는 Catalog write를 멈추는 cutover
+barrier를 구현하지 않습니다. 따라서 쓰기가 계속되는 운영 환경에서 이 CLI 하나만으로 무손실 backfill을
+보장하지 않습니다. read/write Alias를 전환하는 활성 rebuild의 현재 운영 절차는 다음과 같습니다.
 
-- `version_type=external`과 Product별 현재 revision 사용
-- `require_alias=true`로 Alias가 없을 때 fail-closed
-- 동일 revision 409와 오래된 revision 409를 다른 입력 오류와 구분
-- payload 결정성이 증명되기 전에는 `external_gte`를 사용하지 않음
+1. 유지보수를 시작하고 Catalog command 유입을 차단합니다.
+2. 기존 write Alias가 있으면 Outbox를 drain합니다. 최초 bootstrap처럼 Alias가 없으면 사전 drain은
+   건너뜁니다.
+3. 새 인덱스를 build/검증하고 Alias를 전환합니다.
+4. Outbox를 다시 drain해 남은 event를 처리합니다.
+5. reconciliation을 실행하고 차이가 없음을 확인합니다.
+6. Catalog command 유입을 다시 허용합니다.
 
-409 응답의 오류 문자열이나 실패 item `_version`을 파싱해 판정하지 않습니다. 현재 문서를 GET한 결과에
-따라 다음처럼 처리합니다.
-
-- 문서가 있으면 저장된 `_version`/source와 DB의 현재 desired projection을 비교
-- 문서가 404이고 DB desired state가 delete이면 이미 수렴한 no-op
-- 문서가 404인데 DB desired state가 upsert이면 invariant 오류 또는 일시 상태로 보고 재조회/재시도
-
-통합 테스트는 `Long.MAX_VALUE` 문자열 version을 실제 서버가 처리하는지, 범위를 벗어나거나 숫자가
-아닌 문자열을 serializer가 요청 전에 거절하는지 확인합니다.
-
-단위 테스트는 JavaScript 안전 정수보다 큰 revision의 문자열 보존, Bulk action serializer의 long
-경계값과 잘못된 문자열 거절을 먼저 확인합니다.
-
-Bulk 요청의 `require_alias=true`가 Alias 누락 시 자동 인덱스 생성을 막는 correctness 장치입니다.
-Worker 활성화 전에 Alias target도 확인하고, 누락 시 요청을 실패시킨 뒤 Alias 복구 후 Outbox를
-재처리합니다.
-
-### 내부 version에서 전환
-
-초기 rebuild의 내부 version과 새 Product revision을 같은 물리 인덱스에서 바로 섞지 않습니다. Product별
-revision을 DB에 초기화한 뒤 빈 새 물리 인덱스에 모든 문서를 external version으로 다시 색인합니다.
-검증과 read/write Alias 전환이 끝난 뒤에만 Outbox relay를 활성화합니다.
-
-### 삭제 version의 한계
-
-삭제의 외부 version 표식은 `index.gc_deletes` 기간 이후 영구히 유지되지 않습니다. 삭제 전 payload를
-읽은 Worker가 이 기간보다 오래 멈춘 뒤 더 낮은 external version으로 upsert하면 문서가 일시적으로
-되살아날 수 있습니다. Primary DB 재조회는 새 작업의 payload를 올바르게 만들지만 이미 멈춰 있는 요청을
-취소하지는 못합니다.
-
-이번 실습에서는 이 일시 부활을 허용하고 reconciliation이 DB 현재 상태와 다른 문서를 탐지해 다시
-삭제하는 사후 수렴 모델을 사용합니다. 더 강한 삭제 보장이 필요해지면 영속 tombstone 문서 또는
-Product별 worker lease를 별도 단계로 설계합니다.
-
-## 재구축과 후보 인덱스 catch-up
-
-Mapping과 index-time Analyzer는 기존 문서에 소급 적용되지 않습니다. 호환되지 않는 변경은 새 물리
-인덱스를 MySQL에서 다시 만들고 Alias로 전환합니다. 기존 OpenSearch 인덱스는 누락되거나 오래된
-projection을 이미 포함할 수 있으므로 재구축 원본으로 사용하지 않습니다.
-
-```text
-새 물리 인덱스 생성
-  -> 후보용 write Alias와 replay sink 등록
-  -> DB 현재 Publication 전체 backfill
-  -> 후보용 Outbox replay와 sink별 delivery catch-up
-  -> root count, revision sample, 핵심 query 검증
-  -> 짧은 cutover barrier에서 in-flight 작업 drain
-  -> 후보 sink 미전달 Outbox 0건과 DB revision 최종 대조
-  -> read/write Alias 원자적 전환
-  -> 관찰 기간 후 이전 인덱스 제거
-```
-
-Outbox row마다 sink별 delivery 상태를 두고 기존/후보 인덱스에 각각 성공했는지 기록합니다. 정상 Worker가
-기존 write Alias만 갱신하는 동안 후보 sink의 미전달 row를 계속 replay합니다. Backfill 문서는 Product별
-현재 revision을 사용하며 external version이 replay 순서 역전을 막습니다.
-
-자동 증가 Outbox ID는 처리할 row를 찾는 cursor로만 사용합니다. Commit 순서나 정합성 version으로
-해석하지 않습니다. 더 정확히는 후보 sink 등록을 발행과 같은 DB 잠금 경계에서 원자적으로 완료한 뒤,
-`Outbox LEFT JOIN Delivery(candidate)` 형태로 delivery가 없거나 성공하지 않은 모든 commit된 row를 반복
-재검색합니다. ID는 한 번의 안정된 batch scan 안에서만 페이지 정렬 키로 쓰며 `id > lastCheckpoint`를
-영구 완료 기준으로 사용하지 않습니다. 그래야 ID를 먼저 할당받고 늦게 commit된 row를 건너뛰지
-않습니다.
-
-마지막에는 짧은 cutover barrier에서 발행 작업과 검색 Worker의 in-flight 요청을 drain합니다. Barrier
-아래에서 후보 sink의 missing/unfinished delivery와 in-flight 작업이 모두 0이고 DB 현재 revision 표본이
-후보 문서와 일치해야 catch-up 완료입니다. 그다음 read/write Alias의 remove/add와 후보용 임시 Alias
-제거를 한 `_aliases` 요청으로 실행합니다.
-
-Alias API의 원자성은 그 한 요청 안의 Alias membership 변경만 보장합니다. Backfill/catch-up 정합성,
-이미 실행 중인 query 완료와 안전한 rollback까지 보장하지 않습니다. 이전 인덱스도 변경을 계속 받았거나
-원본 Outbox를 replay할 수 있을 때만 Alias rollback을 사용합니다. 그렇지 않으면 새 인덱스를 고치는
-forward-fix를 선택합니다.
+현재 활성 rebuild를 Catalog 쓰기와 동시에 실행하지 않습니다. 무중단 cutover가 필요해지면 후보 sink별
+delivery, in-flight drain과 자동 write barrier를 추가해야 합니다. Alias API의 원자성은 한 요청의 Alias
+membership 변경만 보장하며 backfill 동등성이나 안전한 rollback을 대신하지 않습니다.
 
 ## Reconciliation
 
-Reconciliation은 주기적으로 MySQL 현재 공개 Product와 OpenSearch root 문서를 범위별로 대조합니다.
-단순 total count만 같다고 완료하지 않고 다음 값을 확인합니다.
+`search:reconcile`은 다음 두 방향을 모두 대조합니다.
 
-- Product ID의 누락/초과 집합
-- Product별 `projectionRevision`
-- 현재 `productSnapshotId`
-- 검색 노출 Item 수와 최소/최대 가격 표본
+- MySQL 검색 노출 Product를 batch로 읽고 read Alias에서 `MISSING`/`STALE` 확인
+- PIT와 `search_after`로 read Alias 전체를 scan하고 MySQL에 없는 `EXTRA` 확인
 
-몇 건의 차이는 Product ID별 재색인으로 복구하고, 넓은 범위의 차이나 Mapping 오류는 전체 rebuild로
-복구합니다. `nested` Item은 내부 Lucene 문서를 추가하므로 저수준 index `docs.count`가 아니라 root
-Count API를 사용합니다.
+문서 비교는 Product ID/revision만 보지 않고 projection source 전체를 결정적으로 비교합니다. 기본 실행은
+차이와 제한된 표본만 출력하는 읽기 전용 검사입니다. `--repair`를 명시하면 같은 worker로 누락/오래된
+문서를 upsert하고 초과 문서를 versioned delete합니다. 복구 뒤 읽기 전용 검사를 다시 실행해야 합니다.
 
-## 실패 주입 시나리오
+감사용 `ProductSnapshot`은 대조 원본에 포함하지 않습니다.
 
-- Publication과 Outbox 중 하나만 저장하려다 transaction rollback
-- Bulk 요청에서 일부 item만 실패
+## 실패 주입과 통과 기준
+
+검증할 실패 시나리오:
+
+- live graph/revision/Snapshot/Outbox 중 하나의 저장 실패와 전체 rollback
+- Bulk의 일부 item 실패
 - 같은 Product event 중복 전달
-- 최신 event 뒤에 과거 event 도착
-- OpenSearch 중단 중 Outbox 누적과 복구 후 replay
-- Alias가 사라진 상태의 upsert/delete fail-closed
-- delete 후 `gc_deletes` 기간보다 오래 멈춘 과거 upsert의 일시 부활과 복구
-- 새 인덱스 backfill 중 상품 발행
-- 후보 sink에 일부 Outbox만 전달된 상태
-- Alias 전환 뒤 query 회귀 발견
+- 최신 event 뒤 과거 event 도착
+- OpenSearch 중단 중 Outbox 누적과 복구 후 drain
+- relay process 중단과 lease 만료 뒤 재처리
+- Alias 누락 상태의 upsert/delete fail-closed
+- read Alias의 누락/오래됨/초과 문서 탐지와 repair
+- 새 인덱스 검증 실패 시 기존 Alias 유지
 
-## 통과 기준
+통과 기준:
 
-- Publication, Product revision과 Outbox가 함께 commit/rollback됨
-- 같은 Product revision이 commit 순서대로 단조 증가함
-- 중복/역순 event가 최신 문서를 덮지 못함
-- Alias 누락 시 같은 이름의 물리 인덱스를 만들지 않음
-- OpenSearch 장애 중 DB 발행은 성공하고 Outbox가 남음
-- 후보 sink의 미전달 row가 0인 상태에서만 cutover함
-- Alias 전환은 검증 뒤 한 요청으로 실행됨
-- 일시 부활/누락을 reconciliation으로 탐지하고 복구함
-- rollback 가능한 조건과 forward-fix가 필요한 조건을 설명할 수 있음
+- Catalog live graph, revision, Snapshot과 Outbox가 함께 commit/rollback됩니다.
+- 중복/역순 event가 최신 문서를 덮지 못합니다.
+- OpenSearch 장애 중 DB 상품 변경은 성공하고 Outbox가 남습니다.
+- Bulk 부분 실패가 성공으로 보고되지 않습니다.
+- Alias 전환은 rebuild 검증 뒤 한 요청으로 실행됩니다.
+- reconciliation이 세 종류 차이를 탐지하고 repair 뒤 0건으로 수렴합니다.
+- `DEAD_LETTER` 원인과 재처리 여부를 운영자가 확인할 수 있습니다.
 
 ## 참고 자료
 
@@ -202,4 +160,4 @@ Count API를 사용합니다.
 - [Index document 외부 버전](https://docs.opensearch.org/latest/api-reference/document-apis/index-document/)
 - [Delete document와 gc_deletes](https://docs.opensearch.org/latest/api-reference/document-apis/delete-document/)
 - [Alias API](https://docs.opensearch.org/latest/api-reference/alias/aliases-api/)
-- [MySQL InnoDB AUTO_INCREMENT](https://dev.mysql.com/doc/refman/8.0/en/innodb-auto-increment-handling.html)
+- [PIT와 search_after](https://docs.opensearch.org/latest/search-plugins/searching-data/paginate/)
