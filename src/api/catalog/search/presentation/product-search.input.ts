@@ -9,10 +9,10 @@ registerEnumType(ProductSearchSort, { name: 'ProductSearchSort' });
 @InputType('ProductOptionFilterInput')
 export class ProductOptionFilterInput {
     @Field()
-    optionCode: string;
+    optionCode!: string;
 
     @Field()
-    valueCode: string;
+    valueCode!: string;
 }
 
 @InputType('ProductSearchInput')

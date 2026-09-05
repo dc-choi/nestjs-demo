@@ -1,5 +1,4 @@
-import { InjectRedis } from '@nestjs-modules/ioredis';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService, TokenExpiredError } from '@nestjs/jwt';
 
 import { JwtClaims } from './payload/jwt.payload';
@@ -9,12 +8,13 @@ import { randomUUIDv7 } from 'node:crypto';
 import type { MemberRole } from '~/api/member/domain/member-role';
 import { InvalidRefreshToken, NotExpiredAccessToken } from '~/global/common/error/auth.error';
 import { WEEK } from '~/global/common/utils/time';
+import { REDIS_CLIENT } from '~/infra/redis/redis-client.module';
 
 @Injectable()
 export class TokenProvider {
     constructor(
         private readonly jwtService: JwtService,
-        @InjectRedis() private readonly redis: Redis
+        @Inject(REDIS_CLIENT) private readonly redis: Redis
     ) {}
 
     /**

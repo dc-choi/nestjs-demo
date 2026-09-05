@@ -1,16 +1,11 @@
 import { HttpException } from '@nestjs/common';
 
 import { GraphQLFormattedError } from 'graphql';
-import { ClsServiceManager } from 'nestjs-cls';
+import { runWithRequestContext } from '~/global/common/context/request-context';
 import { formatGraphqlError } from '~/global/graphql/graphql-error.formatter';
 
 describe('formatGraphqlError', () => {
-    afterEach(() => {
-        jest.restoreAllMocks();
-    });
-
-    it('도메인 오류의 코드와 메시지를 사용하고 CLS requestId만 확장 정보에 남긴다', () => {
-        mockRequestId('graphql-request-1');
+    it('도메인 오류의 코드와 메시지를 사용하고 requestId만 확장 정보에 남긴다', () => {
         const formattedError: GraphQLFormattedError = {
             message: '기존 메시지',
             path: ['placeOrder'],
@@ -27,7 +22,11 @@ describe('formatGraphqlError', () => {
             409
         );
 
-        expect(formatGraphqlError(formattedError, domainError)).toEqual({
+        const result = runWithRequestContext('graphql-request-1', () =>
+            formatGraphqlError(formattedError, domainError)
+        );
+
+        expect(result).toEqual({
             message: '상품 재고가 부족합니다.',
             path: ['placeOrder'],
             extensions: {
@@ -38,7 +37,6 @@ describe('formatGraphqlError', () => {
     });
 
     it('내부 오류의 메시지와 원본 확장 정보를 공개하지 않는다', () => {
-        mockRequestId('graphql-request-2');
         const secret = 'database-password=do-not-expose';
         const formattedError: GraphQLFormattedError = {
             message: secret,
@@ -49,7 +47,9 @@ describe('formatGraphqlError', () => {
             },
         };
 
-        const result = formatGraphqlError(formattedError, new Error(secret));
+        const result = runWithRequestContext('graphql-request-2', () =>
+            formatGraphqlError(formattedError, new Error(secret))
+        );
 
         expect(result).toEqual({
             message: 'Server Error',
@@ -61,9 +61,3 @@ describe('formatGraphqlError', () => {
         expect(JSON.stringify(result)).not.toContain(secret);
     });
 });
-
-const mockRequestId = (requestId: string) => {
-    jest.spyOn(ClsServiceManager, 'getClsService').mockReturnValue({
-        getId: jest.fn().mockReturnValue(requestId),
-    } as unknown as ReturnType<typeof ClsServiceManager.getClsService>);
-};

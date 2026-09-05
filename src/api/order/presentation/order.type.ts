@@ -7,23 +7,23 @@ import { MoneyType } from '~/global/graphql/money.type';
 @ObjectType('Order')
 export class OrderType {
     @Field(() => ID)
-    id: string;
+    id!: string;
 
     @Field()
-    orderNumber: string;
+    orderNumber!: string;
 
     @Field(() => OrderStatus)
-    status: OrderStatus;
+    status!: OrderStatus;
 
     @Field()
-    currencyCode: string;
+    currencyCode!: string;
 
     @Field(() => MoneyType)
-    totalPrice: MoneyType;
+    totalPrice!: MoneyType;
 
     @Field(() => Date)
-    createdAt: Date;
+    createdAt!: Date;
 
     @Field(() => [OrderItemType])
-    items: OrderItemType[];
+    items!: OrderItemType[];
 }

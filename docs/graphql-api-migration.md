@@ -355,18 +355,18 @@ Schema-first는 SDL과 생성 TypeScript 정의를 함께 관리해야 하므로
 
 ## Runtime 버전
 
-2026-08-12 현재 다음 호환 조합을 고정합니다.
+2026-09-05 현재 다음 호환 조합을 고정합니다.
 
 | Package                     | Version   | 역할                                                         |
 | --------------------------- | --------- | ------------------------------------------------------------ |
-| `@nestjs/graphql`           | `13.4.4`  | Nest 11 code-first GraphQL                                   |
-| `@nestjs/apollo`            | `13.4.4`  | Nest와 Apollo Server 5 연결                                  |
+| `@nestjs/graphql`           | `14.0.0`  | Nest 12 code-first GraphQL                                   |
+| `@nestjs/apollo`            | `14.0.0`  | Nest 12와 Apollo Server 5 연결                               |
 | `@apollo/server`            | `5.5.1`   | GraphQL HTTP runtime                                         |
 | `@as-integrations/express5` | `1.1.2`   | Apollo Server와 현재 Express 5 adapter 연결                  |
 | `graphql`                   | `16.14.2` | 위 package들의 peer 범위 `^16.11.0`을 만족하는 GraphQL.js 16 |
 
-전역 최신 `graphql@17`은 현재 Nest/Apollo peer 범위 밖이므로 사용하지 않습니다. Subscription 요구가
-없으므로 `graphql-ws`와 `graphql-subscriptions`도 설치하지 않습니다.
+`graphql@16.14.2`는 현재 Nest/Apollo peer 범위를 만족합니다. Subscription 요구가 없으므로 별도
+subscription transport와 `graphql-subscriptions`는 애플리케이션 의존성에 추가하지 않습니다.
 
 ## Endpoint와 개발 도구
 
@@ -426,7 +426,7 @@ Apollo context({ req, res })
   -> @Jwt()가 같은 req.user 반환
 ```
 
-`x-request-id`는 기존 CLS middleware를 그대로 사용합니다.
+`x-request-id`는 `AsyncLocalStorage` 기반 공통 middleware에서 관리합니다.
 
 - 상위 서비스가 보낸 값을 유지하고, 없으면 UUID v7을 만듭니다.
 - 응답 header에 같은 값을 반환합니다.
@@ -598,7 +598,7 @@ provider별 Webhook 형식, 택배사 송장 구매/추적 adapter는 연결하�
 - [NestJS GraphQL scalar](https://docs.nestjs.com/graphql/scalars)
 - [NestJS Passport와 GraphQL](https://docs.nestjs.com/recipes/passport#graphql)
 - [NestJS execution context](https://docs.nestjs.com/fundamentals/execution-context)
-- [NestJS GraphQL 13.4.4 package](https://github.com/nestjs/graphql/blob/v13.4.4/packages/graphql/package.json)
-- [NestJS Apollo 13.4.4 package](https://github.com/nestjs/graphql/blob/v13.4.4/packages/apollo/package.json)
+- [NestJS GraphQL 14.0.0 package](https://github.com/nestjs/graphql/blob/v14.0.0/packages/graphql/package.json)
+- [NestJS Apollo 14.0.0 package](https://github.com/nestjs/graphql/blob/v14.0.0/packages/apollo/package.json)
 - [Apollo Server 5 migration](https://www.apollographql.com/docs/apollo-server/migration)
 - [GraphQL specification](https://spec.graphql.org/)

@@ -1,17 +1,17 @@
-import { ApolloServerPlugin } from '@apollo/server';
+import type { ApolloServerPlugin } from '@apollo/server' with { 'resolution-mode': 'import' };
 import { unwrapResolverError } from '@apollo/server/errors';
 import { HttpException, Logger } from '@nestjs/common';
 
 import { GraphqlHttpContext } from './graphql-context';
 
 import { GraphQLFormattedError } from 'graphql';
-import { ClsServiceManager } from 'nestjs-cls';
+import { getCurrentRequestId } from '~/global/common/context/request-context';
 
 const INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR';
 const graphqlErrorLogger = new Logger('GraphQL');
 
 export const formatGraphqlError = (formattedError: GraphQLFormattedError, error?: unknown): GraphQLFormattedError => {
-    const requestId = ClsServiceManager.getClsService().getId();
+    const requestId = getCurrentRequestId();
     const resolverError = unwrapResolverError(error);
     const domainError =
         resolverError instanceof HttpException ? resolverError.getResponse() : formattedError.extensions?.originalError;

@@ -1,10 +1,11 @@
-import { Injectable, Logger, OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common';
+import { BeforeApplicationShutdown, Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 
 import { CatalogIndexManager } from './catalog-index.manager';
 import { SearchOutboxRelay } from './search-outbox.relay';
 import { SearchConfig } from './search.config';
 
 const POLL_INTERVAL_MS = 1_000;
+export const SEARCH_OUTBOX_SHUTDOWN_TIMEOUT_MS = 5_000;
 const SEARCH_MAINTENANCE_ENTRYPOINTS = new Set([
     'inventory-expire.js',
     'search-evaluate.js',
@@ -18,9 +19,11 @@ const SEARCH_MAINTENANCE_ENTRYPOINTS = new Set([
  * Database leases make concurrent application replicas safe; each instance keeps only one local poll in flight.
  */
 @Injectable()
-export class SearchOutboxWorker implements OnApplicationBootstrap, OnApplicationShutdown {
+export class SearchOutboxWorker implements OnApplicationBootstrap, BeforeApplicationShutdown {
     private readonly logger = new Logger(SearchOutboxWorker.name);
     private timer: NodeJS.Timeout | undefined;
+    private inFlight: Promise<void> | undefined;
+    private pollAbortController: AbortController | undefined;
     private stopped = false;
     private missingAliasReported = false;
 
@@ -35,19 +38,49 @@ export class SearchOutboxWorker implements OnApplicationBootstrap, OnApplication
         this.schedule(0);
     }
 
-    onApplicationShutdown(): void {
+    async beforeApplicationShutdown(): Promise<void> {
         this.stopped = true;
         if (this.timer) clearTimeout(this.timer);
         this.timer = undefined;
+        this.pollAbortController?.abort();
+
+        const inFlight = this.inFlight;
+        if (!inFlight) return;
+
+        let timeout: NodeJS.Timeout | undefined;
+        let timedOut = false;
+        await Promise.race([
+            inFlight,
+            new Promise<void>((resolve) => {
+                timeout = setTimeout(() => {
+                    timedOut = true;
+                    resolve();
+                }, SEARCH_OUTBOX_SHUTDOWN_TIMEOUT_MS);
+            }),
+        ]);
+        if (timeout) clearTimeout(timeout);
+        if (timedOut) {
+            this.logger.warn('Search outbox shutdown timed out; leased rows will recover after lease expiry');
+        }
     }
 
     private schedule(delay: number): void {
         if (this.stopped) return;
-        this.timer = setTimeout(() => void this.poll(), delay);
+        this.timer = setTimeout(() => {
+            this.timer = undefined;
+            const abortController = new AbortController();
+            this.pollAbortController = abortController;
+            const poll = this.poll(abortController.signal);
+            this.inFlight = poll;
+            void poll.finally(() => {
+                if (this.inFlight === poll) this.inFlight = undefined;
+                if (this.pollAbortController === abortController) this.pollAbortController = undefined;
+            });
+        }, delay);
         this.timer.unref();
     }
 
-    private async poll(): Promise<void> {
+    private async poll(signal: AbortSignal): Promise<void> {
         try {
             if (!(await this.indexManager.hasAlias(this.config.writeAlias))) {
                 if (!this.missingAliasReported) {
@@ -59,7 +92,7 @@ export class SearchOutboxWorker implements OnApplicationBootstrap, OnApplication
                 return;
             }
             this.missingAliasReported = false;
-            const result = await this.relay.drainUntilEmpty({ maxBatches: 20 });
+            const result = await this.relay.drainUntilEmpty({ maxBatches: 20, signal });
             if (result.claimed > 0) {
                 const summary = JSON.stringify(result);
                 if (result.failed > 0) this.logger.warn(`Search outbox poll completed with failures: ${summary}`);

@@ -5,50 +5,50 @@ import { FulfillmentStatus } from '~/api/fulfillment/presentation/fulfillment-st
 @ObjectType('FulfillmentItem')
 export class FulfillmentItemType {
     @Field(() => ID)
-    id: string;
+    id!: string;
 
     @Field(() => ID)
-    orderItemId: string;
+    orderItemId!: string;
 
     @Field(() => Int)
-    quantity: number;
+    quantity!: number;
 }
 
 @ObjectType('Fulfillment')
 export class FulfillmentType {
     @Field(() => ID)
-    id: string;
+    id!: string;
 
     @Field(() => ID)
-    orderId: string;
+    orderId!: string;
 
     @Field(() => FulfillmentStatus)
-    status: FulfillmentStatus;
+    status!: FulfillmentStatus;
 
     @Field(() => String, { nullable: true })
-    carrier: string | null;
+    carrier!: string | null;
 
     @Field(() => String, { nullable: true })
-    trackingNumber: string | null;
+    trackingNumber!: string | null;
 
     @Field(() => Date, { nullable: true })
-    packedAt: Date | null;
+    packedAt!: Date | null;
 
     @Field(() => Date, { nullable: true })
-    shippedAt: Date | null;
+    shippedAt!: Date | null;
 
     @Field(() => Date, { nullable: true })
-    deliveredAt: Date | null;
+    deliveredAt!: Date | null;
 
     @Field(() => Date, { nullable: true })
-    cancelledAt: Date | null;
+    cancelledAt!: Date | null;
 
     @Field(() => [FulfillmentItemType])
-    items: FulfillmentItemType[];
+    items!: FulfillmentItemType[];
 }
 
 @ObjectType()
 export class FulfillmentPayload {
     @Field(() => FulfillmentType)
-    fulfillment: FulfillmentType;
+    fulfillment!: FulfillmentType;
 }

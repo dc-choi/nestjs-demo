@@ -7,23 +7,23 @@ import { MoneyType } from '~/global/graphql/money.type';
 @ObjectType('ProductItem')
 export class ProductItemType {
     @Field(() => ID)
-    id: string;
+    id!: string;
 
     @Field()
-    sku: string;
+    sku!: string;
 
     @Field()
-    name: string;
+    name!: string;
 
     @Field(() => MoneyType)
-    price: MoneyType;
+    price!: MoneyType;
 
     @Field()
-    isTaxFree: boolean;
+    isTaxFree!: boolean;
 
     @Field(() => Int)
-    sequence: number;
+    sequence!: number;
 
     @Field(() => [ProductItemOptionType])
-    selectedOptions: ProductItemOptionType[];
+    selectedOptions!: ProductItemOptionType[];
 }

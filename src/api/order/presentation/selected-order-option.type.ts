@@ -3,14 +3,14 @@ import { Field, ObjectType } from '@nestjs/graphql';
 @ObjectType('SelectedOrderOption')
 export class SelectedOrderOptionType {
     @Field()
-    optionCode: string;
+    optionCode!: string;
 
     @Field()
-    optionName: string;
+    optionName!: string;
 
     @Field()
-    valueCode: string;
+    valueCode!: string;
 
     @Field()
-    valueName: string;
+    valueName!: string;
 }

@@ -12,7 +12,7 @@ export class InventoryReservationInput {
     @Field(() => ID)
     @Matches(DECIMAL_ID_PATTERN)
     @MaxLength(19)
-    reservationId: string;
+    reservationId!: string;
 }
 
 @InputType()
@@ -21,7 +21,7 @@ export class RestoreInventoryReservationInput extends InventoryReservationInput 
     @IsString()
     @IsNotEmpty()
     @MaxLength(128)
-    idempotencyKey: string;
+    idempotencyKey!: string;
 }
 
 @InputType()
@@ -29,11 +29,11 @@ export class AdjustInventoryInput {
     @Field(() => ID)
     @Matches(DECIMAL_ID_PATTERN)
     @MaxLength(19)
-    itemId: string;
+    itemId!: string;
 
     @Field(() => InventoryAdjustmentType)
     @IsEnum(InventoryAdjustmentType)
-    type:
+    type!:
         | typeof InventoryAdjustmentType.RECEIPT
         | typeof InventoryAdjustmentType.ADJUSTMENT
         | typeof InventoryAdjustmentType.RETURN;
@@ -42,19 +42,19 @@ export class AdjustInventoryInput {
     @IsNumber()
     @Min(MYSQL_SIGNED_INT_MIN)
     @Max(MYSQL_SIGNED_INT_MAX)
-    quantityDelta: number;
+    quantityDelta!: number;
 
     @Field()
     @IsString()
     @IsNotEmpty()
     @MaxLength(255)
-    reason: string;
+    reason!: string;
 
     @Field()
     @IsString()
     @IsNotEmpty()
     @MaxLength(128)
-    idempotencyKey: string;
+    idempotencyKey!: string;
 }
 
 export function parseReservationId(value: string): bigint {

@@ -5,26 +5,26 @@ import { ProductSnapshotChangeType } from '~/api/catalog/presentation/product-sn
 @ObjectType('ProductSnapshot')
 export class ProductSnapshotType {
     @Field(() => ID)
-    id: string;
+    id!: string;
 
     @Field(() => ID)
-    productId: string;
+    productId!: string;
 
     @Field(() => Int)
-    revision: number;
+    revision!: number;
 
     @Field(() => Int)
-    schemaVersion: number;
+    schemaVersion!: number;
 
     @Field(() => ProductSnapshotChangeType)
-    changeType: ProductSnapshotChangeType;
+    changeType!: ProductSnapshotChangeType;
 
     @Field(() => String, { nullable: true })
-    reason: string | null;
+    reason!: string | null;
 
     @Field(() => ID, { nullable: true })
-    changedByMemberId: string | null;
+    changedByMemberId!: string | null;
 
     @Field(() => Date)
-    createdAt: Date;
+    createdAt!: Date;
 }

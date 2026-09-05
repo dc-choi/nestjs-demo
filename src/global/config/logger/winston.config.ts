@@ -1,138 +1,73 @@
-import { WinstonModule, utilities } from 'nest-winston';
-import { ClsServiceManager } from 'nestjs-cls';
+import { inspect } from 'node:util';
 import winston from 'winston';
 import winstonDaily from 'winston-daily-rotate-file';
+import { getCurrentRequestId } from '~/global/common/context/request-context';
+import { WinstonLoggerService } from '~/global/config/logger/winston-logger.service';
 
-// CLS가 활성화된 요청에서 이 format을 사용하는 로그에만 requestId가 붙는다.
-// 앱 초기화와 백그라운드 작업, console transport에는 requestId가 없을 수 있다.
+type WinstonLevel = 'debug' | 'error' | 'http' | 'info' | 'verbose' | 'warn';
+
+const nestLikeConsoleFormat = winston.format.printf(({ context, level, message, timestamp, ...metadata }) => {
+    const displayedLevel = level === 'info' ? 'LOG' : level.toUpperCase();
+    const renderedMessage = message === undefined ? '' : ` ${String(message)}`;
+    const renderedContext = context === undefined ? '' : ` [${String(context)}]`;
+    const renderedMetadata = Object.keys(metadata).length === 0 ? '' : ` - ${inspect(metadata, { depth: null })}`;
+
+    return `[My-Own-App] ${process.pid} ${String(timestamp)} ${displayedLevel.padStart(7)}${renderedContext}${renderedMessage}${renderedMetadata}`;
+});
+
+const consoleFormat = winston.format.combine(winston.format.timestamp(), nestLikeConsoleFormat);
+
+// 요청 컨텍스트가 없는 앱 초기화와 백그라운드 작업 로그에는 requestId가 붙지 않는다.
 const addRequestId = winston.format((info) => {
-    const cls = ClsServiceManager.getClsService();
-    const requestId = cls.getId();
-    if (requestId) {
-        info.requestId = requestId;
-    }
+    const requestId = getCurrentRequestId();
+    if (info.requestId === undefined && requestId) info.requestId = requestId;
     return info;
 });
 
-export const verboseLogger = WinstonModule.createLogger({
+const createLoggerService = (options: winston.LoggerOptions): WinstonLoggerService =>
+    new WinstonLoggerService(winston.createLogger(options));
+
+const createDailyTransport = (level: WinstonLevel, dirname: string) =>
+    new winstonDaily({
+        level,
+        format: winston.format.combine(
+            winston.format.timestamp({
+                format: 'YYYY-MM-DD HH:mm:ss',
+            }),
+            addRequestId(),
+            winston.format.json()
+        ),
+        dirname,
+        filename: '%DATE%.log',
+        datePattern: 'YYYY-MM-DD',
+        zippedArchive: false,
+        maxSize: '20m',
+        maxFiles: '30d',
+    });
+
+export const verboseLogger = createLoggerService({
     level: 'verbose',
-    format: winston.format.combine(winston.format.timestamp(), utilities.format.nestLike('My-Own-App')),
-    transports: [
-        new winstonDaily({
-            level: 'verbose',
-            format: winston.format.combine(
-                winston.format.timestamp({
-                    format: 'YYYY-MM-DD HH:mm:ss',
-                }),
-                addRequestId(),
-                winston.format.json()
-            ),
-            dirname: 'logs_json/verbose',
-            filename: '%DATE%.log',
-            datePattern: 'YYYY-MM-DD',
-            zippedArchive: false,
-            maxSize: '20m',
-            maxFiles: '30d',
-        }),
-    ],
+    transports: [createDailyTransport('verbose', 'logs_json/verbose')],
 });
 
-export const sqlLogger = WinstonModule.createLogger({
+export const sqlLogger = createLoggerService({
     level: 'verbose',
-    format: winston.format.combine(winston.format.timestamp(), utilities.format.nestLike('My-Own-App')),
-    transports: [
-        new winstonDaily({
-            level: 'verbose',
-            format: winston.format.combine(
-                winston.format.timestamp({
-                    format: 'YYYY-MM-DD HH:mm:ss',
-                }),
-                addRequestId(),
-                winston.format.json()
-            ),
-            dirname: 'logs_json/sql',
-            filename: '%DATE%.log',
-            datePattern: 'YYYY-MM-DD',
-            zippedArchive: false,
-            maxSize: '20m',
-            maxFiles: '30d',
-        }),
-    ],
+    transports: [createDailyTransport('verbose', 'logs_json/sql')],
 });
 
-export const graphqlLogger = WinstonModule.createLogger({
+export const graphqlLogger = createLoggerService({
     level: 'http',
-    format: winston.format.combine(winston.format.timestamp(), utilities.format.nestLike('My-Own-App')),
-    transports: [
-        new winstonDaily({
-            level: 'http',
-            format: winston.format.combine(
-                winston.format.timestamp({
-                    format: 'YYYY-MM-DD HH:mm:ss',
-                }),
-                winston.format.json()
-            ),
-            dirname: 'logs_json/graphql',
-            filename: '%DATE%.log',
-            datePattern: 'YYYY-MM-DD',
-            zippedArchive: false,
-            maxSize: '20m',
-            maxFiles: '30d',
-        }),
-    ],
+    transports: [createDailyTransport('http', 'logs_json/graphql')],
 });
 
-export const winstonTransports = [
+const applicationTransports = [
     new winston.transports.Console({
         level: 'debug',
-        format: winston.format.combine(winston.format.timestamp(), utilities.format.nestLike('My-Own-App')),
+        format: consoleFormat,
     }),
-    new winstonDaily({
-        level: 'error',
-        format: winston.format.combine(
-            winston.format.timestamp({
-                format: 'YYYY-MM-DD HH:mm:ss',
-            }),
-            addRequestId(),
-            winston.format.json()
-        ),
-        dirname: 'logs_json/error',
-        filename: '%DATE%.log',
-        datePattern: 'YYYY-MM-DD',
-        zippedArchive: false,
-        maxSize: '20m',
-        maxFiles: '30d',
-    }),
-    new winstonDaily({
-        level: 'warn',
-        format: winston.format.combine(
-            winston.format.timestamp({
-                format: 'YYYY-MM-DD HH:mm:ss',
-            }),
-            addRequestId(),
-            winston.format.json()
-        ),
-        dirname: 'logs_json/warn',
-        filename: '%DATE%.log',
-        datePattern: 'YYYY-MM-DD',
-        zippedArchive: false,
-        maxSize: '20m',
-        maxFiles: '30d',
-    }),
-    new winstonDaily({
-        level: 'info',
-        format: winston.format.combine(
-            winston.format.timestamp({
-                format: 'YYYY-MM-DD HH:mm:ss',
-            }),
-            addRequestId(),
-            winston.format.json()
-        ),
-        dirname: 'logs_json/info',
-        filename: '%DATE%.log',
-        datePattern: 'YYYY-MM-DD',
-        zippedArchive: false,
-        maxSize: '20m',
-        maxFiles: '30d',
-    }),
+    createDailyTransport('error', 'logs_json/error'),
+    createDailyTransport('warn', 'logs_json/warn'),
+    createDailyTransport('info', 'logs_json/info'),
 ];
+
+export const applicationLogger = createLoggerService({ transports: applicationTransports });

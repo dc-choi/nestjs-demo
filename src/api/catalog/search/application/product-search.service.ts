@@ -1,6 +1,5 @@
 import { BadRequestException, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 
-import { ClsServiceManager } from 'nestjs-cls';
 import { ProductSearchItemDocument } from '~/api/catalog/search/domain/product-search.document';
 import {
     ProductSearchContractError,
@@ -17,6 +16,7 @@ import {
     ProductSearchConnectionType,
     ProductSearchNodeType,
 } from '~/api/catalog/search/presentation/product-search.type';
+import { getCurrentRequestId } from '~/global/common/context/request-context';
 import {
     OpenSearchHttpClient,
     OpenSearchHttpError,
@@ -73,7 +73,7 @@ export class ProductSearchService {
 
             this.logger.error({
                 type: 'OPENSEARCH REQUEST FAILURE',
-                requestId: ClsServiceManager.getClsService().getId() ?? 'unknown',
+                requestId: getCurrentRequestId() ?? 'unknown',
                 status: error instanceof OpenSearchHttpError ? error.status : null,
             });
             throw searchUnavailable('SEARCH_UNAVAILABLE', 'Product search is temporarily unavailable');
@@ -139,7 +139,7 @@ export class ProductSearchService {
         } catch (error) {
             this.logger.warn({
                 type: 'OPENSEARCH PIT CLOSE FAILURE',
-                requestId: ClsServiceManager.getClsService().getId() ?? 'unknown',
+                requestId: getCurrentRequestId() ?? 'unknown',
                 status: error instanceof OpenSearchHttpError ? error.status : null,
             });
         }

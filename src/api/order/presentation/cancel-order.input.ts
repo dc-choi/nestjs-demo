@@ -10,13 +10,13 @@ export class CancelOrderInput {
     @Field(() => ID)
     @Matches(DECIMAL_ORDER_ID_PATTERN)
     @MaxLength(19)
-    orderId: string;
+    orderId!: string;
 
     @Field()
     @IsString()
     @IsNotEmpty()
     @MaxLength(128)
-    idempotencyKey: string;
+    idempotencyKey!: string;
 
     @Field(() => String, { nullable: true })
     @IsOptional()

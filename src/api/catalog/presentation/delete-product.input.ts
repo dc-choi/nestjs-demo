@@ -10,12 +10,12 @@ export class DeleteProductInput {
     @Field(() => ID)
     @Matches(DECIMAL_PRODUCT_ID_PATTERN, { message: invalidValue('상품 ID') })
     @MaxLength(PRODUCT_ID_MAX_LENGTH, { message: invalidValue('상품 ID') })
-    productId: string;
+    productId!: string;
 
     @Field(() => Int)
     @IsInt({ message: invalidValue('기대 revision') })
     @Min(1, { message: invalidMin('기대 revision', 1) })
-    expectedRevision: number;
+    expectedRevision!: number;
 
     @Field(() => String, { nullable: true })
     @IsOptional()

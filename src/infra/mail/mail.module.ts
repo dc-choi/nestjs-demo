@@ -1,7 +1,7 @@
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.adapter';
 import { Module } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 
 import { SignupMailHandler } from './handler/signup.mail.handler';
@@ -12,6 +12,7 @@ import { EnvConfig } from '~/global/config/env/env.config';
 @Module({
     imports: [
         MailerModule.forRootAsync({
+            imports: [ConfigModule],
             inject: [ConfigService],
             useFactory: (configService: ConfigService<EnvConfig, true>) => {
                 return {

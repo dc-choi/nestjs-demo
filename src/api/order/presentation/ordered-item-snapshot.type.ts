@@ -6,38 +6,38 @@ import { MoneyType } from '~/global/graphql/money.type';
 @ObjectType('OrderedItemSnapshot')
 export class OrderedItemSnapshotType {
     @Field(() => ID)
-    productId: string;
+    productId!: string;
 
     @Field(() => Int)
-    productRevision: number;
+    productRevision!: number;
 
     @Field()
-    productName: string;
+    productName!: string;
 
     @Field()
-    itemName: string;
+    itemName!: string;
 
     @Field()
-    itemSku: string;
+    itemSku!: string;
 
     @Field(() => String, { nullable: true })
-    productDescription: string | null;
+    productDescription!: string | null;
 
     @Field(() => String, { nullable: true })
-    productReturnPolicy: string | null;
+    productReturnPolicy!: string | null;
 
     @Field(() => MoneyType)
-    unitSupplyPrice: MoneyType;
+    unitSupplyPrice!: MoneyType;
 
     @Field(() => MoneyType)
-    unitVat: MoneyType;
+    unitVat!: MoneyType;
 
     @Field(() => MoneyType)
-    unitTotalPrice: MoneyType;
+    unitTotalPrice!: MoneyType;
 
     @Field()
-    isTaxFree: boolean;
+    isTaxFree!: boolean;
 
     @Field(() => [SelectedOrderOptionType])
-    selectedOptions: SelectedOrderOptionType[];
+    selectedOptions!: SelectedOrderOptionType[];
 }

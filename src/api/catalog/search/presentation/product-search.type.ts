@@ -5,50 +5,50 @@ import { MoneyType } from '~/global/graphql/money.type';
 @ObjectType('ProductSearchThumbnail')
 export class ProductSearchThumbnailType {
     @Field()
-    url: string;
+    url!: string;
 
     @Field(() => String, { nullable: true })
-    altText: string | null;
+    altText!: string | null;
 }
 
 @ObjectType('ProductSearchNode')
 export class ProductSearchNodeType {
     @Field(() => ID)
-    productId: string;
+    productId!: string;
 
     @Field()
-    slug: string;
+    slug!: string;
 
     @Field()
-    name: string;
+    name!: string;
 
     @Field(() => ID)
-    itemId: string;
+    itemId!: string;
 
     @Field()
-    itemName: string;
+    itemName!: string;
 
     @Field(() => MoneyType)
-    price: MoneyType;
+    price!: MoneyType;
 
     @Field(() => ProductSearchThumbnailType, { nullable: true })
-    thumbnail: ProductSearchThumbnailType | null;
+    thumbnail!: ProductSearchThumbnailType | null;
 }
 
 @ObjectType('ProductSearchPageInfo')
 export class ProductSearchPageInfoType {
     @Field()
-    hasNextPage: boolean;
+    hasNextPage!: boolean;
 
     @Field(() => String, { nullable: true })
-    endCursor: string | null;
+    endCursor!: string | null;
 }
 
 @ObjectType('ProductSearchConnection')
 export class ProductSearchConnectionType {
     @Field(() => [ProductSearchNodeType])
-    nodes: ProductSearchNodeType[];
+    nodes!: ProductSearchNodeType[];
 
     @Field(() => ProductSearchPageInfoType)
-    pageInfo: ProductSearchPageInfoType;
+    pageInfo!: ProductSearchPageInfoType;
 }

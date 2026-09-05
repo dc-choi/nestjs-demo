@@ -6,17 +6,17 @@ import { MoneyType } from '~/global/graphql/money.type';
 @ObjectType('OrderItem')
 export class OrderItemType {
     @Field(() => ID)
-    id: string;
+    id!: string;
 
     @Field(() => ID)
-    itemId: string;
+    itemId!: string;
 
     @Field(() => Int)
-    quantity: number;
+    quantity!: number;
 
     @Field(() => MoneyType)
-    lineTotalPrice: MoneyType;
+    lineTotalPrice!: MoneyType;
 
     @Field(() => OrderedItemSnapshotType)
-    snapshot: OrderedItemSnapshotType;
+    snapshot!: OrderedItemSnapshotType;
 }

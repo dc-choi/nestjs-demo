@@ -5,23 +5,23 @@ import { MemberRole } from './member-role.enum';
 @ObjectType('Member')
 export class MemberType {
     @Field(() => ID)
-    id: string;
+    id!: string;
 
     @Field()
-    name: string;
+    name!: string;
 
     @Field()
-    email: string;
+    email!: string;
 
     @Field()
-    phone: string;
+    phone!: string;
 
     @Field(() => MemberRole)
-    role: MemberRole;
+    role!: MemberRole;
 
     @Field(() => Date, { nullable: true })
-    lastLoginAt: Date | null;
+    lastLoginAt!: Date | null;
 
     @Field(() => Date)
-    createdAt: Date;
+    createdAt!: Date;
 }

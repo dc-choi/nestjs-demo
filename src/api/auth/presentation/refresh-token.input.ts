@@ -8,11 +8,11 @@ export class RefreshTokenInput {
     @Field()
     @IsString({ message: invalidValue('accessToken') })
     @IsNotEmpty({ message: emptyValue('accessToken') })
-    accessToken: string;
+    accessToken!: string;
 
     @Field()
     @IsString({ message: invalidValue('refreshToken') })
     @IsUUID(7, { message: invalidValue('refreshToken') })
     @IsNotEmpty({ message: emptyValue('refreshToken') })
-    refreshToken: string;
+    refreshToken!: string;
 }

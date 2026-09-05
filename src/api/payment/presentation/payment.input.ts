@@ -14,7 +14,7 @@ class IdempotentPaymentInput {
     @IsString()
     @IsNotEmpty()
     @MaxLength(128)
-    idempotencyKey: string;
+    idempotencyKey!: string;
 }
 
 @InputType()
@@ -22,13 +22,13 @@ export class CreatePaymentAttemptInput extends IdempotentPaymentInput {
     @Field(() => ID)
     @Matches(DECIMAL_ID_PATTERN)
     @MaxLength(19)
-    orderId: string;
+    orderId!: string;
 
     @Field()
     @IsString()
     @IsNotEmpty()
     @MaxLength(64)
-    provider: string;
+    provider!: string;
 
     @Field(() => String, { nullable: true })
     @IsOptional()
@@ -48,13 +48,13 @@ export class CapturePaymentInput extends IdempotentPaymentInput {
     @Field(() => ID)
     @Matches(DECIMAL_ID_PATTERN)
     @MaxLength(19)
-    paymentAttemptId: string;
+    paymentAttemptId!: string;
 
     @Field()
     @IsString()
     @IsNotEmpty()
     @MaxLength(255)
-    providerTransactionId: string;
+    providerTransactionId!: string;
 }
 
 @InputType()
@@ -62,13 +62,13 @@ export class FailPaymentInput extends IdempotentPaymentInput {
     @Field(() => ID)
     @Matches(DECIMAL_ID_PATTERN)
     @MaxLength(19)
-    paymentAttemptId: string;
+    paymentAttemptId!: string;
 
     @Field()
     @IsString()
     @IsNotEmpty()
     @MaxLength(128)
-    errorCode: string;
+    errorCode!: string;
 
     @Field(() => String, { nullable: true })
     @IsOptional()
@@ -80,7 +80,7 @@ export class FailPaymentInput extends IdempotentPaymentInput {
 export class RefundPaymentInput extends CapturePaymentInput {
     @Field()
     @Matches(MONEY_PATTERN)
-    amount: string;
+    amount!: string;
 }
 
 @InputType()
@@ -89,13 +89,13 @@ export class ReceivePaymentWebhookInput {
     @IsString()
     @IsNotEmpty()
     @MaxLength(64)
-    provider: string;
+    provider!: string;
 
     @Field()
     @IsString()
     @IsNotEmpty()
     @MaxLength(255)
-    providerEventId: string;
+    providerEventId!: string;
 
     @Field(() => String, { nullable: true })
     @IsOptional()
@@ -105,14 +105,14 @@ export class ReceivePaymentWebhookInput {
 
     @Field()
     @Matches(SHA256_PATTERN)
-    payloadHash: string;
+    payloadHash!: string;
 }
 
 @InputType()
 export class ProcessPaymentWebhookInput extends ReceivePaymentWebhookInput {
     @Field(() => PaymentWebhookOutcome)
     @IsEnum(PaymentWebhookOutcome)
-    outcome: PaymentWebhookOutcome;
+    outcome!: PaymentWebhookOutcome;
 
     @Field(() => String, { nullable: true })
     @IsOptional()
@@ -143,18 +143,18 @@ export class FailPaymentWebhookInput {
     @IsString()
     @IsNotEmpty()
     @MaxLength(64)
-    provider: string;
+    provider!: string;
 
     @Field()
     @IsString()
     @IsNotEmpty()
     @MaxLength(255)
-    providerEventId: string;
+    providerEventId!: string;
 
     @Field()
     @IsString()
     @IsNotEmpty()
-    errorMessage: string;
+    errorMessage!: string;
 }
 
 export function parsePaymentId(value: string): bigint {

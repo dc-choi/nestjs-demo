@@ -1,6 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { GraphQLSchemaFactory } from '@nestjs/graphql/dist/schema-builder/graphql-schema.factory.js';
-import { GraphQLSchemaBuilderModule } from '@nestjs/graphql/dist/schema-builder/schema-builder.module.js';
+import { GraphQLSchemaBuilderModule, GraphQLSchemaFactory } from '@nestjs/graphql';
 
 import { GraphQLObjectType } from 'graphql';
 import { ProductResolver } from '~/api/catalog/presentation/product.resolver';

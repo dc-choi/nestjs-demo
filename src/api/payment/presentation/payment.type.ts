@@ -11,107 +11,107 @@ import { MoneyType } from '~/global/graphql/money.type';
 @ObjectType('PaymentTransaction')
 export class PaymentTransactionRecordType {
     @Field(() => ID)
-    id: string;
+    id!: string;
 
     @Field(() => PaymentTransactionType)
-    type: PaymentTransactionType;
+    type!: PaymentTransactionType;
 
     @Field(() => PaymentTransactionStatus)
-    status: PaymentTransactionStatus;
+    status!: PaymentTransactionStatus;
 
     @Field(() => MoneyType)
-    amount: MoneyType;
+    amount!: MoneyType;
 
     @Field(() => String, { nullable: true })
-    providerTransactionId: string | null;
+    providerTransactionId!: string | null;
 
     @Field(() => String, { nullable: true })
-    errorCode: string | null;
+    errorCode!: string | null;
 
     @Field(() => String, { nullable: true })
-    errorMessage: string | null;
+    errorMessage!: string | null;
 
     @Field(() => Date, { nullable: true })
-    processedAt: Date | null;
+    processedAt!: Date | null;
 }
 
 @ObjectType('PaymentAttempt')
 export class PaymentAttemptType {
     @Field(() => ID)
-    id: string;
+    id!: string;
 
     @Field(() => ID)
-    orderId: string;
+    orderId!: string;
 
     @Field()
-    provider: string;
+    provider!: string;
 
     @Field(() => String, { nullable: true })
-    method: string | null;
+    method!: string | null;
 
     @Field(() => PaymentAttemptStatus)
-    status: PaymentAttemptStatus;
+    status!: PaymentAttemptStatus;
 
     @Field(() => MoneyType)
-    requestedAmount: MoneyType;
+    requestedAmount!: MoneyType;
 
     @Field(() => String, { nullable: true })
-    providerPaymentId: string | null;
+    providerPaymentId!: string | null;
 
     @Field(() => String, { nullable: true })
-    errorCode: string | null;
+    errorCode!: string | null;
 
     @Field(() => String, { nullable: true })
-    errorMessage: string | null;
+    errorMessage!: string | null;
 
     @Field(() => Date, { nullable: true })
-    capturedAt: Date | null;
+    capturedAt!: Date | null;
 
     @Field(() => [PaymentTransactionRecordType])
-    transactions: PaymentTransactionRecordType[];
+    transactions!: PaymentTransactionRecordType[];
 }
 
 @ObjectType()
 export class PaymentPayload {
     @Field(() => PaymentAttemptType)
-    payment: PaymentAttemptType;
+    payment!: PaymentAttemptType;
 
     @Field(() => PaymentTransactionRecordType, { nullable: true })
-    transaction: PaymentTransactionRecordType | null;
+    transaction!: PaymentTransactionRecordType | null;
 }
 
 @ObjectType('PaymentWebhookEvent')
 export class PaymentWebhookEventType {
     @Field(() => ID)
-    id: string;
+    id!: string;
 
     @Field()
-    provider: string;
+    provider!: string;
 
     @Field()
-    providerEventId: string;
+    providerEventId!: string;
 
     @Field(() => PaymentWebhookEventStatus)
-    status: PaymentWebhookEventStatus;
+    status!: PaymentWebhookEventStatus;
 
     @Field(() => ID, { nullable: true })
-    paymentAttemptId: string | null;
+    paymentAttemptId!: string | null;
 
     @Field(() => Date)
-    receivedAt: Date;
+    receivedAt!: Date;
 
     @Field(() => Date, { nullable: true })
-    processedAt: Date | null;
+    processedAt!: Date | null;
 
     @Field(() => String, { nullable: true })
-    errorMessage: string | null;
+    errorMessage!: string | null;
 }
 
 @ObjectType()
 export class PaymentWebhookPayload {
     @Field(() => PaymentWebhookEventType)
-    event: PaymentWebhookEventType;
+    event!: PaymentWebhookEventType;
 
     @Field(() => PaymentTransactionRecordType, { nullable: true })
-    transaction: PaymentTransactionRecordType | null;
+    transaction!: PaymentTransactionRecordType | null;
 }
