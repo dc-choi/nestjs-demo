@@ -1,17 +1,16 @@
-import { jest } from '@jest/globals';
-
+import { describe, expect, it, vi } from 'vitest';
 import { SearchOutboxRelay } from '~/infra/search/search-outbox.relay';
 
 describe('Search outbox relay', () => {
     it('does not claim rows while OpenSearch is disabled', async () => {
         const orm = {
             em: {
-                fork: jest.fn(() => {
+                fork: vi.fn(() => {
                     throw new Error('The outbox must not be queried while search is disabled');
                 }),
             },
         };
-        const worker = { synchronize: jest.fn() };
+        const worker = { synchronize: vi.fn() };
         const relay = new SearchOutboxRelay(orm as never, worker as never, { enabled: false } as never);
 
         await expect(relay.drainBatch()).rejects.toThrow('OpenSearch must be enabled');
@@ -20,12 +19,12 @@ describe('Search outbox relay', () => {
     });
 
     it('does not claim rows after cancellation', async () => {
-        const fork = jest.fn(() => {
+        const fork = vi.fn(() => {
             throw new Error('The outbox must not be queried after cancellation');
         });
         const relay = new SearchOutboxRelay(
             { em: { fork } } as never,
-            { synchronize: jest.fn() } as never,
+            { synchronize: vi.fn() } as never,
             { enabled: true } as never
         );
 

@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { readMikroOrmEnvironment } from '~/infra/database/database-environment';
 
 const environment = {

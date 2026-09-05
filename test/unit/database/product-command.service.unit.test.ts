@@ -1,7 +1,7 @@
-import { jest } from '@jest/globals';
 import { Collection, EntityManager, LockMode } from '@mikro-orm/core';
 import { BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
 
+import { describe, expect, it, vi } from 'vitest';
 import { ProductCommandService } from '~/api/catalog/application/product-command.service';
 import { CategoryEntity } from '~/api/catalog/domain/entity/category.entity';
 import { ItemOptionValueEntity } from '~/api/catalog/domain/entity/item-option-value.entity';
@@ -528,13 +528,13 @@ function createHarness(options: HarnessOptions = {}) {
     let transactionRolledBack = false;
     let nextGeneratedId = 1000n;
 
-    const persist = jest.fn((entity: object | object[]) => {
+    const persist = vi.fn((entity: object | object[]) => {
         persisted.push(...(Array.isArray(entity) ? entity : [entity]));
     });
-    const remove = jest.fn((entity: object | object[]) => {
+    const remove = vi.fn((entity: object | object[]) => {
         removed.push(...(Array.isArray(entity) ? entity : [entity]));
     });
-    const flush = jest.fn(async () => {
+    const flush = vi.fn(async () => {
         if (options.assignCreatedProductId) {
             const product = persisted.find((entity) => entity instanceof ProductEntity) as ProductEntity | undefined;
             if (product && product.id === undefined) product.id = options.assignCreatedProductId;
@@ -553,17 +553,17 @@ function createHarness(options: HarnessOptions = {}) {
         }
         if (options.failOnFlush === flush.mock.calls.length) throw options.flushError;
     });
-    const find = jest.fn(async (entity: unknown) => (entity === CategoryEntity ? (options.categories ?? []) : []));
-    const findOne = jest.fn(async (entity: unknown) => {
+    const find = vi.fn(async (entity: unknown) => (entity === CategoryEntity ? (options.categories ?? []) : []));
+    const findOne = vi.fn(async (entity: unknown) => {
         if (entity === ProductEntity) return options.product ?? null;
         if (entity === ProductSnapshotEntity) return options.source ?? null;
         return null;
     });
-    const populate = jest.fn(async () => undefined);
-    const getReference = jest.fn((_: unknown, id: bigint) => Object.assign(new MemberEntity(), { id }));
+    const populate = vi.fn(async () => undefined);
+    const getReference = vi.fn((_: unknown, id: bigint) => Object.assign(new MemberEntity(), { id }));
 
     const tx = { persist, remove, flush, find, findOne, populate, getReference } as unknown as EntityManager;
-    const transactional = jest.fn(async (work: (transaction: EntityManager) => Promise<unknown>) => {
+    const transactional = vi.fn(async (work: (transaction: EntityManager) => Promise<unknown>) => {
         try {
             return await work(tx);
         } catch (error: unknown) {

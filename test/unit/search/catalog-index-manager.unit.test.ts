@@ -1,3 +1,4 @@
+import { type Mock, describe, expect, it, vi } from 'vitest';
 import { catalogIndexDefinition, catalogNoriIndexDefinition } from '~/infra/search/catalog-index.definition';
 import { CatalogBulkError, CatalogIndexManager } from '~/infra/search/catalog-index.manager';
 import { OpenSearchHttpClient } from '~/infra/search/opensearch.client';
@@ -15,7 +16,7 @@ describe('Catalog index manager', () => {
     });
 
     it('uses external product revision and validates every Bulk item', async () => {
-        const request = jest.fn().mockResolvedValue({
+        const request = vi.fn().mockResolvedValue({
             errors: true,
             items: [
                 { index: { _id: '1', status: 201 } },
@@ -34,7 +35,7 @@ describe('Catalog index manager', () => {
     });
 
     it('moves both aliases in one atomic aliases request after resolving current targets', async () => {
-        const request = jest
+        const request = vi
             .fn()
             .mockResolvedValueOnce({ old: { aliases: { 'catalog-products-read': {} } } })
             .mockResolvedValueOnce({ old: { aliases: { 'catalog-products-write': { is_write_index: true } } } })
@@ -56,7 +57,7 @@ describe('Catalog index manager', () => {
     });
 
     it('uses external_gte only for an explicit equal-version repair', async () => {
-        const request = jest.fn().mockResolvedValue({
+        const request = vi.fn().mockResolvedValue({
             errors: false,
             items: [{ index: { _id: '1', status: 200 } }],
         });
@@ -70,7 +71,7 @@ describe('Catalog index manager', () => {
     });
 });
 
-function createManager(request: jest.Mock): CatalogIndexManager {
+function createManager(request: Mock): CatalogIndexManager {
     const client = { request } as unknown as OpenSearchHttpClient;
     const config = {
         readAlias: 'catalog-products-read',

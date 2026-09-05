@@ -1,26 +1,27 @@
 import { Logger } from '@nestjs/common';
 
 import Redlock from 'redlock';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DistributedLockService } from '~/global/common/lock/distributed-lock.service';
 
 describe('DistributedLockService', () => {
     beforeEach(() => {
-        jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+        vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
     });
 
     afterEach(() => {
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
     });
 
     it('락 키를 정렬하고 중복을 제거한 뒤 설정한 횟수만큼 획득을 재시도한다', async () => {
-        const unlock = jest.fn().mockResolvedValue(undefined);
-        const acquire = jest
+        const unlock = vi.fn().mockResolvedValue(undefined);
+        const acquire = vi
             .fn()
             .mockRejectedValueOnce(new Error('lock conflict'))
             .mockRejectedValueOnce(new Error('lock conflict'))
             .mockResolvedValue({ unlock });
         const service = new DistributedLockService({ acquire } as unknown as Redlock);
-        const task = jest.fn().mockResolvedValue('done');
+        const task = vi.fn().mockResolvedValue('done');
 
         await expect(
             service.run(['lock:item:2', 'lock:item:1', 'lock:item:2'], task, {
@@ -37,9 +38,9 @@ describe('DistributedLockService', () => {
     });
 
     it('락 획득이 끝까지 실패하면 주문 callback을 실행하지 않는다', async () => {
-        const acquire = jest.fn().mockRejectedValue(new Error('lock conflict'));
+        const acquire = vi.fn().mockRejectedValue(new Error('lock conflict'));
         const service = new DistributedLockService({ acquire } as unknown as Redlock);
-        const task = jest.fn();
+        const task = vi.fn();
 
         await expect(
             service.run(['lock:item:1'], task, {
@@ -54,8 +55,8 @@ describe('DistributedLockService', () => {
     });
 
     it('주문 callback이 실패해도 락을 해제하고 원본 오류를 유지한다', async () => {
-        const unlock = jest.fn().mockResolvedValue(undefined);
-        const acquire = jest.fn().mockResolvedValue({ unlock });
+        const unlock = vi.fn().mockResolvedValue(undefined);
+        const acquire = vi.fn().mockResolvedValue({ unlock });
         const service = new DistributedLockService({ acquire } as unknown as Redlock);
         const error = new Error('order failed');
 
@@ -66,8 +67,8 @@ describe('DistributedLockService', () => {
     });
 
     it('락 해제 실패가 성공한 주문 결과를 덮어쓰지 않는다', async () => {
-        const unlock = jest.fn().mockRejectedValue(new Error('unlock failed'));
-        const acquire = jest.fn().mockResolvedValue({ unlock });
+        const unlock = vi.fn().mockRejectedValue(new Error('unlock failed'));
+        const acquire = vi.fn().mockResolvedValue({ unlock });
         const service = new DistributedLockService({ acquire } as unknown as Redlock);
 
         await expect(service.run(['lock:item:1'], async () => 'done')).resolves.toBe('done');

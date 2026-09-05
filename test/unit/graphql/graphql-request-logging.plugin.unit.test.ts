@@ -1,19 +1,17 @@
 import { Request, Response } from 'express';
 import { GraphQLError, getOperationAST, parse } from 'graphql';
 import { EventEmitter } from 'node:events';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { graphqlLog } from '~/global/common/logger/channel.logger';
 import { createGraphqlRequestLoggingPlugin } from '~/global/graphql/graphql-request-logging.plugin';
 
-jest.mock('~/global/common/logger/channel.logger', () => ({
-    graphqlLog: { log: jest.fn() },
-}));
-
 describe('createGraphqlRequestLoggingPlugin', () => {
     afterEach(() => {
-        jest.clearAllMocks();
+        vi.restoreAllMocks();
     });
 
     it('허용된 요청 메타데이터만 기록하고 query, variables, response를 남기지 않는다', async () => {
+        const log = vi.spyOn(graphqlLog, 'log').mockImplementation(() => undefined);
         const query = `
             # sensitive-query-marker
             query Catalog($token: String!) {
@@ -28,7 +26,7 @@ describe('createGraphqlRequestLoggingPlugin', () => {
         Object.assign(responseEvents, {
             statusCode: 200,
             writableFinished: true,
-            getHeader: jest.fn().mockReturnValue('graphql-request-3'),
+            getHeader: vi.fn().mockReturnValue('graphql-request-3'),
         });
         const req = {
             method: 'POST',
@@ -64,8 +62,8 @@ describe('createGraphqlRequestLoggingPlugin', () => {
         } as never);
         responseEvents.emit('finish');
 
-        expect(graphqlLog.log).toHaveBeenCalledTimes(1);
-        const [entry] = jest.mocked(graphqlLog.log).mock.calls[0];
+        expect(log).toHaveBeenCalledTimes(1);
+        const [entry] = log.mock.calls[0];
         expect(Object.keys(entry)).toEqual([
             'type',
             'env',

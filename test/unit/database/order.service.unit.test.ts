@@ -1,4 +1,3 @@
-import { jest } from '@jest/globals';
 import {
     EntityManager,
     type EntityRepository,
@@ -10,6 +9,7 @@ import {
 import { BadRequestException, ConflictException } from '@nestjs/common';
 
 import { createHash } from 'node:crypto';
+import { type MockedFunction, describe, expect, it, vi } from 'vitest';
 import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status';
 import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
 import { ProductStatus } from '~/api/catalog/domain/entity/product-status';
@@ -39,7 +39,7 @@ describe('OrderService', () => {
     it('분산 락 안의 writer transaction에서 현재 Item을 읽고 저장된 주문을 반환한다', async () => {
         const item = createLiveItem(3);
         const persistence = createPersistenceMocks([ORDER_ITEM_IDS[0]]);
-        const findOne = jest.fn<() => Promise<ItemEntity>>().mockResolvedValue(item);
+        const findOne = vi.fn<() => Promise<ItemEntity>>().mockResolvedValue(item);
         const { service, getMemberReference, requestContextSource, reserveForPlacement, run, transactional } =
             createService(persistence as unknown as Partial<EntityManager>, findOne);
         run.mockImplementation(async (_keys, work) => {
@@ -98,11 +98,11 @@ describe('OrderService', () => {
     });
 
     it('잠근 Item의 합산 재고가 부족하면 주문을 저장하지 않는다', async () => {
-        const findOne = jest.fn<() => Promise<ItemEntity>>().mockResolvedValue(createLiveItem(3));
-        const reserveForPlacement = jest
+        const findOne = vi.fn<() => Promise<ItemEntity>>().mockResolvedValue(createLiveItem(3));
+        const reserveForPlacement = vi
             .fn<InventoryService['reserveForPlacement']>()
             .mockRejectedValue(new BadRequestException('재고가 부족합니다.'));
-        const persist = jest.fn();
+        const persist = vi.fn();
         const { service, requestContextSource, transactional } = createService(
             { persist } as unknown as Partial<EntityManager>,
             findOne,
@@ -130,7 +130,7 @@ describe('OrderService', () => {
         const persistence = createPersistenceMocks([...ORDER_ITEM_IDS]);
         const { service, requestContextSource, run } = createService(
             persistence as unknown as Partial<EntityManager>,
-            jest.fn<() => Promise<ItemEntity>>().mockResolvedValue(item)
+            vi.fn<() => Promise<ItemEntity>>().mockResolvedValue(item)
         );
 
         await RequestContext.create(requestContextSource, () =>
@@ -155,10 +155,10 @@ describe('OrderService', () => {
         item.supplyPrice = '9999999.999';
         item.vat = '0';
         item.totalPrice = '9999999.999';
-        const persist = jest.fn();
+        const persist = vi.fn();
         const { service, requestContextSource, reserveForPlacement, run } = createService(
-            { persist, flush: jest.fn() } as unknown as Partial<EntityManager>,
-            jest.fn<() => Promise<ItemEntity>>().mockResolvedValue(item)
+            { persist, flush: vi.fn() } as unknown as Partial<EntityManager>,
+            vi.fn<() => Promise<ItemEntity>>().mockResolvedValue(item)
         );
 
         await expect(
@@ -234,7 +234,7 @@ describe('OrderService', () => {
         const persistence = createPersistenceMocks([ORDER_ITEM_IDS[0]]);
         const { service, requestContextSource, run, orderFindOne, reserveForPlacement } = createService(
             persistence as unknown as Partial<EntityManager>,
-            jest.fn<() => Promise<ItemEntity>>().mockResolvedValue(item)
+            vi.fn<() => Promise<ItemEntity>>().mockResolvedValue(item)
         );
         const firstCommand = {
             idempotencyKey: 'place-replay-1',
@@ -285,8 +285,8 @@ describe('OrderService', () => {
             placedAt: CREATED_AT,
         });
         const { service, requestContextSource, orderFindOne, run } = createService(
-            { persist: jest.fn(), flush: jest.fn() } as unknown as Partial<EntityManager>,
-            jest.fn<() => Promise<ItemEntity>>()
+            { persist: vi.fn(), flush: vi.fn() } as unknown as Partial<EntityManager>,
+            vi.fn<() => Promise<ItemEntity>>()
         );
         orderFindOne.mockResolvedValue(existing);
 
@@ -320,8 +320,8 @@ describe('OrderService', () => {
             placedAt: CREATED_AT,
         });
         const { service, requestContextSource, orderFindOne, run } = createService(
-            { persist: jest.fn(), flush: jest.fn() } as unknown as Partial<EntityManager>,
-            jest.fn<() => Promise<ItemEntity>>()
+            { persist: vi.fn(), flush: vi.fn() } as unknown as Partial<EntityManager>,
+            vi.fn<() => Promise<ItemEntity>>()
         );
         orderFindOne.mockResolvedValueOnce(null).mockResolvedValueOnce(existing);
         run.mockRejectedValue(new UniqueConstraintViolationException(new Error('Duplicate entry')));
@@ -336,14 +336,14 @@ describe('OrderService', () => {
 
     it('소유자가 주문을 한 번만 취소하고 RESERVED 재고와 상태 이력을 함께 처리한다', async () => {
         const { order, reservation } = createCancellableOrder();
-        const persist = jest.fn();
-        const releaseForCancellation = jest.fn(async (target: InventoryReservationEntity) => {
+        const persist = vi.fn();
+        const releaseForCancellation = vi.fn(async (target: InventoryReservationEntity) => {
             target.release(CREATED_AT);
             return null;
         });
         const { service, requestContextSource } = createService(
-            { persist, flush: jest.fn() } as unknown as Partial<EntityManager>,
-            jest.fn<() => Promise<ItemEntity>>(),
+            { persist, flush: vi.fn() } as unknown as Partial<EntityManager>,
+            vi.fn<() => Promise<ItemEntity>>(),
             undefined,
             { order, releaseForCancellation }
         );
@@ -378,8 +378,8 @@ describe('OrderService', () => {
         fulfillment.pack(CREATED_AT);
         fulfillment.ship('parcel', 'tracking-1', CREATED_AT);
         const shippedService = createService(
-            { persist: jest.fn(), flush: jest.fn() } as unknown as Partial<EntityManager>,
-            jest.fn<() => Promise<ItemEntity>>(),
+            { persist: vi.fn(), flush: vi.fn() } as unknown as Partial<EntityManager>,
+            vi.fn<() => Promise<ItemEntity>>(),
             undefined,
             { order: shipped.order }
         );
@@ -410,8 +410,8 @@ describe('OrderService', () => {
             processedAt: CREATED_AT,
         });
         const paidService = createService(
-            { persist: jest.fn(), flush: jest.fn() } as unknown as Partial<EntityManager>,
-            jest.fn<() => Promise<ItemEntity>>(),
+            { persist: vi.fn(), flush: vi.fn() } as unknown as Partial<EntityManager>,
+            vi.fn<() => Promise<ItemEntity>>(),
             undefined,
             { order: paid.order }
         );
@@ -430,8 +430,8 @@ describe('OrderService', () => {
     it('다른 회원의 주문 취소를 거부한다', async () => {
         const { order } = createCancellableOrder();
         const { service, requestContextSource } = createService(
-            { persist: jest.fn(), flush: jest.fn() } as unknown as Partial<EntityManager>,
-            jest.fn<() => Promise<ItemEntity>>(),
+            { persist: vi.fn(), flush: vi.fn() } as unknown as Partial<EntityManager>,
+            vi.fn<() => Promise<ItemEntity>>(),
             undefined,
             { order }
         );
@@ -451,7 +451,7 @@ describe('OrderService', () => {
 function createService(
     transactionOverrides: Partial<EntityManager>,
     findOne: () => Promise<ItemEntity>,
-    reserveForPlacement = jest.fn<InventoryService['reserveForPlacement']>().mockResolvedValue({
+    reserveForPlacement = vi.fn<InventoryService['reserveForPlacement']>().mockResolvedValue({
         reservation: {} as never,
         movement: {} as never,
     }),
@@ -461,13 +461,13 @@ function createService(
     } = {}
 ) {
     const entityManager = Object.assign(Object.create(EntityManager.prototype), transactionOverrides) as EntityManager;
-    entityManager.findOne = jest.fn(async (entityName) => {
+    entityManager.findOne = vi.fn(async (entityName) => {
         if (entityName !== ProductEntity) return null;
         return (await findOne()).product;
     }) as unknown as EntityManager['findOne'];
-    entityManager.lock = jest.fn(async () => undefined) as unknown as EntityManager['lock'];
-    entityManager.refresh = jest.fn(async (entity) => entity) as unknown as EntityManager['refresh'];
-    const transactional = jest.fn<
+    entityManager.lock = vi.fn(async () => undefined) as unknown as EntityManager['lock'];
+    entityManager.refresh = vi.fn(async (entity) => entity) as unknown as EntityManager['refresh'];
+    const transactional = vi.fn<
         (work: (entityManager: EntityManager) => Promise<unknown>, options?: TransactionOptions) => Promise<unknown>
     >(async (work) => {
         const result = await work(entityManager);
@@ -475,18 +475,18 @@ function createService(
         return result;
     });
     entityManager.transactional = transactional as unknown as EntityManager['transactional'];
-    const run = jest.fn(async (_keys: string[], work: () => Promise<unknown>) => work());
+    const run = vi.fn(async (_keys: string[], work: () => Promise<unknown>) => work());
     const requestContextSource = {
         name: 'default',
-        fork: jest.fn(() => entityManager),
+        fork: vi.fn(() => entityManager),
     } as unknown as EntityManager;
     const itemRepository = { findOne } as unknown as EntityRepository<ItemEntity>;
-    const getMemberReference = jest.fn((id: bigint) => ({ id }) as MemberEntity);
+    const getMemberReference = vi.fn((id: bigint) => ({ id }) as MemberEntity);
     const memberRepository = { getReference: getMemberReference } as unknown as EntityRepository<MemberEntity>;
     const releaseForCancellation =
         cancellation.releaseForCancellation ??
-        jest.fn<InventoryService['releaseForCancellation']>().mockResolvedValue(null);
-    const reserveForPlacementBatch = jest.fn<InventoryService['reserveForPlacementBatch']>(
+        vi.fn<InventoryService['releaseForCancellation']>().mockResolvedValue(null);
+    const reserveForPlacementBatch = vi.fn<InventoryService['reserveForPlacementBatch']>(
         async (lines, expiresAt, orderNumber, now) =>
             Promise.all(
                 lines.map(({ orderItem, idempotencyKey }) =>
@@ -500,9 +500,9 @@ function createService(
         releaseForCancellation,
     } as unknown as InventoryService;
     const orderRepository = {
-        findOne: jest.fn(async () => cancellation.order ?? null),
+        findOne: vi.fn(async () => cancellation.order ?? null),
     } as unknown as EntityRepository<OrderEntity>;
-    const orderFindOne = orderRepository.findOne as jest.MockedFunction<EntityRepository<OrderEntity>['findOne']>;
+    const orderFindOne = orderRepository.findOne as MockedFunction<EntityRepository<OrderEntity>['findOne']>;
     const distributedLock = { run } as unknown as DistributedLockService;
 
     return {
@@ -593,10 +593,10 @@ function createLiveItem(stock: number): ItemEntity {
 
 function createPersistenceMocks(itemIds: readonly bigint[]) {
     let persistedOrder: OrderEntity | undefined;
-    const persist = jest.fn((order: OrderEntity) => {
+    const persist = vi.fn((order: OrderEntity) => {
         persistedOrder = order;
     });
-    const flush = jest.fn(async () => {
+    const flush = vi.fn(async () => {
         if (!persistedOrder) return;
 
         persistedOrder.id = ORDER_ID;

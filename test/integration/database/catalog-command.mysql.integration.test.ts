@@ -4,6 +4,7 @@ import { MikroORM, MySqlDriver } from '@mikro-orm/mysql';
 
 import { randomUUID } from 'node:crypto';
 import { readMySqlIntegrationConnection } from 'test/integration/database/mysql-integration.config';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ProductCommandService } from '~/api/catalog/application/product-command.service';
 import { ProductService } from '~/api/catalog/application/product.service';
 import { CategoryEntity } from '~/api/catalog/domain/entity/category.entity';

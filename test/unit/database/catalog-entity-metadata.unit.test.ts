@@ -1,6 +1,7 @@
 import { ReflectMetadataProvider } from '@mikro-orm/decorators/legacy';
 import { MikroORM, MySqlDriver } from '@mikro-orm/mysql';
 
+import { describe, expect, it } from 'vitest';
 import { ItemOptionValueEntity } from '~/api/catalog/domain/entity/item-option-value.entity';
 import { databaseEntities } from '~/infra/database/entities';
 

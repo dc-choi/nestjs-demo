@@ -1,5 +1,6 @@
 import { Collection } from '@mikro-orm/core';
 
+import { describe, expect, it } from 'vitest';
 import { CategoryEntity } from '~/api/catalog/domain/entity/category.entity';
 import { ItemOptionValueEntity } from '~/api/catalog/domain/entity/item-option-value.entity';
 import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status';

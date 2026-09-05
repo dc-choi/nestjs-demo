@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { ndcgAtK, recallAtK } from '~/infra/search/search-relevance-evaluation.service';
 
 describe('Search relevance metrics', () => {

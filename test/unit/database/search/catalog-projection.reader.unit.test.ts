@@ -1,11 +1,11 @@
-import { jest } from '@jest/globals';
 import { MikroORM } from '@mikro-orm/mysql';
 
+import { describe, expect, it, vi } from 'vitest';
 import { CatalogProjectionReader } from '~/infra/search/catalog-projection.reader';
 
 describe('Catalog projection reader', () => {
     it('hydrates a bounded live catalog batch from the primary snapshot', async () => {
-        const execute = jest.fn(async (query: string) => {
+        const execute = vi.fn(async (query: string) => {
             if (query.includes('FROM products p')) {
                 expect(query).toContain("p.status = 'ACTIVE'");
                 expect(query).toContain("i.sale_status = 'ALLOW'");

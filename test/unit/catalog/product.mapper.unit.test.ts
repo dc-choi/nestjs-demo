@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { ProductReadResult } from '~/api/catalog/application/product-read.result';
 import { toProductType } from '~/api/catalog/presentation/product.mapper';
 

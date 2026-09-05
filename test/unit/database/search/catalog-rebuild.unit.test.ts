@@ -1,5 +1,4 @@
-import { jest } from '@jest/globals';
-
+import { describe, expect, it, vi } from 'vitest';
 import { CatalogProductProjectionSource } from '~/api/catalog/search/domain/product-search.document';
 import { CatalogIndexManager } from '~/infra/search/catalog-index.manager';
 import { CatalogProjectionBatch, CatalogProjectionReader } from '~/infra/search/catalog-projection.reader';
@@ -10,19 +9,19 @@ describe('Catalog rebuild', () => {
     it('validates counts and a sample before moving aliases', async () => {
         const source = createSource();
         const reader = {
-            fetchSearchableBatch: jest.fn(
+            fetchSearchableBatch: vi.fn(
                 async (afterId: bigint | null): Promise<CatalogProjectionBatch> =>
                     afterId === null ? { sources: [source], nextCursor: 1n } : { sources: [], nextCursor: null }
             ),
-            countSearchableProducts: jest.fn(async () => 1),
+            countSearchableProducts: vi.fn(async () => 1),
         } as unknown as CatalogProjectionReader;
         const calls: string[] = [];
         const indexManager = {
-            createIndex: jest.fn(async () => calls.push('create')),
-            bulkIndex: jest.fn(async () => calls.push('bulk')),
-            refresh: jest.fn(async () => calls.push('refresh')),
-            count: jest.fn(async () => 1),
-            getDocument: jest.fn(async (_index, id) => ({
+            createIndex: vi.fn(async () => calls.push('create')),
+            bulkIndex: vi.fn(async () => calls.push('bulk')),
+            refresh: vi.fn(async () => calls.push('refresh')),
+            count: vi.fn(async () => 1),
+            getDocument: vi.fn(async (_index, id) => ({
                 id,
                 version: 7,
                 source: {
@@ -55,8 +54,8 @@ describe('Catalog rebuild', () => {
                     ],
                 },
             })),
-            verifyQueryable: jest.fn(async () => calls.push('verify')),
-            cutOverAliases: jest.fn(async () => calls.push('cutover')),
+            verifyQueryable: vi.fn(async () => calls.push('verify')),
+            cutOverAliases: vi.fn(async () => calls.push('cutover')),
         } as unknown as CatalogIndexManager;
         const service = new CatalogRebuildService({ enabled: true } as SearchConfig, reader, indexManager);
 
@@ -72,16 +71,16 @@ describe('Catalog rebuild', () => {
 
     it('does not move aliases when Bulk indexing fails', async () => {
         const reader = {
-            fetchSearchableBatch: jest.fn(
+            fetchSearchableBatch: vi.fn(
                 async (): Promise<CatalogProjectionBatch> => ({ sources: [createSource()], nextCursor: 1n })
             ),
         } as unknown as CatalogProjectionReader;
         const indexManager = {
-            createIndex: jest.fn(),
-            bulkIndex: jest.fn(async () => {
+            createIndex: vi.fn(),
+            bulkIndex: vi.fn(async () => {
                 throw new Error('bulk failed');
             }),
-            cutOverAliases: jest.fn(),
+            cutOverAliases: vi.fn(),
         } as unknown as CatalogIndexManager;
         const service = new CatalogRebuildService({ enabled: true } as SearchConfig, reader, indexManager);
 
@@ -96,7 +95,7 @@ describe('Catalog rebuild', () => {
             writeAlias: 'catalog-write',
         } as SearchConfig;
         const reader = {} as CatalogProjectionReader;
-        const indexManager = { createIndex: jest.fn() } as unknown as CatalogIndexManager;
+        const indexManager = { createIndex: vi.fn() } as unknown as CatalogIndexManager;
         const service = new CatalogRebuildService(config, reader, indexManager);
 
         await expect(service.rebuild({ evaluationAlias: alias, activate: false })).rejects.toThrow(

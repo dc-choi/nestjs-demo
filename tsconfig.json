@@ -10,7 +10,7 @@
         "allowSyntheticDefaultImports": true,
         "esModuleInterop": true,
         "target": "ESNext",
-        "types": ["node", "jest"],
+        "types": ["node"],
         "sourceMap": true,
         "outDir": "./dist",
         "paths": {

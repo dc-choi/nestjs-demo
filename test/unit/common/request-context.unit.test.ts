@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
+import { describe, expect, it } from 'vitest';
 import {
     RequestContextMiddleware,
     getCurrentRequestId,
@@ -21,26 +22,37 @@ describe('request context', () => {
     });
 
     it('continues an upstream request ID through the response and handler', () => {
-        const request = { header: jest.fn().mockReturnValue('upstream-request') } as unknown as Request;
-        const response = { setHeader: jest.fn() } as unknown as Response;
-        const next = jest.fn(() => {
+        const headers = new Map<string, unknown>();
+        const request = { header: () => 'upstream-request' } as unknown as Request;
+        const response = {
+            setHeader: (name: string, value: unknown) => headers.set(name, value),
+        } as unknown as Response;
+        let nextCalls = 0;
+        const next: NextFunction = () => {
+            nextCalls += 1;
             expect(getCurrentRequestId()).toBe('upstream-request');
-        }) as NextFunction;
+        };
 
         new RequestContextMiddleware().use(request, response, next);
 
-        expect(response.setHeader).toHaveBeenCalledWith('x-request-id', 'upstream-request');
-        expect(next).toHaveBeenCalledTimes(1);
+        expect(headers.get('x-request-id')).toBe('upstream-request');
+        expect(nextCalls).toBe(1);
     });
 
     it('creates a request ID when the upstream header is absent', () => {
-        const request = { header: jest.fn().mockReturnValue(undefined) } as unknown as Request;
-        const response = { setHeader: jest.fn() } as unknown as Response;
-        const next = jest.fn() as NextFunction;
+        const headers = new Map<string, unknown>();
+        const request = { header: () => undefined } as unknown as Request;
+        const response = {
+            setHeader: (name: string, value: unknown) => headers.set(name, value),
+        } as unknown as Response;
+        let nextCalls = 0;
+        const next: NextFunction = () => {
+            nextCalls += 1;
+        };
 
         new RequestContextMiddleware().use(request, response, next);
 
-        expect(response.setHeader).toHaveBeenCalledWith('x-request-id', expect.any(String));
-        expect(next).toHaveBeenCalledTimes(1);
+        expect(headers.get('x-request-id')).toEqual(expect.any(String));
+        expect(nextCalls).toBe(1);
     });
 });

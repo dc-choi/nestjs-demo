@@ -1,6 +1,6 @@
-import { jest } from '@jest/globals';
 import { Collection, type EntityRepository, LoadStrategy, PopulateHint } from '@mikro-orm/core';
 
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProductService } from '~/api/catalog/application/product.service';
 import { CategoryEntity } from '~/api/catalog/domain/entity/category.entity';
 import { ItemOptionValueEntity } from '~/api/catalog/domain/entity/item-option-value.entity';
@@ -14,7 +14,7 @@ import { ProductTagEntity } from '~/api/catalog/domain/entity/product-tag.entity
 import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
 
 describe('ProductService', () => {
-    const findOne = jest.fn<EntityRepository<ProductEntity>['findOne']>();
+    const findOne = vi.fn<EntityRepository<ProductEntity>['findOne']>();
     const repository = { findOne } as unknown as EntityRepository<ProductEntity>;
     const service = new ProductService(repository);
 

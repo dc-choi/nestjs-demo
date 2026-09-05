@@ -1,6 +1,7 @@
-import { jest } from '@jest/globals';
 import { MikroORM, RequestContext } from '@mikro-orm/core';
 import { MikroOrmMiddleware } from '@mikro-orm/nestjs';
+
+import { describe, expect, it, vi } from 'vitest';
 
 describe('MikroORM RequestContext', () => {
     it('동시에 실행되는 요청마다 다른 EntityManager fork를 유지한다', async () => {
@@ -10,7 +11,7 @@ describe('MikroORM RequestContext', () => {
         ];
         const em = {
             name: 'default',
-            fork: jest.fn().mockReturnValueOnce(forks[0]).mockReturnValueOnce(forks[1]),
+            fork: vi.fn().mockReturnValueOnce(forks[0]).mockReturnValueOnce(forks[1]),
         };
         const middleware = new MikroOrmMiddleware({ em } as unknown as MikroORM);
 

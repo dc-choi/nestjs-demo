@@ -1,7 +1,7 @@
-import { jest } from '@jest/globals';
 import { EntityManager, QueryOrder } from '@mikro-orm/core';
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MAX_PRODUCT_SNAPSHOT_LIMIT, ProductSnapshotService } from '~/api/catalog/application/product-snapshot.service';
 import { ProductSnapshotChangeType } from '~/api/catalog/domain/entity/product-snapshot-change-type';
 import { ProductSnapshotEntity } from '~/api/catalog/domain/entity/product-snapshot.entity';
@@ -10,8 +10,8 @@ import { MemberRole } from '~/api/member/domain/member-role';
 import { MemberEntity } from '~/api/member/domain/member.entity';
 
 describe('ProductSnapshotService', () => {
-    const findOne = jest.fn<EntityManager['findOne']>();
-    const find = jest.fn<EntityManager['find']>();
+    const findOne = vi.fn<EntityManager['findOne']>();
+    const find = vi.fn<EntityManager['find']>();
     const service = new ProductSnapshotService({ findOne, find } as unknown as EntityManager);
 
     beforeEach(() => {

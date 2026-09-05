@@ -1,10 +1,11 @@
 import { ConfigService } from '@nestjs/config';
 
+import { describe, expect, it } from 'vitest';
 import { SearchConfig } from '~/infra/search/search.config';
 
 describe('Search config', () => {
     it('is inert with safe local defaults when disabled', () => {
-        const config = new SearchConfig(new ConfigService({ OPENSEARCH_ENABLED: false }));
+        const config = new SearchConfig(createConfigService({ OPENSEARCH_ENABLED: false }));
         expect(config.enabled).toBe(false);
         expect(config.nodeUrl.href).toBe('http://127.0.0.1:9200/');
     });
@@ -13,7 +14,7 @@ describe('Search config', () => {
         expect(
             () =>
                 new SearchConfig(
-                    new ConfigService({
+                    createConfigService({
                         OPENSEARCH_ENABLED: true,
                         SECRET: 'cursor-secret',
                     })
@@ -23,7 +24,7 @@ describe('Search config', () => {
 
     it('accepts an enabled lazy client configuration', () => {
         const config = new SearchConfig(
-            new ConfigService({
+            createConfigService({
                 OPENSEARCH_ENABLED: true,
                 OPENSEARCH_NODE_URL: 'http://127.0.0.1:9200',
                 OPENSEARCH_READ_ALIAS: 'catalog-products-read',
@@ -39,7 +40,7 @@ describe('Search config', () => {
         expect(
             () =>
                 new SearchConfig(
-                    new ConfigService({
+                    createConfigService({
                         OPENSEARCH_ENABLED: true,
                         OPENSEARCH_NODE_URL: 'http://127.0.0.1:9200',
                         OPENSEARCH_READ_ALIAS: 'catalog-products',
@@ -50,3 +51,17 @@ describe('Search config', () => {
         ).toThrow('read and write aliases must be different');
     });
 });
+
+function createConfigService(values: Record<string, unknown>): ConfigService {
+    // Explicit nulls prevent ConfigService from falling back to the shell environment.
+    return new ConfigService({
+        OPENSEARCH_ENABLED: null,
+        OPENSEARCH_NODE_URL: null,
+        OPENSEARCH_READ_ALIAS: null,
+        OPENSEARCH_WRITE_ALIAS: null,
+        OPENSEARCH_CURSOR_SECRET: null,
+        OPENSEARCH_REQUEST_TIMEOUT_MS: null,
+        SECRET: null,
+        ...values,
+    });
+}

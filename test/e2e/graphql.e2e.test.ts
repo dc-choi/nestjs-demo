@@ -1,3 +1,5 @@
+import { describe, expect, it } from 'vitest';
+
 const endpoint = process.env.GRAPHQL_URL ?? 'http://127.0.0.1:3000/graphql';
 
 interface GraphqlResponse<T> {
