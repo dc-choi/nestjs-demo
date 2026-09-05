@@ -1,9 +1,9 @@
-import { jest } from '@jest/globals';
 import { EntityManager, type EntityRepository, RequestContext, type TransactionOptions } from '@mikro-orm/core';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { createHmac } from 'node:crypto';
+import { describe, expect, it, vi } from 'vitest';
 import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
 import { FulfillmentEntity } from '~/api/fulfillment/domain/fulfillment.entity';
 import type { InventoryService } from '~/api/inventory/application/inventory.service';
@@ -195,8 +195,8 @@ describe('payment lifecycle', () => {
         const { attempt } = createAttempt();
         let storedEvent: PaymentWebhookEventEntity | null = null;
         const persistence = createPaymentService(attempt, {
-            findWebhook: jest.fn(async () => storedEvent),
-            persist: jest.fn((entity: object) => {
+            findWebhook: vi.fn(async () => storedEvent),
+            persist: vi.fn((entity: object) => {
                 if (entity instanceof PaymentWebhookEventEntity) {
                     entity.id = 70n;
                     storedEvent = entity;
@@ -229,7 +229,7 @@ describe('payment lifecycle', () => {
 
     it('HMAC verifier는 raw body에 대한 SHA-256 서명만 허용한다', () => {
         const verifier = new HmacPaymentWebhookSignatureVerifier({
-            get: jest.fn(() => 'test-secret'),
+            get: vi.fn(() => 'test-secret'),
         } as unknown as ConfigService<EnvConfig, true>);
         const rawBody = Buffer.from(JSON.stringify({ outcome: PaymentWebhookOutcome.CAPTURED }));
         const signature = createHmac('sha256', 'test-secret').update('demo-pay.event-1.').update(rawBody).digest('hex');
@@ -260,27 +260,27 @@ function createPaymentService(
         readonly persist?: (entity: object) => void;
     } = {}
 ) {
-    const persist = jest.fn(overrides.persist ?? (() => undefined));
+    const persist = vi.fn(overrides.persist ?? (() => undefined));
     const entityManager = Object.assign(Object.create(EntityManager.prototype), { persist }) as EntityManager;
-    entityManager.lock = jest.fn(async () => undefined) as unknown as EntityManager['lock'];
-    const transactional = jest.fn<
+    entityManager.lock = vi.fn(async () => undefined) as unknown as EntityManager['lock'];
+    const transactional = vi.fn<
         (work: (entityManager: EntityManager) => Promise<unknown>, options?: TransactionOptions) => Promise<unknown>
     >(async (work) => work(entityManager));
     entityManager.transactional = transactional as unknown as EntityManager['transactional'];
     const requestContextSource = {
         name: 'default',
-        fork: jest.fn(() => entityManager),
+        fork: vi.fn(() => entityManager),
     } as unknown as EntityManager;
-    const findTransaction = jest.fn<() => Promise<PaymentTransactionEntity | null>>().mockResolvedValue(null);
-    const consumeForPayment = jest.fn((reservation: InventoryReservationEntity, now: Date) => reservation.consume(now));
+    const findTransaction = vi.fn<() => Promise<PaymentTransactionEntity | null>>().mockResolvedValue(null);
+    const consumeForPayment = vi.fn((reservation: InventoryReservationEntity, now: Date) => reservation.consume(now));
 
     const service = new PaymentService(
         entityManager,
-        { findOne: jest.fn(async () => attempt.order) } as unknown as EntityRepository<OrderEntity>,
-        { findOne: jest.fn(async () => attempt) } as unknown as EntityRepository<PaymentAttemptEntity>,
+        { findOne: vi.fn(async () => attempt.order) } as unknown as EntityRepository<OrderEntity>,
+        { findOne: vi.fn(async () => attempt) } as unknown as EntityRepository<PaymentAttemptEntity>,
         { findOne: findTransaction } as unknown as EntityRepository<PaymentTransactionEntity>,
         {
-            findOne: overrides.findWebhook ?? jest.fn<() => Promise<null>>().mockResolvedValue(null),
+            findOne: overrides.findWebhook ?? vi.fn<() => Promise<null>>().mockResolvedValue(null),
         } as unknown as EntityRepository<PaymentWebhookEventEntity>,
         { consumeForPayment } as unknown as InventoryService
     );

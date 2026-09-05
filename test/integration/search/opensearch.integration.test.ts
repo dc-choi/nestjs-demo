@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ProductSearchService } from '~/api/catalog/search/application/product-search.service';
 import { ProductSearchDocument } from '~/api/catalog/search/domain/product-search.document';
 import { createCatalogIndexName } from '~/infra/search/catalog-index.definition';

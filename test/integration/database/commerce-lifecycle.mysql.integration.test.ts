@@ -4,6 +4,7 @@ import { MikroORM, MySqlDriver } from '@mikro-orm/mysql';
 import { ConflictException } from '@nestjs/common';
 
 import { readMySqlIntegrationConnection } from 'test/integration/database/mysql-integration.config';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { ProductCommandService } from '~/api/catalog/application/product-command.service';
 import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
 import { FulfillmentService } from '~/api/fulfillment/application/fulfillment.service';

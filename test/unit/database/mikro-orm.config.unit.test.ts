@@ -2,6 +2,7 @@ import { ReflectMetadataProvider } from '@mikro-orm/decorators/legacy';
 import { MySqlDriver } from '@mikro-orm/mysql';
 import type { ConfigService } from '@nestjs/config';
 
+import { describe, expect, it } from 'vitest';
 import type { EnvConfig } from '~/global/config/env/env.config';
 import { createMikroOrmOptions } from '~/infra/database/mikro-orm.config';
 

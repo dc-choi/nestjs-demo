@@ -1,14 +1,15 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { REDIS_QUIT_TIMEOUT_MS, RedisConnectionLifecycle } from '~/infra/redis/redis-client.module';
 
 describe('RedisConnectionLifecycle', () => {
     afterEach(() => {
-        jest.useRealTimers();
+        vi.useRealTimers();
     });
 
     it('quits gracefully when Redis responds', async () => {
         const redis = {
-            quit: jest.fn().mockResolvedValue('OK'),
-            disconnect: jest.fn(),
+            quit: vi.fn().mockResolvedValue('OK'),
+            disconnect: vi.fn(),
         };
 
         await new RedisConnectionLifecycle(redis).onApplicationShutdown();
@@ -19,8 +20,8 @@ describe('RedisConnectionLifecycle', () => {
 
     it('disconnects when graceful Redis shutdown fails', async () => {
         const redis = {
-            quit: jest.fn().mockRejectedValue(new Error('offline')),
-            disconnect: jest.fn(),
+            quit: vi.fn().mockRejectedValue(new Error('offline')),
+            disconnect: vi.fn(),
         };
 
         await new RedisConnectionLifecycle(redis).onApplicationShutdown();
@@ -29,14 +30,14 @@ describe('RedisConnectionLifecycle', () => {
     });
 
     it('disconnects when graceful Redis shutdown times out', async () => {
-        jest.useFakeTimers();
+        vi.useFakeTimers();
         const redis = {
-            quit: jest.fn(() => new Promise<'OK'>(() => undefined)),
-            disconnect: jest.fn(),
+            quit: vi.fn(() => new Promise<'OK'>(() => undefined)),
+            disconnect: vi.fn(),
         };
 
         const shutdown = new RedisConnectionLifecycle(redis).onApplicationShutdown();
-        await jest.advanceTimersByTimeAsync(REDIS_QUIT_TIMEOUT_MS);
+        await vi.advanceTimersByTimeAsync(REDIS_QUIT_TIMEOUT_MS);
         await shutdown;
 
         expect(redis.disconnect).toHaveBeenCalledTimes(1);

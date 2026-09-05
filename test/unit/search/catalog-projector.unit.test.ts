@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { CatalogProjectionError, projectCatalogProduct } from '~/api/catalog/search/domain/catalog-projector';
 import { CatalogProductProjectionSource } from '~/api/catalog/search/domain/product-search.document';
 

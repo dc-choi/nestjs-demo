@@ -1,5 +1,4 @@
-import { jest } from '@jest/globals';
-
+import { describe, expect, it, vi } from 'vitest';
 import { CatalogProductProjectionSource } from '~/api/catalog/search/domain/product-search.document';
 import { CatalogBulkError, CatalogIndexManager } from '~/infra/search/catalog-index.manager';
 import { CatalogProjectionReader } from '~/infra/search/catalog-projection.reader';
@@ -40,11 +39,11 @@ describe('Catalog search worker', () => {
 });
 
 function createWorker(source: CatalogProductProjectionSource) {
-    const reader = { findById: jest.fn(async () => source) };
+    const reader = { findById: vi.fn(async () => source) };
     const indexManager = {
-        writeExternal: jest.fn(async () => undefined),
-        deleteExternal: jest.fn(async () => undefined),
-        getDocument: jest.fn(async () => null),
+        writeExternal: vi.fn(async () => undefined),
+        deleteExternal: vi.fn(async () => undefined),
+        getDocument: vi.fn(async () => null),
     };
     const worker = new CatalogSearchWorker(
         { writeAlias: 'catalog-products-write' } as SearchConfig,

@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { MemberDomain } from '~/api/member/domain/member.domain';
 
 describe('Member Unit Test', () => {

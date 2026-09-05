@@ -1,6 +1,7 @@
 import { ChangeSetType, Collection, type EntityManager } from '@mikro-orm/core';
 import { MikroORM } from '@mikro-orm/mysql';
 
+import { describe, expect, it } from 'vitest';
 import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
 import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
 import { MemberEntity } from '~/api/member/domain/member.entity';

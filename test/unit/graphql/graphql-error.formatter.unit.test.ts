@@ -1,6 +1,7 @@
 import { HttpException } from '@nestjs/common';
 
 import { GraphQLFormattedError } from 'graphql';
+import { describe, expect, it } from 'vitest';
 import { runWithRequestContext } from '~/global/common/context/request-context';
 import { formatGraphqlError } from '~/global/graphql/graphql-error.formatter';
 

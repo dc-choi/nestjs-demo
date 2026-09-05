@@ -81,6 +81,9 @@ jobs:
             - name: Build application
               run: pnpm stage:build
 
+            - name: Typecheck source and tests
+              run: pnpm typecheck
+
             - name: Lint source
               run: pnpm lint
 

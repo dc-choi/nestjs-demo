@@ -1,17 +1,16 @@
-import { jest } from '@jest/globals';
-
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CatalogIndexManager } from '~/infra/search/catalog-index.manager';
 import { SearchOutboxRelay } from '~/infra/search/search-outbox.relay';
 import { SEARCH_OUTBOX_SHUTDOWN_TIMEOUT_MS, SearchOutboxWorker } from '~/infra/search/search-outbox.worker';
 import { SearchConfig } from '~/infra/search/search.config';
 
 describe('Search outbox worker', () => {
-    afterEach(() => jest.useRealTimers());
+    afterEach(() => vi.useRealTimers());
 
     it('does not poll when the worker is disabled', async () => {
-        jest.useFakeTimers();
-        const drainUntilEmpty = jest.fn();
-        const hasAlias = jest.fn();
+        vi.useFakeTimers();
+        const drainUntilEmpty = vi.fn();
+        const hasAlias = vi.fn();
         const worker = new SearchOutboxWorker(
             { enabled: false } as SearchConfig,
             { drainUntilEmpty } as unknown as SearchOutboxRelay,
@@ -19,17 +18,17 @@ describe('Search outbox worker', () => {
         );
 
         worker.onApplicationBootstrap();
-        await jest.advanceTimersByTimeAsync(2_000);
+        await vi.advanceTimersByTimeAsync(2_000);
 
         expect(drainUntilEmpty).not.toHaveBeenCalled();
         expect(hasAlias).not.toHaveBeenCalled();
     });
 
     it('does not start the search worker from the inventory expiration CLI', async () => {
-        jest.useFakeTimers();
+        vi.useFakeTimers();
         const originalEntrypoint = process.argv[1];
-        const drainUntilEmpty = jest.fn();
-        const hasAlias = jest.fn();
+        const drainUntilEmpty = vi.fn();
+        const hasAlias = vi.fn();
         process.argv[1] = '/workspace/dist/src/cli/inventory-expire.js';
 
         try {
@@ -39,7 +38,7 @@ describe('Search outbox worker', () => {
                 { hasAlias } as unknown as CatalogIndexManager
             );
             worker.onApplicationBootstrap();
-            await jest.advanceTimersByTimeAsync(2_000);
+            await vi.advanceTimersByTimeAsync(2_000);
 
             expect(drainUntilEmpty).not.toHaveBeenCalled();
             expect(hasAlias).not.toHaveBeenCalled();
@@ -49,14 +48,14 @@ describe('Search outbox worker', () => {
     });
 
     it('waits for an in-flight poll before shutting down', async () => {
-        jest.useFakeTimers();
+        vi.useFakeTimers();
         let completePoll!: (result: {
             claimed: number;
             processed: number;
             failed: number;
             deadLettered: number;
         }) => void;
-        const drainUntilEmpty = jest.fn(
+        const drainUntilEmpty = vi.fn(
             () =>
                 new Promise<{ claimed: number; processed: number; failed: number; deadLettered: number }>((resolve) => {
                     completePoll = resolve;
@@ -65,11 +64,11 @@ describe('Search outbox worker', () => {
         const worker = new SearchOutboxWorker(
             { enabled: true, writeAlias: 'catalog-products-write' } as SearchConfig,
             { drainUntilEmpty } as unknown as SearchOutboxRelay,
-            { hasAlias: jest.fn(async () => true) } as unknown as CatalogIndexManager
+            { hasAlias: vi.fn(async () => true) } as unknown as CatalogIndexManager
         );
 
         worker.onApplicationBootstrap();
-        jest.advanceTimersByTime(0);
+        vi.advanceTimersByTime(0);
         await Promise.resolve();
         await Promise.resolve();
         expect(drainUntilEmpty).toHaveBeenCalledTimes(1);
@@ -87,26 +86,26 @@ describe('Search outbox worker', () => {
 
         completePoll({ claimed: 0, processed: 0, failed: 0, deadLettered: 0 });
         await shutdown;
-        await jest.advanceTimersByTimeAsync(2_000);
+        await vi.advanceTimersByTimeAsync(2_000);
         expect(shutdownFinished).toBe(true);
         expect(drainUntilEmpty).toHaveBeenCalledTimes(1);
     });
 
     it('aborts a stuck poll and bounds the shutdown wait', async () => {
-        jest.useFakeTimers();
+        vi.useFakeTimers();
         let signal: AbortSignal | undefined;
-        const drainUntilEmpty = jest.fn((options: { signal: AbortSignal }) => {
+        const drainUntilEmpty = vi.fn((options: { signal: AbortSignal }) => {
             signal = options.signal;
             return new Promise<never>(() => undefined);
         });
         const worker = new SearchOutboxWorker(
             { enabled: true, writeAlias: 'catalog-products-write' } as SearchConfig,
             { drainUntilEmpty } as unknown as SearchOutboxRelay,
-            { hasAlias: jest.fn(async () => true) } as unknown as CatalogIndexManager
+            { hasAlias: vi.fn(async () => true) } as unknown as CatalogIndexManager
         );
 
         worker.onApplicationBootstrap();
-        jest.advanceTimersByTime(0);
+        vi.advanceTimersByTime(0);
         await Promise.resolve();
         await Promise.resolve();
 
@@ -116,23 +115,23 @@ describe('Search outbox worker', () => {
         });
         expect(signal?.aborted).toBe(true);
 
-        await jest.advanceTimersByTimeAsync(SEARCH_OUTBOX_SHUTDOWN_TIMEOUT_MS - 1);
+        await vi.advanceTimersByTimeAsync(SEARCH_OUTBOX_SHUTDOWN_TIMEOUT_MS - 1);
         expect(shutdownFinished).toBe(false);
-        await jest.advanceTimersByTimeAsync(1);
+        await vi.advanceTimersByTimeAsync(1);
         await shutdown;
 
         expect(shutdownFinished).toBe(true);
     });
 
     it('waits without claiming rows, then starts after the write alias exists', async () => {
-        jest.useFakeTimers();
-        const drainUntilEmpty = jest.fn(async () => ({
+        vi.useFakeTimers();
+        const drainUntilEmpty = vi.fn(async () => ({
             claimed: 0,
             processed: 0,
             failed: 0,
             deadLettered: 0,
         }));
-        const hasAlias = jest.fn<() => Promise<boolean>>().mockResolvedValueOnce(false).mockResolvedValue(true);
+        const hasAlias = vi.fn<() => Promise<boolean>>().mockResolvedValueOnce(false).mockResolvedValue(true);
         const worker = new SearchOutboxWorker(
             { enabled: true, writeAlias: 'catalog-products-write' } as SearchConfig,
             { drainUntilEmpty } as unknown as SearchOutboxRelay,
@@ -140,12 +139,12 @@ describe('Search outbox worker', () => {
         );
 
         worker.onApplicationBootstrap();
-        await jest.advanceTimersByTimeAsync(0);
+        await vi.advanceTimersByTimeAsync(0);
 
         expect(hasAlias).toHaveBeenCalledWith('catalog-products-write');
         expect(drainUntilEmpty).not.toHaveBeenCalled();
 
-        await jest.advanceTimersByTimeAsync(1_000);
+        await vi.advanceTimersByTimeAsync(1_000);
         expect(drainUntilEmpty).toHaveBeenCalledTimes(1);
         await worker.beforeApplicationShutdown();
     });

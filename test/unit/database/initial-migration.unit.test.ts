@@ -1,7 +1,6 @@
-import { jest } from '@jest/globals';
-
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { describe, expect, it, vi } from 'vitest';
 import { Migration20260904140344_initial_schema } from '~/infra/database/migrations/Migration20260904140344_initial_schema';
 
 describe('initial migration', () => {
@@ -44,7 +43,7 @@ describe('initial migration', () => {
 function collectSql(method: 'up' | 'down'): string[] {
     const statements: string[] = [];
     const migration = Object.assign(Object.create(Migration20260904140344_initial_schema.prototype), {
-        addSql: jest.fn((sql: string) => statements.push(sql)),
+        addSql: vi.fn((sql: string) => statements.push(sql)),
     }) as Migration20260904140344_initial_schema;
 
     void migration[method]();

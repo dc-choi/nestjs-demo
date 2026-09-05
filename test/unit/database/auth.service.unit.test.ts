@@ -1,7 +1,7 @@
-import { jest } from '@jest/globals';
 import type { EntityRepository } from '@mikro-orm/core';
 import { ConfigService } from '@nestjs/config';
 
+import { describe, expect, it, vi } from 'vitest';
 import { AuthService } from '~/api/auth/application/auth.service';
 import { MemberRole } from '~/api/member/domain/member-role';
 import { MemberDomain } from '~/api/member/domain/member.domain';
@@ -15,8 +15,8 @@ describe('AuthService', () => {
             id: 1n,
             role: MemberRole.CUSTOMER,
         };
-        const findOne = jest.fn<() => Promise<typeof member>>().mockResolvedValue(member);
-        const nativeUpdate = jest
+        const findOne = vi.fn<() => Promise<typeof member>>().mockResolvedValue(member);
+        const nativeUpdate = vi
             .fn<() => Promise<number>>()
             .mockResolvedValueOnce(1)
             .mockResolvedValueOnce(0)
@@ -26,10 +26,10 @@ describe('AuthService', () => {
             nativeUpdate,
         } as unknown as EntityRepository<MemberEntity>;
         const config = {
-            get: jest.fn().mockReturnValue('test-secret'),
+            get: vi.fn().mockReturnValue('test-secret'),
         } as unknown as ConfigService<EnvConfig, true>;
         const tokenProvider = {
-            generateToken: jest.fn<() => Promise<{ accessToken: string; refreshToken: string }>>().mockResolvedValue({
+            generateToken: vi.fn<() => Promise<{ accessToken: string; refreshToken: string }>>().mockResolvedValue({
                 accessToken: 'access-token',
                 refreshToken: 'refresh-token',
             }),
@@ -71,14 +71,14 @@ describe('AuthService', () => {
         const memberId = 9007199254740993n;
         const member = { id: memberId, role: MemberRole.SELLER };
         const repository = {
-            findOne: jest.fn<() => Promise<typeof member>>().mockResolvedValue(member),
+            findOne: vi.fn<() => Promise<typeof member>>().mockResolvedValue(member),
         } as unknown as EntityRepository<MemberEntity>;
         const config = {
-            get: jest.fn().mockReturnValue('test-secret'),
+            get: vi.fn().mockReturnValue('test-secret'),
         } as unknown as ConfigService<EnvConfig, true>;
         const tokenProvider = {
-            verifyToken: jest.fn<() => Promise<{ memberId: bigint }>>().mockResolvedValue({ memberId }),
-            generateToken: jest.fn<() => Promise<{ accessToken: string; refreshToken: string }>>().mockResolvedValue({
+            verifyToken: vi.fn<() => Promise<{ memberId: bigint }>>().mockResolvedValue({ memberId }),
+            generateToken: vi.fn<() => Promise<{ accessToken: string; refreshToken: string }>>().mockResolvedValue({
                 accessToken: 'new-access-token',
                 refreshToken: 'new-refresh-token',
             }),

@@ -1,10 +1,11 @@
+import { type Mock, describe, expect, it, vi } from 'vitest';
 import { ProductSearchService } from '~/api/catalog/search/application/product-search.service';
 import { OpenSearchHttpClient } from '~/infra/search/opensearch.client';
 import { SearchConfig } from '~/infra/search/search.config';
 
 describe('Product search service', () => {
     it('does not call OpenSearch when the feature is disabled', async () => {
-        const request = jest.fn();
+        const request = vi.fn();
         const service = createService(false, request);
 
         await expect(service.search({})).rejects.toMatchObject({ status: 503 });
@@ -12,7 +13,7 @@ describe('Product search service', () => {
     });
 
     it('maps a terminal PIT page and closes the PIT', async () => {
-        const request = jest
+        const request = vi
             .fn()
             .mockResolvedValueOnce({ pit_id: 'pit-1' })
             .mockResolvedValueOnce({
@@ -64,7 +65,7 @@ describe('Product search service', () => {
     });
 });
 
-function createService(enabled: boolean, request: jest.Mock): ProductSearchService {
+function createService(enabled: boolean, request: Mock): ProductSearchService {
     const config = {
         enabled,
         readAlias: 'catalog-products-read',

@@ -26,7 +26,6 @@ module.exports = defineConfig([
 
             globals: {
                 ...globals.node,
-                ...globals.jest,
             },
         },
 

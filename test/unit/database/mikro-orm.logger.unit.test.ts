@@ -1,6 +1,6 @@
-import { jest } from '@jest/globals';
 import type { LoggerOptions } from '@mikro-orm/core';
 
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MikroOrmQueryLog, sqlLog } from '~/global/common/logger/channel.logger';
 import {
     MIKRO_ORM_SLOW_QUERY_THRESHOLD_MS,
@@ -10,17 +10,17 @@ import {
 
 describe('MikroOrmLogger', () => {
     const options = {
-        writer: jest.fn(),
+        writer: vi.fn(),
         debugMode: ['query'],
         usesReplicas: true,
     } as LoggerOptions;
 
     afterEach(() => {
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
     });
 
     it('SQL parameter를 기록하지 않고 connection 역할을 구조화한다', () => {
-        const log = jest.spyOn(sqlLog, 'log').mockImplementation(() => undefined);
+        const log = vi.spyOn(sqlLog, 'log').mockImplementation(() => undefined);
         createMikroOrmLogger(options, 'test');
 
         writeMikroOrmQueryLog('test', {
@@ -46,7 +46,7 @@ describe('MikroOrmLogger', () => {
     });
 
     it('threshold 이상 쿼리를 slow event 한 건으로 기록한다', () => {
-        const log = jest.spyOn(sqlLog, 'log').mockImplementation(() => undefined);
+        const log = vi.spyOn(sqlLog, 'log').mockImplementation(() => undefined);
         const logger = createMikroOrmLogger(options, 'test');
         const query = 'select * from `product_snapshot`';
 

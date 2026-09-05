@@ -1,4 +1,3 @@
-import { jest } from '@jest/globals';
 import {
     Collection,
     EntityManager,
@@ -9,6 +8,7 @@ import {
 } from '@mikro-orm/core';
 import { BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
 
+import { describe, expect, it, vi } from 'vitest';
 import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
 import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
 import { InventoryService } from '~/api/inventory/application/inventory.service';
@@ -29,7 +29,7 @@ describe('inventory lifecycle', () => {
     it('주문 배치 시 조건부 차감, 예약, 불변 원장을 함께 만든다', async () => {
         const item = createItem(5);
         const orderItem = createOrderItem(item, 2);
-        const persist = jest.fn();
+        const persist = vi.fn();
         const { service, refresh } = createService(item, { persist });
 
         const result = await service.reserveForPlacement(
@@ -67,7 +67,7 @@ describe('inventory lifecycle', () => {
     it('조건부 차감 실패 시 예약과 원장을 만들지 않는다', async () => {
         const item = createItem(1);
         const orderItem = createOrderItem(item, 2);
-        const persist = jest.fn();
+        const persist = vi.fn();
         const { service } = createService(item, { persist });
 
         await expect(
@@ -81,7 +81,7 @@ describe('inventory lifecycle', () => {
 
     it('같은 Item의 중복 주문 라인을 한 번만 lock하고 누적 재고로 예약한다', async () => {
         const item = createItem(5);
-        const persist = jest.fn();
+        const persist = vi.fn();
         const { service, refresh } = createService(item, { persist });
         const first = createOrderItem(item, 2);
         const second = createOrderItem(item, 3);
@@ -104,7 +104,7 @@ describe('inventory lifecycle', () => {
 
     it('같은 Item의 중복 라인 합계가 재고를 넘으면 일부 차감 없이 거부한다', async () => {
         const item = createItem(4);
-        const persist = jest.fn();
+        const persist = vi.fn();
         const { service } = createService(item, { persist });
 
         await expect(
@@ -443,17 +443,17 @@ describe('inventory lifecycle', () => {
 
 function createService(
     item: ItemEntity,
-    entityManagerOverrides: { readonly persist: ReturnType<typeof jest.fn> }
-): { service: InventoryService; refresh: ReturnType<typeof jest.fn> } {
-    const refresh = jest.fn(async (entity: ItemEntity) => entity);
+    entityManagerOverrides: { readonly persist: ReturnType<typeof vi.fn> }
+): { service: InventoryService; refresh: ReturnType<typeof vi.fn> } {
+    const refresh = vi.fn(async (entity: ItemEntity) => entity);
     const entityManager = { ...entityManagerOverrides, refresh } as unknown as EntityManager;
     return {
         service: new InventoryService(
             entityManager,
-            { findOne: jest.fn(async () => item) } as unknown as EntityRepository<ItemEntity>,
+            { findOne: vi.fn(async () => item) } as unknown as EntityRepository<ItemEntity>,
             {} as EntityRepository<InventoryReservationEntity>,
             {
-                findOne: jest.fn<() => Promise<null>>().mockResolvedValue(null),
+                findOne: vi.fn<() => Promise<null>>().mockResolvedValue(null),
             } as unknown as EntityRepository<InventoryMovementEntity>
         ),
         refresh,
@@ -475,24 +475,24 @@ function createTransactionalService(
     findMovement: () => InventoryMovementEntity | null,
     onPersist: (entity: object) => void = () => undefined
 ) {
-    const persist = jest.fn(onPersist);
+    const persist = vi.fn(onPersist);
     const entityManager = Object.assign(Object.create(EntityManager.prototype), { persist }) as EntityManager;
-    const findProduct = jest.fn(async () => item.product as ProductEntity);
+    const findProduct = vi.fn(async () => item.product as ProductEntity);
     entityManager.findOne = findProduct as unknown as EntityManager['findOne'];
-    const transactional = jest.fn<
+    const transactional = vi.fn<
         (work: (entityManager: EntityManager) => Promise<unknown>, options?: TransactionOptions) => Promise<unknown>
     >(async (work) => work(entityManager));
     entityManager.transactional = transactional as unknown as EntityManager['transactional'];
     const requestContextSource = {
         name: 'default',
-        fork: jest.fn(() => entityManager),
+        fork: vi.fn(() => entityManager),
     } as unknown as EntityManager;
-    const findItem = jest.fn(async () => item);
+    const findItem = vi.fn(async () => item);
     const service = new InventoryService(
         entityManager,
         { findOne: findItem } as unknown as EntityRepository<ItemEntity>,
         {} as EntityRepository<InventoryReservationEntity>,
-        { findOne: jest.fn(async () => findMovement()) } as unknown as EntityRepository<InventoryMovementEntity>
+        { findOne: vi.fn(async () => findMovement()) } as unknown as EntityRepository<InventoryMovementEntity>
     );
 
     return { service, persist, requestContextSource, findItem, findProduct };
@@ -507,29 +507,29 @@ function createReservationService(
         ? reservationOrReservations
         : [reservationOrReservations];
     const reservation = reservations[0];
-    const persist = jest.fn(onPersist);
+    const persist = vi.fn(onPersist);
     const entityManager = Object.assign(Object.create(EntityManager.prototype), { persist }) as EntityManager;
-    entityManager.findOne = jest.fn(async (entity) =>
+    entityManager.findOne = vi.fn(async (entity) =>
         entity === OrderEntity ? reservation.orderItem.order : null
     ) as unknown as EntityManager['findOne'];
-    entityManager.lock = jest.fn(async () => undefined) as unknown as EntityManager['lock'];
-    entityManager.refresh = jest.fn(async (entity) => entity) as unknown as EntityManager['refresh'];
-    const transactional = jest.fn<
+    entityManager.lock = vi.fn(async () => undefined) as unknown as EntityManager['lock'];
+    entityManager.refresh = vi.fn(async (entity) => entity) as unknown as EntityManager['refresh'];
+    const transactional = vi.fn<
         (work: (entityManager: EntityManager) => Promise<unknown>, options?: TransactionOptions) => Promise<unknown>
     >(async (work) => work(entityManager));
     entityManager.transactional = transactional as unknown as EntityManager['transactional'];
     const requestContextSource = {
         name: 'default',
-        fork: jest.fn(() => entityManager),
+        fork: vi.fn(() => entityManager),
     } as unknown as EntityManager;
-    const findItem = jest.fn(async () => reservation.orderItem.item);
+    const findItem = vi.fn(async () => reservation.orderItem.item);
     const service = new InventoryService(
         entityManager,
         { findOne: findItem } as unknown as EntityRepository<ItemEntity>,
         {
-            findOne: jest.fn(async ({ id }: { id: bigint }) => reservations.find((candidate) => candidate.id === id)),
+            findOne: vi.fn(async ({ id }: { id: bigint }) => reservations.find((candidate) => candidate.id === id)),
         } as unknown as EntityRepository<InventoryReservationEntity>,
-        { findOne: jest.fn(async () => findMovement()) } as unknown as EntityRepository<InventoryMovementEntity>
+        { findOne: vi.fn(async () => findMovement()) } as unknown as EntityRepository<InventoryMovementEntity>
     );
 
     return { service, persist, requestContextSource, findItem };

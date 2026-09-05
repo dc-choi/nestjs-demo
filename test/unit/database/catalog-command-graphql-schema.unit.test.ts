@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { GraphQLSchemaBuilderModule, GraphQLSchemaFactory } from '@nestjs/graphql';
 
 import { GraphQLInputObjectType, GraphQLObjectType } from 'graphql';
+import { describe, expect, it } from 'vitest';
 import { ProductCommandResolver } from '~/api/catalog/presentation/product-command.resolver';
 import { ProductSnapshotResolver } from '~/api/catalog/presentation/product-snapshot.resolver';
 

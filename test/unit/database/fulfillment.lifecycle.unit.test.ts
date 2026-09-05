@@ -1,4 +1,3 @@
-import { jest } from '@jest/globals';
 import {
     Collection,
     EntityManager,
@@ -8,6 +7,7 @@ import {
 } from '@mikro-orm/core';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 
+import { describe, expect, it, vi } from 'vitest';
 import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
 import { FulfillmentService } from '~/api/fulfillment/application/fulfillment.service';
 import { FulfillmentItemEntity } from '~/api/fulfillment/domain/fulfillment-item.entity';
@@ -220,22 +220,22 @@ describe('fulfillment lifecycle', () => {
 });
 
 function createService(order: OrderEntity, fulfillment: FulfillmentEntity) {
-    const persist = jest.fn();
-    const populate = jest.fn(async () => undefined);
+    const persist = vi.fn();
+    const populate = vi.fn(async () => undefined);
     const entityManager = Object.assign(Object.create(EntityManager.prototype), { persist, populate }) as EntityManager;
-    const transactional = jest.fn<
+    const transactional = vi.fn<
         (work: (entityManager: EntityManager) => Promise<unknown>, options?: TransactionOptions) => Promise<unknown>
     >(async (work) => work(entityManager));
     entityManager.transactional = transactional as unknown as EntityManager['transactional'];
     const requestContextSource = {
         name: 'default',
-        fork: jest.fn(() => entityManager),
+        fork: vi.fn(() => entityManager),
     } as unknown as EntityManager;
-    const findOrder = jest.fn(async () => order);
+    const findOrder = vi.fn(async () => order);
     const service = new FulfillmentService(
         entityManager,
         { findOne: findOrder } as unknown as EntityRepository<OrderEntity>,
-        { findOne: jest.fn(async () => fulfillment) } as unknown as EntityRepository<FulfillmentEntity>
+        { findOne: vi.fn(async () => fulfillment) } as unknown as EntityRepository<FulfillmentEntity>
     );
 
     return { service, persist, requestContextSource, findOrder };

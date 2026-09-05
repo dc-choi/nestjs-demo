@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import type { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
 import type { MemberEntity } from '~/api/member/domain/member.entity';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';

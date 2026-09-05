@@ -1,5 +1,4 @@
-import { jest } from '@jest/globals';
-
+import { describe, expect, it, vi } from 'vitest';
 import { projectCatalogProduct } from '~/api/catalog/search/domain/catalog-projector';
 import { CatalogProductProjectionSource } from '~/api/catalog/search/domain/product-search.document';
 import { CatalogIndexManager } from '~/infra/search/catalog-index.manager';
@@ -38,15 +37,15 @@ describe('Search reconciliation', () => {
             media: [],
         };
         const reader = {
-            fetchSearchableBatch: jest
+            fetchSearchableBatch: vi
                 .fn<CatalogProjectionReader['fetchSearchableBatch']>()
                 .mockResolvedValueOnce({ sources: [source], nextCursor: 1n })
                 .mockResolvedValueOnce({ sources: [], nextCursor: null }),
         } as unknown as CatalogProjectionReader;
-        const repairExternal = jest.fn();
+        const repairExternal = vi.fn();
         const indexedSource = { ...projectCatalogProduct(source)!, name: '손상된 이름' };
         const indexManager = {
-            getDocuments: jest.fn<CatalogIndexManager['getDocuments']>().mockResolvedValue(
+            getDocuments: vi.fn<CatalogIndexManager['getDocuments']>().mockResolvedValue(
                 new Map([
                     [
                         '1',
@@ -61,7 +60,7 @@ describe('Search reconciliation', () => {
             repairExternal,
             scanDocuments: async function* () {},
         } as unknown as CatalogIndexManager;
-        const synchronize = jest.fn();
+        const synchronize = vi.fn();
         const service = new SearchReconciliationService(
             { enabled: true, readAlias: 'catalog-read' } as SearchConfig,
             reader,
