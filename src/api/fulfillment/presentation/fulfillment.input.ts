@@ -22,13 +22,13 @@ export class FulfillmentAllocationInput {
     @Field(() => ID)
     @Matches(DECIMAL_ID_PATTERN)
     @MaxLength(19)
-    orderItemId: string;
+    orderItemId!: string;
 
     @Field(() => Int)
     @IsNumber()
     @Min(1)
     @Max(MYSQL_SIGNED_INT_MAX)
-    quantity: number;
+    quantity!: number;
 }
 
 @InputType()
@@ -36,19 +36,19 @@ export class CreateFulfillmentInput {
     @Field(() => ID)
     @Matches(DECIMAL_ID_PATTERN)
     @MaxLength(19)
-    orderId: string;
+    orderId!: string;
 
     @Field()
     @IsString()
     @IsNotEmpty()
     @MaxLength(128)
-    idempotencyKey: string;
+    idempotencyKey!: string;
 
     @Field(() => [FulfillmentAllocationInput])
     @Type(() => FulfillmentAllocationInput)
     @ArrayMinSize(1)
     @ValidateNested({ each: true })
-    items: FulfillmentAllocationInput[];
+    items!: FulfillmentAllocationInput[];
 }
 
 @InputType()
@@ -56,7 +56,7 @@ export class FulfillmentIdInput {
     @Field(() => ID)
     @Matches(DECIMAL_ID_PATTERN)
     @MaxLength(19)
-    fulfillmentId: string;
+    fulfillmentId!: string;
 }
 
 @InputType()
@@ -65,13 +65,13 @@ export class ShipFulfillmentInput extends FulfillmentIdInput {
     @IsString()
     @IsNotEmpty()
     @MaxLength(128)
-    carrier: string;
+    carrier!: string;
 
     @Field()
     @IsString()
     @IsNotEmpty()
     @MaxLength(255)
-    trackingNumber: string;
+    trackingNumber!: string;
 }
 
 export function parseFulfillmentId(value: string): bigint {

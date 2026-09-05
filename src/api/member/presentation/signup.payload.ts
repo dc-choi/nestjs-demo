@@ -5,14 +5,14 @@ import { MemberRole } from './member-role.enum';
 @ObjectType()
 export class SignupPayload {
     @Field()
-    name: string;
+    name!: string;
 
     @Field()
-    email: string;
+    email!: string;
 
     @Field()
-    phone: string;
+    phone!: string;
 
     @Field(() => MemberRole)
-    role: MemberRole;
+    role!: MemberRole;
 }

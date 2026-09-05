@@ -5,14 +5,14 @@ import { ProductStatus } from '~/api/catalog/presentation/product-status.enum';
 @ObjectType()
 export class ProductMutationPayload {
     @Field(() => ID)
-    productId: string;
+    productId!: string;
 
     @Field(() => Int)
-    revision: number;
+    revision!: number;
 
     @Field(() => ProductStatus)
-    status: ProductStatus;
+    status!: ProductStatus;
 
     @Field(() => Date, { nullable: true })
-    deletedAt: Date | null;
+    deletedAt!: Date | null;
 }

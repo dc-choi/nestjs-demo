@@ -1,12 +1,12 @@
-import {
+import type {
     ApolloServerPlugin,
     GraphQLRequestContextDidResolveOperation,
     GraphQLRequestContextWillSendResponse,
-} from '@apollo/server';
+} from '@apollo/server' with { 'resolution-mode': 'import' };
 
 import { FragmentDefinitionNode, Kind, SelectionSetNode } from 'graphql';
-import { ClsServiceManager } from 'nestjs-cls';
 import { performance } from 'node:perf_hooks';
+import { getCurrentRequestId } from '~/global/common/context/request-context';
 import { graphqlLog } from '~/global/common/logger/channel.logger';
 import { GraphqlHttpContext } from '~/global/graphql/graphql-context';
 
@@ -78,7 +78,7 @@ export const createGraphqlRequestLoggingPlugin = (env: string): ApolloServerPlug
 
 const getRequestId = ({ res }: GraphqlHttpContext): string => {
     const header = res.getHeader('x-request-id');
-    const value = typeof header === 'string' ? header : ClsServiceManager.getClsService().getId();
+    const value = typeof header === 'string' ? header : getCurrentRequestId();
 
     return value && /^[A-Za-z0-9._:-]{1,128}$/.test(value) ? value : 'unknown';
 };

@@ -23,7 +23,6 @@ import { EnvConfig } from '~/global/config/env/env.config';
                     path: '/graphql',
                     graphiql: isLocal,
                     introspection: isLocal,
-                    playground: false,
                     includeStacktraceInErrorResponses: false,
                     maxRecursiveSelections: 1000,
                     plugins: [

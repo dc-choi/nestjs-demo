@@ -5,20 +5,20 @@ import { ProductOptionValueType } from './product-option-value.type';
 @ObjectType('ProductOption')
 export class ProductOptionType {
     @Field(() => ID)
-    id: string;
+    id!: string;
 
     @Field()
-    code: string;
+    code!: string;
 
     @Field()
-    name: string;
+    name!: string;
 
     @Field()
-    isRequired: boolean;
+    isRequired!: boolean;
 
     @Field(() => Int)
-    sequence: number;
+    sequence!: number;
 
     @Field(() => [ProductOptionValueType])
-    values: ProductOptionValueType[];
+    values!: ProductOptionValueType[];
 }

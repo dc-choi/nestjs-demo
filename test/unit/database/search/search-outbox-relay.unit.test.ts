@@ -18,4 +18,23 @@ describe('Search outbox relay', () => {
         expect(orm.em.fork).not.toHaveBeenCalled();
         expect(worker.synchronize).not.toHaveBeenCalled();
     });
+
+    it('does not claim rows after cancellation', async () => {
+        const fork = jest.fn(() => {
+            throw new Error('The outbox must not be queried after cancellation');
+        });
+        const relay = new SearchOutboxRelay(
+            { em: { fork } } as never,
+            { synchronize: jest.fn() } as never,
+            { enabled: true } as never
+        );
+
+        await expect(relay.drainUntilEmpty({ signal: AbortSignal.abort() })).resolves.toEqual({
+            claimed: 0,
+            processed: 0,
+            failed: 0,
+            deadLettered: 0,
+        });
+        expect(fork).not.toHaveBeenCalled();
+    });
 });

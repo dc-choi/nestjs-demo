@@ -7,35 +7,35 @@ import { ProductOptionType } from './product-option.type';
 @ObjectType('Product')
 export class ProductType {
     @Field(() => ID)
-    id: string;
+    id!: string;
 
     @Field()
-    slug: string;
+    slug!: string;
 
     @Field(() => Int)
-    revision: number;
+    revision!: number;
 
     @Field()
-    name: string;
+    name!: string;
 
     @Field(() => String, { nullable: true })
-    description: string | null;
+    description!: string | null;
 
     @Field(() => String, { nullable: true })
-    returnPolicy: string | null;
+    returnPolicy!: string | null;
 
     @Field(() => Date)
-    updatedAt: Date;
+    updatedAt!: Date;
 
     @Field(() => [ProductItemType])
-    items: ProductItemType[];
+    items!: ProductItemType[];
 
     @Field(() => [ProductOptionType])
-    options: ProductOptionType[];
+    options!: ProductOptionType[];
 
     @Field(() => [ProductCategoryType])
-    categories: ProductCategoryType[];
+    categories!: ProductCategoryType[];
 
     @Field(() => [String])
-    tags: string[];
+    tags!: string[];
 }

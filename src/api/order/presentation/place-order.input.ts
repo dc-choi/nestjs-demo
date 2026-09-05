@@ -11,11 +11,11 @@ export class PlaceOrderInput {
     @IsString()
     @IsNotEmpty()
     @MaxLength(128)
-    idempotencyKey: string;
+    idempotencyKey!: string;
 
     @Field(() => [PlaceOrderItemInput])
     @Type(() => PlaceOrderItemInput)
     @ArrayMinSize(1, { message: emptyValue('주문 상품') })
     @ValidateNested({ each: true })
-    items: PlaceOrderItemInput[];
+    items!: PlaceOrderItemInput[];
 }

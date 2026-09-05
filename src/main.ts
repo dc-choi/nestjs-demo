@@ -2,13 +2,12 @@ import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
 
-import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+import { applicationLogger } from '~/global/config/logger/winston.config';
 
 async function bootstrap() {
-    const app = await NestFactory.create(AppModule, { rawBody: true });
+    const app = await NestFactory.create(AppModule, { rawBody: true, logger: applicationLogger });
     const port = Number(process.env.SERVER_PORT) || 3000;
 
-    app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
     app.enableShutdownHooks();
 
     app.enableCors({

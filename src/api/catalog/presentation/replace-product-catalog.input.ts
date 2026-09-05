@@ -39,13 +39,13 @@ export class ReplaceProductOptionValueInput {
         message: invalidMax('옵션 값 code', PRODUCT_OPTION_CODE_MAX_LENGTH),
     })
     @Matches(PRODUCT_OPTION_CODE_PATTERN, { message: invalidValue('옵션 값 code') })
-    code: string;
+    code!: string;
 
     @Field()
     @IsString({ message: invalidValue('옵션 값 이름') })
     @IsNotEmpty({ message: emptyValue('옵션 값 이름') })
     @MaxLength(PRODUCT_NAME_MAX_LENGTH, { message: invalidMax('옵션 값 이름', PRODUCT_NAME_MAX_LENGTH) })
-    name: string;
+    name!: string;
 }
 
 @InputType()
@@ -55,17 +55,17 @@ export class ReplaceProductOptionInput {
     @IsNotEmpty({ message: emptyValue('옵션 code') })
     @MaxLength(PRODUCT_OPTION_CODE_MAX_LENGTH, { message: invalidMax('옵션 code', PRODUCT_OPTION_CODE_MAX_LENGTH) })
     @Matches(PRODUCT_OPTION_CODE_PATTERN, { message: invalidValue('옵션 code') })
-    code: string;
+    code!: string;
 
     @Field()
     @IsString({ message: invalidValue('옵션 이름') })
     @IsNotEmpty({ message: emptyValue('옵션 이름') })
     @MaxLength(PRODUCT_NAME_MAX_LENGTH, { message: invalidMax('옵션 이름', PRODUCT_NAME_MAX_LENGTH) })
-    name: string;
+    name!: string;
 
     @Field()
     @IsBoolean({ message: invalidValue('필수 옵션 여부') })
-    isRequired: boolean;
+    isRequired!: boolean;
 
     @Field(() => [ReplaceProductOptionValueInput])
     @IsArray({ message: invalidValue('옵션 값') })
@@ -74,7 +74,7 @@ export class ReplaceProductOptionInput {
     })
     @Type(() => ReplaceProductOptionValueInput)
     @ValidateNested({ each: true })
-    values: ReplaceProductOptionValueInput[];
+    values!: ReplaceProductOptionValueInput[];
 }
 
 @InputType()
@@ -82,12 +82,12 @@ export class ReplaceProductItemOptionInput {
     @Field()
     @IsString({ message: invalidValue('선택 옵션 code') })
     @Matches(PRODUCT_OPTION_CODE_PATTERN, { message: invalidValue('선택 옵션 code') })
-    optionCode: string;
+    optionCode!: string;
 
     @Field()
     @IsString({ message: invalidValue('선택 옵션 값 code') })
     @Matches(PRODUCT_OPTION_CODE_PATTERN, { message: invalidValue('선택 옵션 값 code') })
-    valueCode: string;
+    valueCode!: string;
 }
 
 @InputType()
@@ -109,23 +109,23 @@ export class ReplaceProductItemInput {
     @IsString({ message: invalidValue('Item 이름') })
     @IsNotEmpty({ message: emptyValue('Item 이름') })
     @MaxLength(PRODUCT_NAME_MAX_LENGTH, { message: invalidMax('Item 이름', PRODUCT_NAME_MAX_LENGTH) })
-    name: string;
+    name!: string;
 
     @Field()
     @Matches(PRODUCT_PRICE_PATTERN, { message: invalidValue('공급가') })
-    supplyPrice: string;
+    supplyPrice!: string;
 
     @Field()
     @Matches(PRODUCT_PRICE_PATTERN, { message: invalidValue('부가세') })
-    vat: string;
+    vat!: string;
 
     @Field()
     @IsBoolean({ message: invalidValue('면세 여부') })
-    isTaxFree: boolean;
+    isTaxFree!: boolean;
 
     @Field(() => ItemSaleStatus)
     @IsEnum(ItemSaleStatus, { message: invalidValue('Item 판매 상태') })
-    saleStatus: ItemSaleStatus;
+    saleStatus!: ItemSaleStatus;
 
     @Field(() => [ReplaceProductItemOptionInput])
     @IsArray({ message: invalidValue('선택 옵션') })
@@ -134,7 +134,7 @@ export class ReplaceProductItemInput {
     })
     @Type(() => ReplaceProductItemOptionInput)
     @ValidateNested({ each: true })
-    selectedOptions: ReplaceProductItemOptionInput[];
+    selectedOptions!: ReplaceProductItemOptionInput[];
 }
 
 @InputType()
@@ -142,12 +142,12 @@ export class ReplaceProductCatalogInput {
     @Field(() => ID)
     @Matches(DECIMAL_PRODUCT_ID_PATTERN, { message: invalidValue('상품 ID') })
     @MaxLength(PRODUCT_ID_MAX_LENGTH, { message: invalidValue('상품 ID') })
-    productId: string;
+    productId!: string;
 
     @Field(() => Int)
     @IsInt({ message: invalidValue('기대 revision') })
     @Min(1, { message: invalidMin('기대 revision', 1) })
-    expectedRevision: number;
+    expectedRevision!: number;
 
     @Field(() => [ReplaceProductOptionInput])
     @IsArray({ message: invalidValue('옵션') })
@@ -156,14 +156,14 @@ export class ReplaceProductCatalogInput {
     })
     @Type(() => ReplaceProductOptionInput)
     @ValidateNested({ each: true })
-    options: ReplaceProductOptionInput[];
+    options!: ReplaceProductOptionInput[];
 
     @Field(() => [ReplaceProductItemInput])
     @IsArray({ message: invalidValue('Item') })
     @ArrayMaxSize(PRODUCT_CATALOG_LIMITS.items, { message: invalidMax('Item 수', PRODUCT_CATALOG_LIMITS.items) })
     @Type(() => ReplaceProductItemInput)
     @ValidateNested({ each: true })
-    items: ReplaceProductItemInput[];
+    items!: ReplaceProductItemInput[];
 
     @Field(() => [ID])
     @IsArray({ message: invalidValue('카테고리 ID') })
@@ -173,7 +173,7 @@ export class ReplaceProductCatalogInput {
     @ArrayUnique({ message: invalidValue('카테고리 ID') })
     @Matches(DECIMAL_PRODUCT_ID_PATTERN, { each: true, message: invalidValue('카테고리 ID') })
     @MaxLength(PRODUCT_ID_MAX_LENGTH, { each: true, message: invalidValue('카테고리 ID') })
-    categoryIds: string[];
+    categoryIds!: string[];
 
     @Field(() => [String])
     @IsArray({ message: invalidValue('태그') })
@@ -182,7 +182,7 @@ export class ReplaceProductCatalogInput {
     @IsString({ each: true, message: invalidValue('태그') })
     @IsNotEmpty({ each: true, message: emptyValue('태그') })
     @MaxLength(PRODUCT_TAG_MAX_LENGTH, { each: true, message: invalidMax('태그', PRODUCT_TAG_MAX_LENGTH) })
-    tags: string[];
+    tags!: string[];
 
     @Field(() => String, { nullable: true })
     @IsOptional()

@@ -1,4 +1,4 @@
-import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
 import { JwtPayload } from '../payload/jwt.payload';
@@ -8,8 +8,13 @@ import type { MemberRole } from '~/api/member/domain/member-role';
 import { Unauthorized } from '~/global/common/error/auth.error';
 import { getRequestFromContext, getResponseFromContext } from '~/global/graphql/graphql-context';
 
+@Injectable()
 export abstract class JwtAuthGuard extends AuthGuard('jwt') {
     protected readonly allowedRoles?: readonly MemberRole[];
+
+    constructor() {
+        super();
+    }
 
     getRequest(context: ExecutionContext): Request {
         return getRequestFromContext(context);

@@ -29,7 +29,7 @@ class PaymentWebhookHttpBody {
     providerPaymentId?: string | null;
 
     @IsEnum(PaymentWebhookOutcome)
-    outcome: PaymentWebhookOutcome;
+    outcome!: PaymentWebhookOutcome;
 
     @IsOptional()
     @IsString()

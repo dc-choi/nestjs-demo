@@ -3,6 +3,7 @@ enableGlobalVirtualStore: false
 allowBuilds:
     '@apollo/protobufjs': false
     '@nestjs/core': false
+    '@parcel/watcher': true
     '@scarf/scarf': false
     '@swc/core': true
     esbuild: true

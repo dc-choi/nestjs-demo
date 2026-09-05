@@ -17,13 +17,13 @@ export class CreateProductInput {
     @IsNotEmpty({ message: emptyValue('상품 slug') })
     @MaxLength(PRODUCT_SLUG_MAX_LENGTH, { message: invalidMax('상품 slug', PRODUCT_SLUG_MAX_LENGTH) })
     @Matches(PRODUCT_SLUG_PATTERN, { message: invalidValue('상품 slug') })
-    slug: string;
+    slug!: string;
 
     @Field()
     @IsString({ message: invalidValue('상품명') })
     @IsNotEmpty({ message: emptyValue('상품명') })
     @MaxLength(PRODUCT_NAME_MAX_LENGTH, { message: invalidMax('상품명', PRODUCT_NAME_MAX_LENGTH) })
-    name: string;
+    name!: string;
 
     @Field(() => String, { nullable: true })
     @IsOptional()

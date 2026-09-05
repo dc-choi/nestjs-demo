@@ -184,12 +184,12 @@ export class OrderEntity {
         metadata = null,
         occurredAt = new Date(),
     }: TransitionOrder): OrderStatusHistoryEntity | null {
-        if (this.status === to) return null;
-        if (!ALLOWED_TRANSITIONS[this.status].includes(to)) {
-            throw new Error(`주문 상태를 ${this.status}에서 ${to}(으)로 변경할 수 없습니다.`);
+        const fromStatus: OrderStatus = this.status;
+        if (fromStatus === to) return null;
+        if (!ALLOWED_TRANSITIONS[fromStatus].includes(to)) {
+            throw new Error(`주문 상태를 ${fromStatus}에서 ${to}(으)로 변경할 수 없습니다.`);
         }
 
-        const fromStatus = this.status;
         this.status = to;
 
         if (to === OrderStatus.CANCELLED) this.cancelledAt = occurredAt;

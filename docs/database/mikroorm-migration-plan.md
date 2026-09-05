@@ -128,14 +128,14 @@ MikroORM Entity / Domain result
 
 ## 패키지와 런타임 결정
 
-2026-08-13 기준 안정 버전을 exact pin한다.
+2026-09-05 기준 안정 버전을 exact pin한다.
 
 | 용도              | 패키지                        |     버전 |
 | ----------------- | ----------------------------- | -------: |
 | ORM core          | `@mikro-orm/core`             | `7.1.11` |
 | MySQL driver      | `@mikro-orm/mysql`            | `7.1.11` |
 | legacy decorator  | `@mikro-orm/decorators`       | `7.1.11` |
-| Nest integration  | `@mikro-orm/nestjs`           |  `7.0.2` |
+| Nest integration  | `@mikro-orm/nestjs`           |  `7.1.0` |
 | CLI               | `@mikro-orm/cli`              | `7.1.11` |
 | Entity 초안 생성  | `@mikro-orm/entity-generator` | `7.1.11` |
 | Migration runtime | `@mikro-orm/migrations`       | `7.1.11` |
@@ -144,7 +144,8 @@ MikroORM Entity / Domain result
 `@mikro-orm/migrations`는 production runtime dependency이며, `@mikro-orm/seeder`와 CLI는 개발 도구입니다.
 배포에서는 생성된 migration만 적용하고 migration 생성과 seed를 애플리케이션 boot에 묶지 않습니다.
 
-MikroORM 7은 Node 22.17 이상과 Nest 11을 지원하므로 현재 Node 26.7, Nest 11.1 환경과 호환된다.
+MikroORM 7과 `@mikro-orm/nestjs@7.1.0`은 Node 22.17 이상과 Nest 11 또는 12를 지원하므로 현재
+Node 26.7, Nest 12 환경과 호환된다.
 MikroORM 7의 native ESM package export를 해석하기 위해 다음 TypeScript 설정을 적용했다.
 
 ```json

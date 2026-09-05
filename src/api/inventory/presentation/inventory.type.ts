@@ -8,59 +8,59 @@ import {
 @ObjectType('InventoryReservation')
 export class InventoryReservationType {
     @Field(() => ID)
-    id: string;
+    id!: string;
 
     @Field(() => ID)
-    orderItemId: string;
+    orderItemId!: string;
 
     @Field(() => ID)
-    itemId: string;
+    itemId!: string;
 
     @Field(() => Int)
-    quantity: number;
+    quantity!: number;
 
     @Field(() => InventoryReservationStatus)
-    status: InventoryReservationStatus;
+    status!: InventoryReservationStatus;
 
     @Field(() => Date)
-    expiresAt: Date;
+    expiresAt!: Date;
 
     @Field(() => Date, { nullable: true })
-    consumedAt: Date | null;
+    consumedAt!: Date | null;
 
     @Field(() => Date, { nullable: true })
-    releasedAt: Date | null;
+    releasedAt!: Date | null;
 }
 
 @ObjectType('InventoryMovement')
 export class InventoryMovementType {
     @Field(() => ID)
-    id: string;
+    id!: string;
 
     @Field(() => InventoryMovementKind)
-    type: InventoryMovementKind;
+    type!: InventoryMovementKind;
 
     @Field(() => Int)
-    quantityDelta: number;
+    quantityDelta!: number;
 
     @Field(() => Int)
-    stockAfter: number;
+    stockAfter!: number;
 
     @Field()
-    itemSku: string;
+    itemSku!: string;
 }
 
 @ObjectType()
 export class InventoryTransitionPayload {
     @Field(() => InventoryReservationType)
-    reservation: InventoryReservationType;
+    reservation!: InventoryReservationType;
 
     @Field(() => InventoryMovementType, { nullable: true })
-    movement: InventoryMovementType | null;
+    movement!: InventoryMovementType | null;
 }
 
 @ObjectType()
 export class InventoryAdjustmentPayload {
     @Field(() => InventoryMovementType)
-    movement: InventoryMovementType;
+    movement!: InventoryMovementType;
 }

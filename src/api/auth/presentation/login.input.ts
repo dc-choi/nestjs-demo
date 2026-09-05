@@ -12,10 +12,10 @@ export class LoginInput {
     @IsNotEmpty({ message: emptyValue('이메일') })
     @MaxLength(EMAIL_MAX_LENGTH, { message: invalidMax('이메일', EMAIL_MAX_LENGTH) })
     @Matches(EMAIL_REGEXP, { message: invalidValue('이메일') })
-    email: string;
+    email!: string;
 
     @Field()
     @IsNotEmpty({ message: emptyValue('비밀번호') })
     @IsString({ message: invalidValue('비밀번호') })
-    password: string;
+    password!: string;
 }

@@ -28,6 +28,12 @@ export interface SearchOutboxDrainResult {
     deadLettered: number;
 }
 
+interface SearchOutboxDrainOptions {
+    batchSize?: number;
+    maxBatches?: number;
+    signal?: AbortSignal;
+}
+
 const MAX_ATTEMPTS = 10;
 const LEASE_MILLISECONDS = 5 * 60_000;
 
@@ -39,15 +45,17 @@ export class SearchOutboxRelay {
         private readonly config: SearchConfig
     ) {}
 
-    async drainBatch(limit = 50): Promise<SearchOutboxDrainResult> {
+    async drainBatch(limit = 50, signal?: AbortSignal): Promise<SearchOutboxDrainResult> {
         if (!this.config.enabled) throw new Error('OpenSearch must be enabled before draining the search outbox');
         if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
             throw new Error('Search outbox batch size must be between 1 and 100');
         }
 
+        if (signal?.aborted) return emptyDrainResult();
         const events = await this.claim(limit);
-        const result: SearchOutboxDrainResult = { claimed: events.length, processed: 0, failed: 0, deadLettered: 0 };
+        const result: SearchOutboxDrainResult = { ...emptyDrainResult(), claimed: events.length };
         for (const event of events) {
+            if (signal?.aborted) break;
             try {
                 await this.worker.synchronize(event.productId, event.productRevision);
                 await this.markProcessed(event);
@@ -62,16 +70,17 @@ export class SearchOutboxRelay {
         return result;
     }
 
-    async drainUntilEmpty(options: { batchSize?: number; maxBatches?: number } = {}): Promise<SearchOutboxDrainResult> {
+    async drainUntilEmpty(options: SearchOutboxDrainOptions = {}): Promise<SearchOutboxDrainResult> {
         const batchSize = options.batchSize ?? 50;
         const maxBatches = options.maxBatches ?? 100;
         if (!Number.isInteger(maxBatches) || maxBatches < 1 || maxBatches > 10_000) {
             throw new Error('Search outbox maxBatches must be between 1 and 10000');
         }
 
-        const total: SearchOutboxDrainResult = { claimed: 0, processed: 0, failed: 0, deadLettered: 0 };
+        const total = emptyDrainResult();
         for (let batch = 0; batch < maxBatches; batch += 1) {
-            const current = await this.drainBatch(batchSize);
+            if (options.signal?.aborted) return total;
+            const current = await this.drainBatch(batchSize, options.signal);
             total.claimed += current.claimed;
             total.processed += current.processed;
             total.failed += current.failed;
@@ -159,6 +168,10 @@ export class SearchOutboxRelay {
         const result = await em.execute<{ affectedRows?: number }>(sql, params, 'run');
         if (result.affectedRows !== 1) throw new Error('Search outbox lease was lost before status update');
     }
+}
+
+function emptyDrainResult(): SearchOutboxDrainResult {
+    return { claimed: 0, processed: 0, failed: 0, deadLettered: 0 };
 }
 
 function describeError(error: unknown): string {
