@@ -2,7 +2,7 @@
 
 작성일: 2026-08-13
 
-최종 갱신: 2026-09-04
+최종 갱신: 2026-09-05
 
 상태: Phase 0-5와 운영 migration/seed 도입 완료
 
@@ -157,12 +157,13 @@ MikroORM 7의 native ESM package export를 해석하기 위해 다음 TypeScript
 }
 ```
 
-애플리케이션 build는 NodeNext를 사용한다. Jest는 기존 CommonJS 단위 테스트와 MikroORM native ESM
-테스트의 실행 설정을 분리하고 `pnpm unit`에서 두 suite를 연속 실행한다. 다음 항목을 스파이크와 이후
-회귀 검사로 확인했다.
+애플리케이션 build는 NodeNext를 사용한다. 테스트는 Vitest와 SWC의 ESM 변환을 사용하며,
+일반 단위 테스트와 MikroORM 테스트를 `pnpm unit`에서 함께 실행한다. SWC 변환은 legacy decorator와
+metadata를 보존하고, 타입 검사는 `pnpm typecheck`로 별도 실행한다. 아래 ORM 전환 당시의 Jest 검증
+기록은 현재 runner 설정과 구분한다.
 
 - Nest development compile과 module loading
-- Jest와 ts-jest
+- Vitest와 SWC의 ESM 테스트 변환
 - SWC production build
 - path alias
 - production build
