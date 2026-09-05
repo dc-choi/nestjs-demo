@@ -32,7 +32,7 @@ describe('MikroORM config', () => {
             get: <T>(key: keyof EnvConfig): T => env[key] as T,
         } as ConfigService<EnvConfig, true>;
 
-        const options = createMikroOrmOptions(configService);
+        const options = createMikroOrmOptions(configService, { log: () => undefined });
 
         expect(options).toMatchObject({
             driver: MySqlDriver,

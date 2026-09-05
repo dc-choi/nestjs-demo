@@ -1,17 +1,12 @@
 import { Request, Response } from 'express';
 import { GraphQLError, getOperationAST, parse } from 'graphql';
 import { EventEmitter } from 'node:events';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { graphqlLog } from '~/global/common/logger/channel.logger';
+import { describe, expect, it, vi } from 'vitest';
 import { createGraphqlRequestLoggingPlugin } from '~/global/graphql/graphql-request-logging.plugin';
 
 describe('createGraphqlRequestLoggingPlugin', () => {
-    afterEach(() => {
-        vi.restoreAllMocks();
-    });
-
     it('허용된 요청 메타데이터만 기록하고 query, variables, response를 남기지 않는다', async () => {
-        const log = vi.spyOn(graphqlLog, 'log').mockImplementation(() => undefined);
+        const log = vi.fn();
         const query = `
             # sensitive-query-marker
             query Catalog($token: String!) {
@@ -33,7 +28,7 @@ describe('createGraphqlRequestLoggingPlugin', () => {
             originalUrl: '/graphql?debug=true',
         } as Request;
         const res = responseEvents as unknown as Response;
-        const plugin = createGraphqlRequestLoggingPlugin('test');
+        const plugin = createGraphqlRequestLoggingPlugin('test', { log });
         const listener = await plugin.requestDidStart?.({ contextValue: { req, res } } as never);
 
         await listener?.didResolveOperation?.({

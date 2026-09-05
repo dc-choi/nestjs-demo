@@ -7,7 +7,7 @@ import type {
 import { FragmentDefinitionNode, Kind, SelectionSetNode } from 'graphql';
 import { performance } from 'node:perf_hooks';
 import { getCurrentRequestId } from '~/global/common/context/request-context';
-import { graphqlLog } from '~/global/common/logger/channel.logger';
+import type { GraphqlOperationLog, TypedLogger } from '~/global/common/logger/channel.logger';
 import { GraphqlHttpContext } from '~/global/graphql/graphql-context';
 
 const INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR';
@@ -23,7 +23,10 @@ interface OperationState {
     errorCodes: string[];
 }
 
-export const createGraphqlRequestLoggingPlugin = (env: string): ApolloServerPlugin<GraphqlHttpContext> => ({
+export const createGraphqlRequestLoggingPlugin = (
+    env: string,
+    graphqlLog: TypedLogger<GraphqlOperationLog>
+): ApolloServerPlugin<GraphqlHttpContext> => ({
     async requestDidStart({ contextValue }) {
         const startedAt = performance.now();
         const { req, res } = contextValue;

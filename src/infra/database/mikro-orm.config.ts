@@ -7,11 +7,15 @@ import type { MikroOrmEnvironment } from './database-environment';
 import { databaseEntities } from './entities';
 import { MIKRO_ORM_SLOW_QUERY_THRESHOLD_MS, createMikroOrmLogger } from './mikro-orm.logger';
 
+import type { MikroOrmQueryLog, TypedLogger } from '~/global/common/logger/channel.logger';
 import { EnvConfig } from '~/global/config/env/env.config';
 
 export type { MikroOrmEnvironment } from './database-environment';
 
-export const createMikroOrmCoreOptions = (env: MikroOrmEnvironment): MySqlOptions => {
+export const createMikroOrmCoreOptions = (
+    env: MikroOrmEnvironment,
+    sqlLog?: TypedLogger<MikroOrmQueryLog>
+): MySqlOptions => {
     return {
         driver: MySqlDriver,
         entities: [...databaseEntities],
@@ -37,12 +41,13 @@ export const createMikroOrmCoreOptions = (env: MikroOrmEnvironment): MySqlOption
         debug: ['query'],
         colors: false,
         slowQueryThreshold: MIKRO_ORM_SLOW_QUERY_THRESHOLD_MS,
-        loggerFactory: (options) => createMikroOrmLogger(options, env.ENV),
+        loggerFactory: (options) => createMikroOrmLogger(options, env.ENV, sqlLog),
     };
 };
 
 export const createMikroOrmOptions = (
-    configService: ConfigService<EnvConfig, true>
+    configService: ConfigService<EnvConfig, true>,
+    sqlLog: TypedLogger<MikroOrmQueryLog>
 ): MikroOrmModuleOptions<MySqlDriver> => {
     const env: MikroOrmEnvironment = {
         ENV: configService.get<string>('ENV'),
@@ -59,7 +64,7 @@ export const createMikroOrmOptions = (
     };
 
     return {
-        ...createMikroOrmCoreOptions(env),
+        ...createMikroOrmCoreOptions(env, sqlLog),
         registerRequestContext: true,
     };
 };
