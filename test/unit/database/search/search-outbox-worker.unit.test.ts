@@ -24,29 +24,6 @@ describe('Search outbox worker', () => {
         expect(hasAlias).not.toHaveBeenCalled();
     });
 
-    it('does not start the search worker from the inventory expiration CLI', async () => {
-        vi.useFakeTimers();
-        const originalEntrypoint = process.argv[1];
-        const drainUntilEmpty = vi.fn();
-        const hasAlias = vi.fn();
-        process.argv[1] = '/workspace/dist/src/cli/inventory-expire.js';
-
-        try {
-            const worker = new SearchOutboxWorker(
-                { enabled: true } as SearchConfig,
-                { drainUntilEmpty } as unknown as SearchOutboxRelay,
-                { hasAlias } as unknown as CatalogIndexManager
-            );
-            worker.onApplicationBootstrap();
-            await vi.advanceTimersByTimeAsync(2_000);
-
-            expect(drainUntilEmpty).not.toHaveBeenCalled();
-            expect(hasAlias).not.toHaveBeenCalled();
-        } finally {
-            process.argv[1] = originalEntrypoint;
-        }
-    });
-
     it('waits for an in-flight poll before shutting down', async () => {
         vi.useFakeTimers();
         let completePoll!: (result: {

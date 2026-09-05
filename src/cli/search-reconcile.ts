@@ -1,14 +1,14 @@
 import { NestFactory } from '@nestjs/core';
 
-import { AppModule } from '~/app.module';
 import { SearchReconciliationService } from '~/infra/search/search-reconciliation.service';
+import { MaintenanceAppModule } from '~/maintenance-app.module';
 
 async function main(): Promise<void> {
     const repair = process.argv.slice(2).includes('--repair');
     const unknown = process.argv.slice(2).filter((argument) => argument !== '--repair');
     if (unknown.length > 0) throw new Error('Usage: search-reconcile [--repair]');
 
-    const app = await NestFactory.createApplicationContext(AppModule, { logger: ['error', 'warn'] });
+    const app = await NestFactory.createApplicationContext(MaintenanceAppModule, { logger: ['error', 'warn'] });
     try {
         const result = await app.get(SearchReconciliationService).reconcile({ repair });
         process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);

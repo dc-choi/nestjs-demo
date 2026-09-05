@@ -1,13 +1,10 @@
 import { Injectable } from '@nestjs/common';
 
+import { buildOpenSearchProductRequest } from './opensearch-product-search.adapter';
 import { OpenSearchHttpClient, escapeOpenSearchPathSegment } from './opensearch.client';
 
 import { performance } from 'node:perf_hooks';
-import {
-    ProductSearchInput,
-    buildProductSearchRequest,
-    canonicalizeProductSearchInput,
-} from '~/api/catalog/search/domain/product-search.query';
+import { ProductSearchInput, canonicalizeProductSearchInput } from '~/api/catalog/search/domain/product-search.query';
 
 export interface RelevanceEvaluationQuery {
     id: string;
@@ -125,7 +122,7 @@ export class SearchRelevanceEvaluationService {
                 pit_id?: string;
                 hits?: { hits?: Array<{ _id?: string }> };
             }>('POST', '/_search', {
-                body: { ...buildProductSearchRequest(canonical, pitId), size: 10, _source: false },
+                body: { ...buildOpenSearchProductRequest(canonical, pitId), size: 10, _source: false },
             });
             pitId = response.pit_id ?? pitId;
             const hits = response.hits?.hits;

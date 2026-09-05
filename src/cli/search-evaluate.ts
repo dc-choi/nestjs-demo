@@ -1,16 +1,16 @@
 import { NestFactory } from '@nestjs/core';
 
 import { readFile } from 'node:fs/promises';
-import { AppModule } from '~/app.module';
 import {
     RelevanceEvaluationFixture,
     SearchRelevanceEvaluationService,
 } from '~/infra/search/search-relevance-evaluation.service';
+import { MaintenanceAppModule } from '~/maintenance-app.module';
 
 async function main(): Promise<void> {
     const args = parseArguments(process.argv.slice(2));
     const fixture = JSON.parse(await readFile(args.fixture, 'utf8')) as RelevanceEvaluationFixture;
-    const app = await NestFactory.createApplicationContext(AppModule, { logger: ['error', 'warn'] });
+    const app = await NestFactory.createApplicationContext(MaintenanceAppModule, { logger: ['error', 'warn'] });
     try {
         const result = await app
             .get(SearchRelevanceEvaluationService)

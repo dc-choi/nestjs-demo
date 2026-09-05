@@ -3,12 +3,12 @@ import {
     ProductSearchContractError,
     ProductSearchSort,
     assertSearchCursorFingerprint,
-    buildProductSearchRequest,
     canonicalizeProductSearchInput,
     decodeSearchCursor,
     encodeSearchCursor,
     fingerprintProductSearchInput,
 } from '~/api/catalog/search/domain/product-search.query';
+import { buildOpenSearchProductRequest } from '~/infra/search/opensearch-product-search.adapter';
 
 describe('Product search query contract', () => {
     it('canonicalizes whitespace, decimals and option order before fingerprinting', () => {
@@ -59,7 +59,7 @@ describe('Product search query contract', () => {
             sort: ProductSearchSort.PRICE_ASC,
             first: 5,
         });
-        const request = buildProductSearchRequest(input, 'pit-1');
+        const request = buildOpenSearchProductRequest(input, 'pit-1');
         const serialized = JSON.stringify(request);
 
         expect(request.size).toBe(6);
