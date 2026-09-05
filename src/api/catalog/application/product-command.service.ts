@@ -27,6 +27,7 @@ import type {
     UpdateProductItemCommand,
 } from './product-write.command';
 
+import { CatalogGraphError } from '~/api/catalog/domain/catalog-graph';
 import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status';
 import { ProductSnapshotChangeType } from '~/api/catalog/domain/entity/product-snapshot-change-type';
 import { ProductSnapshotEntity } from '~/api/catalog/domain/entity/product-snapshot.entity';
@@ -229,6 +230,10 @@ export class ProductCommandService {
                 loggerContext: { label: 'catalog.product-command' },
             });
         } catch (error: unknown) {
+            if (error instanceof CatalogGraphError) {
+                throw invalidChange(error.message);
+            }
+
             if (error instanceof UniqueConstraintViolationException) {
                 throw new ConflictException(new ProductWriteConflict());
             }
