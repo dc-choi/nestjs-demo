@@ -4,6 +4,7 @@ import { ProductSearchService } from '~/api/catalog/search/application/product-s
 import { ProductSearchDocument } from '~/api/catalog/search/domain/product-search.document';
 import { createCatalogIndexName } from '~/infra/search/catalog-index.definition';
 import { CatalogBulkError, CatalogIndexManager } from '~/infra/search/catalog-index.manager';
+import { OpenSearchProductSearchAdapter } from '~/infra/search/opensearch-product-search.adapter';
 import { OpenSearchHttpClient } from '~/infra/search/opensearch.client';
 import { SearchHealthService } from '~/infra/search/search-health.service';
 import { SearchRelevanceEvaluationService } from '~/infra/search/search-relevance-evaluation.service';
@@ -70,7 +71,10 @@ describeOpenSearch('OpenSearch catalog integration', () => {
         await expect(missingAliasManager.writeExternal(documents[0])).rejects.toBeInstanceOf(CatalogBulkError);
         await expect(client.request('GET', `/${missingAlias}`)).rejects.toMatchObject({ status: 404 });
 
-        const search = new ProductSearchService(config, client);
+        const search = new ProductSearchService(
+            new OpenSearchProductSearchAdapter(config, client),
+            config.cursorSecret
+        );
         const input = {
             categorySlug: 'keyboards',
             minPrice: '1000',

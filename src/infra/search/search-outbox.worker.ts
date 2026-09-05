@@ -6,14 +6,6 @@ import { SearchConfig } from './search.config';
 
 const POLL_INTERVAL_MS = 1_000;
 export const SEARCH_OUTBOX_SHUTDOWN_TIMEOUT_MS = 5_000;
-const SEARCH_MAINTENANCE_ENTRYPOINTS = new Set([
-    'inventory-expire.js',
-    'search-evaluate.js',
-    'search-outbox-relay.js',
-    'search-rebuild.js',
-    'search-reconcile.js',
-]);
-
 /**
  * Continuously drains committed catalog events while search is enabled.
  * Database leases make concurrent application replicas safe; each instance keeps only one local poll in flight.
@@ -34,7 +26,7 @@ export class SearchOutboxWorker implements OnApplicationBootstrap, BeforeApplica
     ) {}
 
     onApplicationBootstrap(): void {
-        if (!this.config.enabled || isSearchMaintenanceProcess()) return;
+        if (!this.config.enabled) return;
         this.schedule(0);
     }
 
@@ -105,9 +97,4 @@ export class SearchOutboxWorker implements OnApplicationBootstrap, BeforeApplica
             this.schedule(POLL_INTERVAL_MS);
         }
     }
-}
-
-function isSearchMaintenanceProcess(): boolean {
-    const entrypoint = process.argv[1]?.replaceAll('\\', '/').split('/').at(-1);
-    return entrypoint !== undefined && SEARCH_MAINTENANCE_ENTRYPOINTS.has(entrypoint);
 }
