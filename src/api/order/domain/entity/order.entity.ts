@@ -2,6 +2,9 @@ import { Cascade, Collection, type Opt, type Rel } from '@mikro-orm/core';
 import { Entity, Enum, Index, ManyToOne, OneToMany, PrimaryKey, Property, Unique } from '@mikro-orm/decorators/legacy';
 
 import { FulfillmentEntity } from '~/api/fulfillment/domain/fulfillment.entity';
+import { FulfillmentStatus } from '~/api/fulfillment/domain/fulfillment.enum';
+import type { InventoryReservationEntity } from '~/api/inventory/domain/inventory-reservation.entity';
+import { InventoryReservationStatus } from '~/api/inventory/domain/inventory.enum';
 import { MemberEntity } from '~/api/member/domain/member.entity';
 import { assertOrderMoneyFits, sumDecimals } from '~/api/order/domain/decimal';
 import { OrderAddressEntity } from '~/api/order/domain/entity/order-address.entity';
@@ -29,6 +32,28 @@ interface TransitionOrder {
     readonly metadata?: unknown | null;
     readonly occurredAt?: Date;
 }
+
+interface CancelOrder {
+    readonly actorId: string;
+    readonly reason: string;
+    readonly requestId: string;
+    readonly occurredAt?: Date;
+}
+
+interface ExpireOrderReservations {
+    readonly actorType: OrderActorType;
+    readonly actorId: string | null;
+    readonly requestId: string;
+    readonly occurredAt?: Date;
+}
+
+export interface OrderCancellationResult {
+    readonly isReplay: boolean;
+    readonly history: OrderStatusHistoryEntity | null;
+    readonly reservations: readonly InventoryReservationEntity[];
+}
+
+export class OrderCancellationConflict extends Error {}
 
 const ALLOWED_TRANSITIONS: Readonly<Record<OrderStatus, readonly OrderStatus[]>> = {
     [OrderStatus.PENDING]: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
@@ -210,5 +235,121 @@ export class OrderEntity {
             this.statusHistories = new Collection(this, [...this.statusHistories.getItems(), history]);
         }
         return history;
+    }
+
+    cancelByMember({ actorId, reason, requestId, occurredAt = new Date() }: CancelOrder): OrderCancellationResult {
+        if (this.status === OrderStatus.CANCELLED) {
+            if (this.hasCancellationReplay(requestId, reason)) {
+                return { isReplay: true, history: null, reservations: [] };
+            }
+            throw new OrderCancellationConflict('이미 다른 요청으로 취소된 주문입니다.');
+        }
+        if (this.status === OrderStatus.COMPLETED) {
+            throw new OrderCancellationConflict('완료된 주문은 취소할 수 없습니다.');
+        }
+        if (
+            this.fulfillments
+                .getItems()
+                .some(({ status }) => status === FulfillmentStatus.SHIPPED || status === FulfillmentStatus.DELIVERED)
+        ) {
+            throw new OrderCancellationConflict('발송된 배송이 있는 주문은 취소할 수 없습니다.');
+        }
+        if (this.paymentAttempts.getItems().some((attempt) => attempt.hasUnrefundedCapture())) {
+            throw new OrderCancellationConflict('매입된 결제 금액을 모두 환불한 뒤 주문을 취소할 수 있습니다.');
+        }
+        if (this.paymentAttempts.getItems().some((attempt) => attempt.requiresCancellationBeforeOrderCancellation())) {
+            throw new OrderCancellationConflict('승인된 결제를 취소한 뒤 주문을 취소할 수 있습니다.');
+        }
+
+        const reservations = this.cancellableReservations();
+        this.cancelCancellablePaymentAttempts(occurredAt);
+        for (const fulfillment of this.fulfillments) fulfillment.cancel(occurredAt);
+        const history = this.transition({
+            to: OrderStatus.CANCELLED,
+            actorType: OrderActorType.MEMBER,
+            actorId,
+            reason,
+            requestId,
+            occurredAt,
+        });
+        return { isReplay: false, history, reservations };
+    }
+
+    expireReservations({
+        actorType,
+        actorId,
+        requestId,
+        occurredAt = new Date(),
+    }: ExpireOrderReservations): OrderCancellationResult {
+        if (this.status !== OrderStatus.PENDING) {
+            throw new OrderCancellationConflict('결제 대기 주문의 재고 예약만 만료할 수 있습니다.');
+        }
+        const reservations = this.inventoryReservations();
+        if (reservations.length !== this.items.length) {
+            throw new OrderCancellationConflict('모든 주문 품목에 재고 예약이 있어야 합니다.');
+        }
+        if (
+            reservations.some(
+                ({ status }) =>
+                    status !== InventoryReservationStatus.RESERVED && status !== InventoryReservationStatus.EXPIRED
+            )
+        ) {
+            throw new OrderCancellationConflict('소비되거나 해제된 재고 예약이 있는 주문은 만료할 수 없습니다.');
+        }
+        const activeReservations = reservations.filter(({ status }) => status === InventoryReservationStatus.RESERVED);
+        if (activeReservations.length === 0) {
+            throw new OrderCancellationConflict('이미 다른 요청으로 만료된 주문입니다.');
+        }
+        if (activeReservations.some(({ expiresAt }) => expiresAt.getTime() > occurredAt.getTime())) {
+            throw new OrderCancellationConflict('아직 만료되지 않은 재고 예약이 있는 주문입니다.');
+        }
+        if (
+            this.paymentAttempts
+                .getItems()
+                .some((attempt) => !attempt.isCancellable() && !attempt.isTerminalForReservationExpiration())
+        ) {
+            throw new OrderCancellationConflict('취소할 수 없는 결제 시도가 있는 주문은 만료할 수 없습니다.');
+        }
+
+        this.cancelCancellablePaymentAttempts(occurredAt);
+        const history = this.transition({
+            to: OrderStatus.CANCELLED,
+            actorType,
+            actorId,
+            reason: 'INVENTORY_RESERVATION_EXPIRED',
+            requestId,
+            occurredAt,
+        });
+        return { isReplay: false, history, reservations: activeReservations };
+    }
+
+    private hasCancellationReplay(requestId: string, reason: string): boolean {
+        return this.statusHistories
+            .getItems()
+            .some(
+                (history) =>
+                    history.toStatus === OrderStatus.CANCELLED &&
+                    history.requestId === requestId &&
+                    history.reason === reason
+            );
+    }
+
+    private cancellableReservations(): InventoryReservationEntity[] {
+        return this.inventoryReservations().filter(
+            ({ status }) =>
+                status === InventoryReservationStatus.RESERVED || status === InventoryReservationStatus.CONSUMED
+        );
+    }
+
+    private inventoryReservations(): InventoryReservationEntity[] {
+        return this.items
+            .getItems()
+            .flatMap(({ inventoryReservation }) => (inventoryReservation ? [inventoryReservation] : []));
+    }
+
+    private cancelCancellablePaymentAttempts(now: Date): void {
+        for (const attempt of this.paymentAttempts) {
+            if (attempt.isCancellable()) attempt.cancel(now);
+        }
     }
 }

@@ -6,12 +6,12 @@ import { createHmac } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
 import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
 import { FulfillmentEntity } from '~/api/fulfillment/domain/fulfillment.entity';
-import type { InventoryService } from '~/api/inventory/application/inventory.service';
 import { InventoryReservationEntity } from '~/api/inventory/domain/inventory-reservation.entity';
 import { MemberEntity } from '~/api/member/domain/member.entity';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity';
 import { OrderStatus } from '~/api/order/domain/entity/order.enum';
+import type { PaymentInventoryPort } from '~/api/payment/application/payment-inventory.port';
 import { PaymentWebhookOutcome } from '~/api/payment/application/payment.command';
 import { PaymentService } from '~/api/payment/application/payment.service';
 import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity';
@@ -282,7 +282,7 @@ function createPaymentService(
         {
             findOne: overrides.findWebhook ?? vi.fn<() => Promise<null>>().mockResolvedValue(null),
         } as unknown as EntityRepository<PaymentWebhookEventEntity>,
-        { consumeForPayment } as unknown as InventoryService
+        { consumeForPayment } satisfies PaymentInventoryPort
     );
 
     return { service, persist, findTransaction, consumeForPayment, requestContextSource };

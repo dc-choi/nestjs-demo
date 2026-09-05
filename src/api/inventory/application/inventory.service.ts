@@ -17,9 +17,8 @@ import { InventoryReservationEntity } from '~/api/inventory/domain/inventory-res
 import { InventoryMovementType, InventoryReservationStatus } from '~/api/inventory/domain/inventory.enum';
 import { MemberRole } from '~/api/member/domain/member-role';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
-import { OrderEntity } from '~/api/order/domain/entity/order.entity';
+import { OrderCancellationConflict, OrderEntity } from '~/api/order/domain/entity/order.entity';
 import { OrderActorType, OrderStatus } from '~/api/order/domain/entity/order.enum';
-import { PaymentAttemptStatus } from '~/api/payment/domain/payment.enum';
 import { isMysqlSignedInt, isNonNegativeMysqlSignedInt } from '~/global/common/utils/mysql-number';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
 
@@ -64,14 +63,6 @@ const POSITIVE_ADJUSTMENT_TYPES: readonly InventoryMovementType[] = [
     InventoryMovementType.RETURN,
 ];
 const INVENTORY_OPERATOR_ROLES: readonly MemberRole[] = [MemberRole.ADMIN, MemberRole.SELLER];
-const CANCELLABLE_PAYMENT_STATUSES: readonly PaymentAttemptStatus[] = [
-    PaymentAttemptStatus.PENDING,
-    PaymentAttemptStatus.REQUIRES_ACTION,
-];
-const TERMINAL_PAYMENT_STATUSES: readonly PaymentAttemptStatus[] = [
-    PaymentAttemptStatus.CANCELLED,
-    PaymentAttemptStatus.FAILED,
-];
 const MAX_EXPIRATION_BATCH_SIZE = 500;
 
 @Injectable()
@@ -433,40 +424,21 @@ export class InventoryService {
                 return { reservation: requested, movement: duplicate };
             throw new ConflictException('재고 만료 멱등성 키가 완료되지 않은 요청에 사용되었습니다.');
         }
-        if (order.status !== OrderStatus.PENDING) {
-            throw new ConflictException('결제 대기 주문의 재고 예약만 만료할 수 있습니다.');
-        }
-        if (reservations.length !== order.items.length) {
-            throw new ConflictException('모든 주문 품목에 재고 예약이 있어야 합니다.');
-        }
-        if (
-            reservations.some(
-                ({ status }) =>
-                    status !== InventoryReservationStatus.RESERVED && status !== InventoryReservationStatus.EXPIRED
-            )
-        ) {
-            throw new ConflictException('소비되거나 해제된 재고 예약이 있는 주문은 만료할 수 없습니다.');
-        }
-        const active = reservations.filter(({ status }) => status === InventoryReservationStatus.RESERVED);
-        if (active.length === 0) throw new ConflictException('이미 다른 요청으로 만료된 주문입니다.');
-        if (active.some(({ expiresAt }) => expiresAt.getTime() > now.getTime())) {
-            throw new ConflictException('아직 만료되지 않은 재고 예약이 있는 주문입니다.');
-        }
-        if (
-            attempts.some(
-                ({ status }) =>
-                    !CANCELLABLE_PAYMENT_STATUSES.includes(status) && !TERMINAL_PAYMENT_STATUSES.includes(status)
-            )
-        ) {
-            throw new ConflictException('취소할 수 없는 결제 시도가 있는 주문은 만료할 수 없습니다.');
-        }
-
-        for (const attempt of attempts) {
-            if (CANCELLABLE_PAYMENT_STATUSES.includes(attempt.status)) attempt.cancel(now);
+        let expiration;
+        try {
+            expiration = order.expireReservations({
+                actorType: actor.type,
+                actorId: actor.id,
+                requestId: idempotencyKey,
+                occurredAt: now,
+            });
+        } catch (error: unknown) {
+            if (error instanceof OrderCancellationConflict) throw new ConflictException(error.message);
+            throw error;
         }
 
         let requestedMovement: InventoryMovementEntity | null = null;
-        for (const reservation of active) {
+        for (const reservation of expiration.reservations) {
             const movementKey =
                 reservation.id === reservationId
                     ? idempotencyKey
@@ -481,15 +453,7 @@ export class InventoryService {
             if (reservation.id === reservationId) requestedMovement = result.movement;
         }
 
-        const history = order.transition({
-            to: OrderStatus.CANCELLED,
-            actorType: actor.type,
-            actorId: actor.id,
-            reason: 'INVENTORY_RESERVATION_EXPIRED',
-            requestId: idempotencyKey,
-            occurredAt: now,
-        });
-        if (history) this.em.persist(history);
+        if (expiration.history) this.em.persist(expiration.history);
 
         return { reservation: requested, movement: requestedMovement };
     }

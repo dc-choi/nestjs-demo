@@ -2,9 +2,14 @@ import { Collection, type Opt, type Rel } from '@mikro-orm/core';
 import { Entity, Enum, Index, ManyToOne, OneToMany, PrimaryKey, Property, Unique } from '@mikro-orm/decorators/legacy';
 
 import { OrderEntity } from '~/api/order/domain/entity/order.entity';
+import { compareMoney, sumMoney } from '~/api/payment/domain/payment-money';
 import { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity';
 import { PaymentWebhookEventEntity } from '~/api/payment/domain/payment-webhook-event.entity';
-import { PaymentAttemptStatus } from '~/api/payment/domain/payment.enum';
+import {
+    PaymentAttemptStatus,
+    PaymentTransactionStatus,
+    PaymentTransactionType,
+} from '~/api/payment/domain/payment.enum';
 
 const CAPTURABLE_STATUSES: readonly PaymentAttemptStatus[] = [
     PaymentAttemptStatus.PENDING,
@@ -83,7 +88,7 @@ export class PaymentAttemptEntity {
 
     capture(processedAt = new Date()): void {
         if (this.status === PaymentAttemptStatus.CAPTURED) return;
-        if (!CAPTURABLE_STATUSES.includes(this.status)) {
+        if (!this.isCapturable()) {
             throw new Error(`${this.status} 결제 시도는 매입할 수 없습니다.`);
         }
 
@@ -96,7 +101,7 @@ export class PaymentAttemptEntity {
 
     fail(errorCode: string, errorMessage: string | null): void {
         if (this.status === PaymentAttemptStatus.FAILED) return;
-        if (!FAILABLE_STATUSES.includes(this.status)) {
+        if (!this.isFailable()) {
             throw new Error(`${this.status} 결제 시도는 실패 처리할 수 없습니다.`);
         }
         if (errorCode.trim().length === 0 || errorCode.length > 128) {
@@ -109,7 +114,7 @@ export class PaymentAttemptEntity {
     }
 
     refund(fullyRefunded: boolean): void {
-        if (!REFUNDABLE_STATUSES.includes(this.status)) {
+        if (!this.isRefundable()) {
             throw new Error(`${this.status} 결제 시도는 환불할 수 없습니다.`);
         }
         if (this.status === PaymentAttemptStatus.REFUNDED && !fullyRefunded) {
@@ -121,13 +126,58 @@ export class PaymentAttemptEntity {
 
     cancel(now = new Date()): boolean {
         if (this.status === PaymentAttemptStatus.CANCELLED) return false;
-        if (!CANCELLABLE_STATUSES.includes(this.status)) {
+        if (!this.isCancellable()) {
             throw new Error(`${this.status} 결제 시도는 취소할 수 없습니다.`);
         }
 
         this.status = PaymentAttemptStatus.CANCELLED;
         this.cancelledAt = now;
         return true;
+    }
+
+    isCapturable(): boolean {
+        return CAPTURABLE_STATUSES.includes(this.status);
+    }
+
+    isFailable(): boolean {
+        return FAILABLE_STATUSES.includes(this.status);
+    }
+
+    isRefundable(): boolean {
+        return REFUNDABLE_STATUSES.includes(this.status);
+    }
+
+    isCancellable(): boolean {
+        return CANCELLABLE_STATUSES.includes(this.status);
+    }
+
+    isTerminalForReservationExpiration(): boolean {
+        return this.status === PaymentAttemptStatus.CANCELLED || this.status === PaymentAttemptStatus.FAILED;
+    }
+
+    requiresCancellationBeforeOrderCancellation(): boolean {
+        return this.status === PaymentAttemptStatus.AUTHORIZED;
+    }
+
+    isFunded(): boolean {
+        return this.status === PaymentAttemptStatus.CAPTURED || this.status === PaymentAttemptStatus.PARTIALLY_REFUNDED;
+    }
+
+    hasUnrefundedCapture(): boolean {
+        if (this.status === PaymentAttemptStatus.CAPTURED || this.status === PaymentAttemptStatus.PARTIALLY_REFUNDED) {
+            return true;
+        }
+
+        const succeeded = this.transactions
+            .getItems()
+            .filter(({ status }) => status === PaymentTransactionStatus.SUCCEEDED);
+        const captured = sumMoney(
+            succeeded.filter(({ type }) => type === PaymentTransactionType.CAPTURE).map(({ amount }) => amount)
+        );
+        const refunded = sumMoney(
+            succeeded.filter(({ type }) => type === PaymentTransactionType.REFUND).map(({ amount }) => amount)
+        );
+        return compareMoney(captured, refunded) > 0;
     }
 
     @PrimaryKey({ type: 'bigint', autoincrement: true, unsigned: false })

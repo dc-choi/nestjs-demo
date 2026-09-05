@@ -15,9 +15,9 @@ import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
 import { ProductStatus } from '~/api/catalog/domain/entity/product-status';
 import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
 import { FulfillmentEntity } from '~/api/fulfillment/domain/fulfillment.entity';
-import type { InventoryService } from '~/api/inventory/application/inventory.service';
 import { InventoryReservationEntity } from '~/api/inventory/domain/inventory-reservation.entity';
 import { MemberEntity } from '~/api/member/domain/member.entity';
+import type { OrderInventoryPort } from '~/api/order/application/order-inventory.port';
 import { OrderService } from '~/api/order/application/order.service';
 import { OrderItemSnapshotEntity } from '~/api/order/domain/entity/order-item-snapshot.entity';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
@@ -25,7 +25,7 @@ import { OrderEntity } from '~/api/order/domain/entity/order.entity';
 import { OrderStatus } from '~/api/order/domain/entity/order.enum';
 import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity';
 import { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity';
-import { PaymentTransactionType } from '~/api/payment/domain/payment.enum';
+import { PaymentAttemptStatus, PaymentTransactionType } from '~/api/payment/domain/payment.enum';
 import type { DistributedLockService } from '~/global/common/lock/distributed-lock.service';
 
 const ITEM_ID = 9_007_199_254_740_993n;
@@ -99,9 +99,7 @@ describe('OrderService', () => {
 
     it('잠근 Item의 합산 재고가 부족하면 주문을 저장하지 않는다', async () => {
         const findOne = vi.fn<() => Promise<ItemEntity>>().mockResolvedValue(createLiveItem(3));
-        const reserveForPlacement = vi
-            .fn<InventoryService['reserveForPlacement']>()
-            .mockRejectedValue(new BadRequestException('재고가 부족합니다.'));
+        const reserveForPlacement = vi.fn().mockRejectedValue(new BadRequestException('재고가 부족합니다.'));
         const persist = vi.fn();
         const { service, requestContextSource, transactional } = createService(
             { persist } as unknown as Partial<EntityManager>,
@@ -336,6 +334,11 @@ describe('OrderService', () => {
 
     it('소유자가 주문을 한 번만 취소하고 RESERVED 재고와 상태 이력을 함께 처리한다', async () => {
         const { order, reservation } = createCancellableOrder();
+        const attempt = PaymentAttemptEntity.create({
+            order,
+            provider: 'demo-pay',
+            idempotencyKey: 'cancellable-attempt',
+        });
         const persist = vi.fn();
         const releaseForCancellation = vi.fn(async (target: InventoryReservationEntity) => {
             target.release(CREATED_AT);
@@ -359,6 +362,7 @@ describe('OrderService', () => {
         expect(replay).toBe(first);
         expect(order.status).toBe(OrderStatus.CANCELLED);
         expect(order.cancelledAt).toBe(CREATED_AT);
+        expect(attempt.status).toBe(PaymentAttemptStatus.CANCELLED);
         expect(reservation.status).toBe('RELEASED');
         expect(releaseForCancellation).toHaveBeenCalledTimes(1);
         expect(persist).toHaveBeenCalledTimes(1);
@@ -451,13 +455,13 @@ describe('OrderService', () => {
 function createService(
     transactionOverrides: Partial<EntityManager>,
     findOne: () => Promise<ItemEntity>,
-    reserveForPlacement = vi.fn<InventoryService['reserveForPlacement']>().mockResolvedValue({
+    reserveForPlacement = vi.fn().mockResolvedValue({
         reservation: {} as never,
         movement: {} as never,
     }),
     cancellation: {
         readonly order?: OrderEntity;
-        readonly releaseForCancellation?: InventoryService['releaseForCancellation'];
+        readonly releaseForCancellation?: OrderInventoryPort['releaseForCancellation'];
     } = {}
 ) {
     const entityManager = Object.assign(Object.create(EntityManager.prototype), transactionOverrides) as EntityManager;
@@ -485,8 +489,8 @@ function createService(
     const memberRepository = { getReference: getMemberReference } as unknown as EntityRepository<MemberEntity>;
     const releaseForCancellation =
         cancellation.releaseForCancellation ??
-        vi.fn<InventoryService['releaseForCancellation']>().mockResolvedValue(null);
-    const reserveForPlacementBatch = vi.fn<InventoryService['reserveForPlacementBatch']>(
+        vi.fn<OrderInventoryPort['releaseForCancellation']>().mockResolvedValue(null);
+    const reserveForPlacementBatch = vi.fn<OrderInventoryPort['reserveForPlacementBatch']>(
         async (lines, expiresAt, orderNumber, now) =>
             Promise.all(
                 lines.map(({ orderItem, idempotencyKey }) =>
@@ -495,10 +499,9 @@ function createService(
             )
     );
     const inventoryService = {
-        reserveForPlacement,
         reserveForPlacementBatch,
         releaseForCancellation,
-    } as unknown as InventoryService;
+    } satisfies OrderInventoryPort;
     const orderRepository = {
         findOne: vi.fn(async () => cancellation.order ?? null),
     } as unknown as EntityRepository<OrderEntity>;
