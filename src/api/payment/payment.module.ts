@@ -1,8 +1,10 @@
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { Module } from '@nestjs/common';
 
+import { InventoryService } from '~/api/inventory/application/inventory.service';
 import { InventoryModule } from '~/api/inventory/inventory.module';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity';
+import { PAYMENT_INVENTORY_PORT } from '~/api/payment/application/payment-inventory.port';
 import { PaymentService } from '~/api/payment/application/payment.service';
 import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity';
 import { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity';
@@ -28,6 +30,7 @@ import { PaymentResolver } from '~/api/payment/presentation/payment.resolver';
     providers: [
         PaymentService,
         PaymentResolver,
+        { provide: PAYMENT_INVENTORY_PORT, useExisting: InventoryService },
         {
             provide: PAYMENT_WEBHOOK_SIGNATURE_VERIFIER,
             useClass: HmacPaymentWebhookSignatureVerifier,

@@ -5,6 +5,7 @@ import {
     BadRequestException,
     ConflictException,
     ForbiddenException,
+    Inject,
     Injectable,
     NotFoundException,
 } from '@nestjs/common';
@@ -14,22 +15,13 @@ import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status';
 import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
 import { ProductStatus } from '~/api/catalog/domain/entity/product-status';
 import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
-import { FulfillmentStatus } from '~/api/fulfillment/domain/fulfillment.enum';
-import { InventoryService } from '~/api/inventory/application/inventory.service';
-import { InventoryReservationStatus } from '~/api/inventory/domain/inventory.enum';
 import { MemberRole } from '~/api/member/domain/member-role';
 import { MemberEntity } from '~/api/member/domain/member.entity';
 import type { CancelOrderCommand } from '~/api/order/application/cancel-order.command';
+import { ORDER_INVENTORY_PORT, type OrderInventoryPort } from '~/api/order/application/order-inventory.port';
 import type { PlaceOrderCommand } from '~/api/order/application/place-order.command';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
-import { OrderEntity } from '~/api/order/domain/entity/order.entity';
-import { OrderActorType, OrderStatus } from '~/api/order/domain/entity/order.enum';
-import { compareMoney, sumMoney } from '~/api/payment/domain/payment-money';
-import {
-    PaymentAttemptStatus,
-    PaymentTransactionStatus,
-    PaymentTransactionType,
-} from '~/api/payment/domain/payment.enum';
+import { OrderCancellationConflict, OrderEntity } from '~/api/order/domain/entity/order.entity';
 import { NotExistingItem } from '~/global/common/error/item.error';
 import { DistributedLockOptions, DistributedLockService } from '~/global/common/lock/distributed-lock.service';
 import { isPositiveMysqlSignedInt } from '~/global/common/utils/mysql-number';
@@ -41,18 +33,6 @@ const ORDER_LOCK_OPTIONS: DistributedLockOptions = {
     baseDelay: 100,
 };
 const RESERVATION_TTL_MS = 15 * 60 * 1000;
-const NON_CANCELLABLE_FULFILLMENT_STATUSES: readonly FulfillmentStatus[] = [
-    FulfillmentStatus.SHIPPED,
-    FulfillmentStatus.DELIVERED,
-];
-const CANCELLABLE_PAYMENT_STATUSES: readonly PaymentAttemptStatus[] = [
-    PaymentAttemptStatus.PENDING,
-    PaymentAttemptStatus.REQUIRES_ACTION,
-];
-const UNREFUNDED_PAYMENT_STATUSES: readonly PaymentAttemptStatus[] = [
-    PaymentAttemptStatus.CAPTURED,
-    PaymentAttemptStatus.PARTIALLY_REFUNDED,
-];
 
 @Injectable()
 export class OrderService {
@@ -64,7 +44,8 @@ export class OrderService {
         private readonly memberRepository: EntityRepository<MemberEntity>,
         @InjectRepository(OrderEntity)
         private readonly orderRepository: EntityRepository<OrderEntity>,
-        private readonly inventoryService: InventoryService,
+        @Inject(ORDER_INVENTORY_PORT)
+        private readonly inventory: OrderInventoryPort,
         private readonly distributedLock: DistributedLockService
     ) {}
 
@@ -130,58 +111,28 @@ export class OrderService {
         await this.lockCancellationDependents(order);
 
         const reason = command.reason ?? 'CUSTOMER_REQUEST';
-        if (order.status === OrderStatus.CANCELLED) {
-            const replay = order.statusHistories
-                .getItems()
-                .find(
-                    (history) =>
-                        history.toStatus === OrderStatus.CANCELLED &&
-                        history.requestId === command.idempotencyKey &&
-                        history.reason === reason
-                );
-            if (replay) return order;
-            throw new ConflictException('이미 다른 요청으로 취소된 주문입니다.');
+        let cancellation;
+        try {
+            cancellation = order.cancelByMember({
+                actorId: jwtPayload.memberId.toString(),
+                reason,
+                requestId: command.idempotencyKey,
+                occurredAt: now,
+            });
+        } catch (error: unknown) {
+            if (error instanceof OrderCancellationConflict) throw new ConflictException(error.message);
+            throw error;
         }
-        if (order.status === OrderStatus.COMPLETED) throw new ConflictException('완료된 주문은 취소할 수 없습니다.');
-        if (order.fulfillments.getItems().some(({ status }) => NON_CANCELLABLE_FULFILLMENT_STATUSES.includes(status))) {
-            throw new ConflictException('발송된 배송이 있는 주문은 취소할 수 없습니다.');
-        }
-        if (this.hasUnrefundedCapture(order)) {
-            throw new ConflictException('매입된 결제 금액을 모두 환불한 뒤 주문을 취소할 수 있습니다.');
-        }
-        if (order.paymentAttempts.getItems().some(({ status }) => status === PaymentAttemptStatus.AUTHORIZED)) {
-            throw new ConflictException('승인된 결제를 취소한 뒤 주문을 취소할 수 있습니다.');
-        }
+        if (cancellation.isReplay) return order;
 
-        for (const attempt of order.paymentAttempts) {
-            if (CANCELLABLE_PAYMENT_STATUSES.includes(attempt.status)) {
-                attempt.cancel(now);
-            }
-        }
-        for (const fulfillment of order.fulfillments) fulfillment.cancel(now);
-        for (const { inventoryReservation } of order.items) {
-            if (
-                inventoryReservation?.status !== InventoryReservationStatus.RESERVED &&
-                inventoryReservation?.status !== InventoryReservationStatus.CONSUMED
-            ) {
-                continue;
-            }
-            await this.inventoryService.releaseForCancellation(
-                inventoryReservation,
-                this.cancellationMovementKey(order.id, inventoryReservation.id, command.idempotencyKey),
+        for (const reservation of cancellation.reservations) {
+            await this.inventory.releaseForCancellation(
+                reservation,
+                this.cancellationMovementKey(order.id, reservation.id, command.idempotencyKey),
                 now
             );
         }
-
-        const history = order.transition({
-            to: OrderStatus.CANCELLED,
-            actorType: OrderActorType.MEMBER,
-            actorId: jwtPayload.memberId.toString(),
-            reason,
-            requestId: command.idempotencyKey,
-            occurredAt: now,
-        });
-        if (history) this.em.persist(history);
+        if (cancellation.history) this.em.persist(cancellation.history);
         return order;
     }
 
@@ -242,7 +193,7 @@ export class OrderService {
             if (error instanceof RangeError) throw new BadRequestException(error.message);
             throw error;
         }
-        await this.inventoryService.reserveForPlacementBatch(
+        await this.inventory.reserveForPlacementBatch(
             orderItems.map((orderItem, index) => ({
                 orderItem,
                 idempotencyKey: `order:${orderNumber}:line:${index}:reserve`,
@@ -350,25 +301,6 @@ export class OrderService {
         if (command.items.some(({ quantity }) => !isPositiveMysqlSignedInt(quantity))) {
             throw new BadRequestException('주문 수량은 1 이상 2147483647 이하의 정수여야 합니다.');
         }
-    }
-
-    private hasUnrefundedCapture(order: OrderEntity): boolean {
-        return order.paymentAttempts.getItems().some((attempt) => {
-            if (UNREFUNDED_PAYMENT_STATUSES.includes(attempt.status)) {
-                return true;
-            }
-
-            const succeeded = attempt.transactions
-                .getItems()
-                .filter(({ status }) => status === PaymentTransactionStatus.SUCCEEDED);
-            const captured = sumMoney(
-                succeeded.filter(({ type }) => type === PaymentTransactionType.CAPTURE).map(({ amount }) => amount)
-            );
-            const refunded = sumMoney(
-                succeeded.filter(({ type }) => type === PaymentTransactionType.REFUND).map(({ amount }) => amount)
-            );
-            return compareMoney(captured, refunded) > 0;
-        });
     }
 
     private cancellationMovementKey(orderId: bigint, reservationId: bigint, idempotencyKey: string): string {

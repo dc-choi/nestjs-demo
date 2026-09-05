@@ -19,14 +19,9 @@ import { MemberRole } from '~/api/member/domain/member-role';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity';
 import { OrderActorType, OrderStatus } from '~/api/order/domain/entity/order.enum';
-import { PaymentAttemptStatus } from '~/api/payment/domain/payment.enum';
 import { isPositiveMysqlSignedInt } from '~/global/common/utils/mysql-number';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
 
-const FUNDED_PAYMENT_STATUSES: readonly PaymentAttemptStatus[] = [
-    PaymentAttemptStatus.CAPTURED,
-    PaymentAttemptStatus.PARTIALLY_REFUNDED,
-];
 const CANCELLABLE_FULFILLMENT_STATUSES: readonly FulfillmentStatus[] = [
     FulfillmentStatus.PENDING,
     FulfillmentStatus.PACKED,
@@ -224,7 +219,7 @@ export class FulfillmentService {
     }
 
     private assertFunded(order: OrderEntity): void {
-        if (order.paymentAttempts.getItems().some(({ status }) => FUNDED_PAYMENT_STATUSES.includes(status))) return;
+        if (order.paymentAttempts.getItems().some((attempt) => attempt.isFunded())) return;
         throw new ConflictException('전액 환불되거나 매입되지 않은 주문은 배송을 진행할 수 없습니다.');
     }
 

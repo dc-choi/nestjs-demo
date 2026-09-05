@@ -5,17 +5,18 @@ import {
     BadRequestException,
     ConflictException,
     ForbiddenException,
+    Inject,
     Injectable,
     NotFoundException,
 } from '@nestjs/common';
 
 import { createHash } from 'node:crypto';
 import { FulfillmentStatus } from '~/api/fulfillment/domain/fulfillment.enum';
-import { InventoryService } from '~/api/inventory/application/inventory.service';
 import { InventoryReservationStatus } from '~/api/inventory/domain/inventory.enum';
 import { MemberRole } from '~/api/member/domain/member-role';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity';
 import { OrderActorType, OrderStatus } from '~/api/order/domain/entity/order.enum';
+import { PAYMENT_INVENTORY_PORT, type PaymentInventoryPort } from '~/api/payment/application/payment-inventory.port';
 import type {
     CapturePaymentCommand,
     CreatePaymentAttemptCommand,
@@ -47,20 +48,6 @@ export interface PaymentWebhookResult {
     readonly transaction: PaymentTransactionEntity | null;
 }
 
-const CAPTURABLE_PAYMENT_STATUSES: readonly PaymentAttemptStatus[] = [
-    PaymentAttemptStatus.PENDING,
-    PaymentAttemptStatus.AUTHORIZED,
-];
-const FAILABLE_PAYMENT_STATUSES: readonly PaymentAttemptStatus[] = [
-    PaymentAttemptStatus.PENDING,
-    PaymentAttemptStatus.REQUIRES_ACTION,
-    PaymentAttemptStatus.AUTHORIZED,
-];
-const REFUNDABLE_PAYMENT_STATUSES: readonly PaymentAttemptStatus[] = [
-    PaymentAttemptStatus.CAPTURED,
-    PaymentAttemptStatus.PARTIALLY_REFUNDED,
-    PaymentAttemptStatus.REFUNDED,
-];
 const BLOCKING_FULL_REFUND_FULFILLMENT_STATUSES: readonly FulfillmentStatus[] = [
     FulfillmentStatus.PENDING,
     FulfillmentStatus.PACKED,
@@ -79,7 +66,8 @@ export class PaymentService {
         private readonly transactionRepository: EntityRepository<PaymentTransactionEntity>,
         @InjectRepository(PaymentWebhookEventEntity)
         private readonly webhookRepository: EntityRepository<PaymentWebhookEventEntity>,
-        private readonly inventoryService: InventoryService
+        @Inject(PAYMENT_INVENTORY_PORT)
+        private readonly inventory: PaymentInventoryPort
     ) {}
 
     async createAttempt(
@@ -432,7 +420,7 @@ export class PaymentService {
         if (attempt.order.status !== OrderStatus.PENDING) {
             throw new ConflictException('결제 대기 주문만 매입할 수 있습니다.');
         }
-        if (!CAPTURABLE_PAYMENT_STATUSES.includes(attempt.status)) {
+        if (!attempt.isCapturable()) {
             throw new ConflictException(`${attempt.status} 결제 시도는 매입할 수 없습니다.`);
         }
 
@@ -451,7 +439,7 @@ export class PaymentService {
         }
 
         attempt.capture(now);
-        for (const reservation of reservations) this.inventoryService.consumeForPayment(reservation!, now);
+        for (const reservation of reservations) this.inventory.consumeForPayment(reservation!, now);
         const transaction = PaymentTransactionEntity.succeed({
             paymentAttempt: attempt,
             type: PaymentTransactionType.CAPTURE,
@@ -488,7 +476,7 @@ export class PaymentService {
         if (attempt.status === PaymentAttemptStatus.FAILED) {
             throw new ConflictException('이미 다른 요청으로 실패 처리된 결제입니다.');
         }
-        if (!FAILABLE_PAYMENT_STATUSES.includes(attempt.status)) {
+        if (!attempt.isFailable()) {
             throw new ConflictException(`${attempt.status} 결제 시도는 실패 처리할 수 없습니다.`);
         }
 
@@ -521,7 +509,7 @@ export class PaymentService {
             );
             return { attempt, transaction: duplicate };
         }
-        if (!REFUNDABLE_PAYMENT_STATUSES.includes(attempt.status)) {
+        if (!attempt.isRefundable()) {
             throw new ConflictException(`${attempt.status} 결제 시도는 환불할 수 없습니다.`);
         }
 
