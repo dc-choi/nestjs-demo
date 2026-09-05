@@ -52,12 +52,25 @@ pnpm database:migration:pending
 
 ```sh
 pnpm lint
+pnpm typecheck
 pnpm unit
 pnpm stage:build
 pnpm prod:build
 ```
 
+테스트는 Vitest와 SWC를 사용하며 Nest/MikroORM의 legacy decorator metadata를 유지합니다.
+`pnpm test`는 단위 테스트와 환경 플래그로 활성화하는 통합 테스트를 한 번 실행합니다.
+인프라 플래그가 없으면 통합 테스트는 건너뛰며, 외부 서버가 필요한 e2e는 포함하지 않습니다.
+`pnpm test:watch`는 단위 테스트의 변경 감지 모드, `pnpm coverage`는 `coverage/lcov.info`를 생성합니다.
+한 파일만 실행하려면 `pnpm unit test/unit/database/product-command.service.unit.test.ts`처럼 경로를 전달합니다.
+SWC는 타입 검사를 하지 않으므로 CI에서도 `pnpm typecheck`를 별도로 실행합니다.
+
+도메인 규칙과 로깅은 실제 Entity, 순수 함수와 실제 로그 출력으로 검증합니다.
+일부 application 테스트의 ORM/서비스 대역과 외부 시스템의 실패/호출 순서 검증에는 Mock/Spy가 남아 있습니다.
+실제 DB transaction과 검색 동작은 아래 통합 테스트로 검증합니다.
+
 전용 `_integration` suffix MySQL DB와 로컬 OpenSearch를 준비한 경우에는 실제 인프라 통합 suite도 실행합니다.
+통합 테스트는 같은 DB를 초기화하므로 파일 간 직렬 실행하며, 보존할 데이터가 없는 전용 DB를 사용해야 합니다.
 
 ```sh
 pnpm integration:mysql
