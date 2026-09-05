@@ -1,6 +1,6 @@
 import type { ApolloServerPlugin } from '@apollo/server' with { 'resolution-mode': 'import' };
 import { unwrapResolverError } from '@apollo/server/errors';
-import { HttpException, Logger } from '@nestjs/common';
+import { HttpException, type LoggerService } from '@nestjs/common';
 
 import { GraphqlHttpContext } from './graphql-context';
 
@@ -8,7 +8,6 @@ import { GraphQLFormattedError } from 'graphql';
 import { getCurrentRequestId } from '~/global/common/context/request-context';
 
 const INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR';
-const graphqlErrorLogger = new Logger('GraphQL');
 
 export const formatGraphqlError = (formattedError: GraphQLFormattedError, error?: unknown): GraphQLFormattedError => {
     const requestId = getCurrentRequestId();
@@ -37,7 +36,9 @@ const getDomainErrorMessage = (domainError: unknown): string | undefined => {
     return typeof message === 'string' ? message : undefined;
 };
 
-export const graphqlErrorLoggingPlugin: ApolloServerPlugin<GraphqlHttpContext> = {
+export const createGraphqlErrorLoggingPlugin = (
+    logger: Pick<LoggerService, 'error'>
+): ApolloServerPlugin<GraphqlHttpContext> => ({
     async requestDidStart() {
         return {
             async didEncounterErrors({ errors, operationName }) {
@@ -56,15 +57,16 @@ export const graphqlErrorLoggingPlugin: ApolloServerPlugin<GraphqlHttpContext> =
                         .slice(0, 20)
                         .map((line) => line.slice(0, 500))
                         .join('\n');
-                    graphqlErrorLogger.error(
+                    logger.error(
                         `${operationName?.slice(0, 128) || 'anonymous'}: ${INTERNAL_SERVER_ERROR}`,
-                        frames
+                        frames,
+                        'GraphQL'
                     );
                 }
             },
         };
     },
-};
+});
 
 const getDomainErrorCode = (originalError: unknown): string | undefined => {
     if (!originalError || typeof originalError !== 'object' || !('type' in originalError)) return undefined;

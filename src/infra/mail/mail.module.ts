@@ -8,9 +8,11 @@ import { SignupMailHandler } from './handler/signup.mail.handler';
 
 import { join } from 'node:path';
 import { EnvConfig } from '~/global/config/env/env.config';
+import { LoggingModule } from '~/global/config/logger/logging.module';
 
 @Module({
     imports: [
+        LoggingModule,
         MailerModule.forRootAsync({
             imports: [ConfigModule],
             inject: [ConfigService],

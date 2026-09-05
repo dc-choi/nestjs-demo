@@ -1,10 +1,14 @@
 import { DefaultLogger, LogContext, LoggerOptions } from '@mikro-orm/core';
 
-import { sqlLog } from '~/global/common/logger/channel.logger';
+import type { MikroOrmQueryLog, TypedLogger } from '~/global/common/logger/channel.logger';
 
 export const MIKRO_ORM_SLOW_QUERY_THRESHOLD_MS = 500;
 
-export const writeMikroOrmQueryLog = (env: string, context: { query: string } & LogContext): void => {
+export const writeMikroOrmQueryLog = (
+    env: string,
+    context: { query: string } & LogContext,
+    sqlLog: TypedLogger<MikroOrmQueryLog>
+): void => {
     const namespace = context.namespace ?? 'query';
     const durationMs = context.took ?? 0;
     const isSlowQuery = namespace === 'slow-query' || durationMs >= MIKRO_ORM_SLOW_QUERY_THRESHOLD_MS;
@@ -26,11 +30,15 @@ export const writeMikroOrmQueryLog = (env: string, context: { query: string } & 
     });
 };
 
-export const createMikroOrmLogger = (options: LoggerOptions, env: string): DefaultLogger => {
+export const createMikroOrmLogger = (
+    options: LoggerOptions,
+    env: string,
+    sqlLog: TypedLogger<MikroOrmQueryLog> = { log: (entry) => options.writer(JSON.stringify(entry)) }
+): DefaultLogger => {
     const logger = new DefaultLogger(options);
     logger.logQuery = (context) => {
         const namespace = context.namespace ?? 'query';
-        if (logger.isEnabled(namespace, context)) writeMikroOrmQueryLog(env, context);
+        if (logger.isEnabled(namespace, context)) writeMikroOrmQueryLog(env, context, sqlLog);
     };
     return logger;
 };

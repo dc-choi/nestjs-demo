@@ -1,7 +1,15 @@
+import { once } from 'node:events';
+import { join } from 'node:path';
 import { inspect } from 'node:util';
 import winston from 'winston';
 import winstonDaily from 'winston-daily-rotate-file';
 import { getCurrentRequestId } from '~/global/common/context/request-context';
+import type {
+    GraphqlOperationLog,
+    MikroOrmQueryLog,
+    TypedLogger,
+    VerbosePayload,
+} from '~/global/common/logger/channel.logger';
 import { WinstonLoggerService } from '~/global/config/logger/winston-logger.service';
 
 type WinstonLevel = 'debug' | 'error' | 'http' | 'info' | 'verbose' | 'warn';
@@ -24,9 +32,6 @@ const addRequestId = winston.format((info) => {
     return info;
 });
 
-const createLoggerService = (options: winston.LoggerOptions): WinstonLoggerService =>
-    new WinstonLoggerService(winston.createLogger(options));
-
 const createDailyTransport = (level: WinstonLevel, dirname: string) =>
     new winstonDaily({
         level,
@@ -45,29 +50,61 @@ const createDailyTransport = (level: WinstonLevel, dirname: string) =>
         maxFiles: '30d',
     });
 
-export const verboseLogger = createLoggerService({
-    level: 'verbose',
-    transports: [createDailyTransport('verbose', 'logs_json/verbose')],
-});
+export interface WinstonLogging {
+    application: WinstonLoggerService;
+    sql: TypedLogger<MikroOrmQueryLog>;
+    graphql: TypedLogger<GraphqlOperationLog>;
+    verbose: TypedLogger<VerbosePayload>;
+    onApplicationShutdown(): Promise<void>;
+}
 
-export const sqlLogger = createLoggerService({
-    level: 'verbose',
-    transports: [createDailyTransport('verbose', 'logs_json/sql')],
-});
+export function createWinstonLogging(directory = 'logs_json'): WinstonLogging {
+    const loggers: winston.Logger[] = [];
+    const create = (options: winston.LoggerOptions) => {
+        const logger = winston.createLogger(options);
+        loggers.push(logger);
+        return new WinstonLoggerService(logger);
+    };
+    const verbose = create({
+        level: 'verbose',
+        transports: [createDailyTransport('verbose', join(directory, 'verbose'))],
+    });
+    const sql = create({
+        level: 'verbose',
+        transports: [createDailyTransport('verbose', join(directory, 'sql'))],
+    });
+    const graphql = create({
+        level: 'http',
+        transports: [createDailyTransport('http', join(directory, 'graphql'))],
+    });
+    const application = create({
+        transports: [
+            new winston.transports.Console({ level: 'debug', format: consoleFormat }),
+            createDailyTransport('error', join(directory, 'error')),
+            createDailyTransport('warn', join(directory, 'warn')),
+            createDailyTransport('info', join(directory, 'info')),
+        ],
+    });
+    let shutdown: Promise<void> | undefined;
 
-export const graphqlLogger = createLoggerService({
-    level: 'http',
-    transports: [createDailyTransport('http', 'logs_json/graphql')],
-});
-
-const applicationTransports = [
-    new winston.transports.Console({
-        level: 'debug',
-        format: consoleFormat,
-    }),
-    createDailyTransport('error', 'logs_json/error'),
-    createDailyTransport('warn', 'logs_json/warn'),
-    createDailyTransport('info', 'logs_json/info'),
-];
-
-export const applicationLogger = createLoggerService({ transports: applicationTransports });
+    return {
+        application,
+        sql,
+        graphql,
+        verbose: { log: (entry) => verbose.verbose(entry) },
+        onApplicationShutdown: () => {
+            shutdown ??= Promise.all(
+                loggers.map(async (logger) => {
+                    const finished = once(logger, 'finish');
+                    logger.end();
+                    try {
+                        await finished;
+                    } finally {
+                        logger.close();
+                    }
+                })
+            ).then(() => undefined);
+            return shutdown;
+        },
+    };
+}

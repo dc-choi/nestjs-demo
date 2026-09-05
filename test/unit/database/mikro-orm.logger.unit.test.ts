@@ -1,7 +1,7 @@
 import type { LoggerOptions } from '@mikro-orm/core';
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { MikroOrmQueryLog, sqlLog } from '~/global/common/logger/channel.logger';
+import { describe, expect, it, vi } from 'vitest';
+import type { MikroOrmQueryLog } from '~/global/common/logger/channel.logger';
 import {
     MIKRO_ORM_SLOW_QUERY_THRESHOLD_MS,
     createMikroOrmLogger,
@@ -15,20 +15,30 @@ describe('MikroOrmLogger', () => {
         usesReplicas: true,
     } as LoggerOptions;
 
-    afterEach(() => {
-        vi.restoreAllMocks();
+    it('uses the standalone ORM writer without exposing query parameters', () => {
+        const writer = vi.fn<(message: string) => void>();
+        const logger = createMikroOrmLogger({ ...options, writer }, 'test');
+        logger.logQuery({ query: 'select * from member where email = ?', params: ['private@example.com'], took: 1 });
+
+        expect(writer).toHaveBeenCalledOnce();
+        expect(JSON.parse(writer.mock.calls[0][0])).toMatchObject({ type: 'MIKROORM QUERY', durationMs: 1 });
+        expect(writer.mock.calls[0][0]).not.toContain('private@example.com');
     });
 
     it('SQL parameter를 기록하지 않고 connection 역할을 구조화한다', () => {
-        const log = vi.spyOn(sqlLog, 'log').mockImplementation(() => undefined);
-        createMikroOrmLogger(options, 'test');
+        const log = vi.fn<(entry: MikroOrmQueryLog) => void>();
+        createMikroOrmLogger(options, 'test', { log });
 
-        writeMikroOrmQueryLog('test', {
-            query: 'select * from `member` where `email` = ?',
-            params: ['secret@example.com'],
-            took: 12,
-            connection: { type: 'read', name: 'read-replica-1' },
-        });
+        writeMikroOrmQueryLog(
+            'test',
+            {
+                query: 'select * from `member` where `email` = ?',
+                params: ['secret@example.com'],
+                took: 12,
+                connection: { type: 'read', name: 'read-replica-1' },
+            },
+            { log }
+        );
 
         expect(log).toHaveBeenCalledTimes(1);
         const entry = log.mock.calls[0][0] as MikroOrmQueryLog;
@@ -46,22 +56,30 @@ describe('MikroOrmLogger', () => {
     });
 
     it('threshold 이상 쿼리를 slow event 한 건으로 기록한다', () => {
-        const log = vi.spyOn(sqlLog, 'log').mockImplementation(() => undefined);
-        const logger = createMikroOrmLogger(options, 'test');
+        const log = vi.fn<(entry: MikroOrmQueryLog) => void>();
+        const logger = createMikroOrmLogger(options, 'test', { log });
         const query = 'select * from `product_snapshot`';
 
-        writeMikroOrmQueryLog('test', {
-            query,
-            took: MIKRO_ORM_SLOW_QUERY_THRESHOLD_MS,
-            connection: { type: 'write' },
-        });
-        writeMikroOrmQueryLog('test', {
-            namespace: 'slow-query',
-            enabled: true,
-            query,
-            took: MIKRO_ORM_SLOW_QUERY_THRESHOLD_MS,
-            connection: { type: 'write', name: 'primary' },
-        });
+        writeMikroOrmQueryLog(
+            'test',
+            {
+                query,
+                took: MIKRO_ORM_SLOW_QUERY_THRESHOLD_MS,
+                connection: { type: 'write' },
+            },
+            { log }
+        );
+        writeMikroOrmQueryLog(
+            'test',
+            {
+                namespace: 'slow-query',
+                enabled: true,
+                query,
+                took: MIKRO_ORM_SLOW_QUERY_THRESHOLD_MS,
+                connection: { type: 'write', name: 'primary' },
+            },
+            { log }
+        );
 
         expect(log).toHaveBeenCalledTimes(1);
         expect(log).toHaveBeenCalledWith(

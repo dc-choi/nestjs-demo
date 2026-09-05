@@ -6,6 +6,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { createMikroOrmOptions } from './mikro-orm.config';
 
+import { SQL_LOGGER } from '~/global/common/logger/channel.logger';
+import { LoggingModule } from '~/global/config/logger/logging.module';
+
 @Injectable()
 class DatabaseConnectionLifecycle implements OnModuleInit {
     constructor(private readonly orm: MikroORM) {}
@@ -22,8 +25,8 @@ class DatabaseConnectionLifecycle implements OnModuleInit {
     imports: [
         MikroOrmModule.forRootAsync({
             driver: MySqlDriver,
-            imports: [ConfigModule],
-            inject: [ConfigService],
+            imports: [ConfigModule, LoggingModule],
+            inject: [ConfigService, SQL_LOGGER],
             useFactory: createMikroOrmOptions,
         }),
     ],
