@@ -1,6 +1,6 @@
 import { type EntityRepository, UniqueConstraintViolationException } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventBus } from '@nestjs/cqrs';
 
@@ -10,6 +10,8 @@ import { IdBlackList } from '~/api/member/domain/idBlackList';
 import { MemberRole } from '~/api/member/domain/member-role';
 import { MemberDomain } from '~/api/member/domain/member.domain';
 import { MemberEntity } from '~/api/member/domain/member.entity';
+import { PasswordKdfSaturatedError } from '~/api/member/domain/password-kdf.admission';
+import { PasswordKdfBusy } from '~/global/common/error/auth.error';
 import { ExistingMember, InvalidMember } from '~/global/common/error/member.error';
 import { EnvConfig } from '~/global/config/env/env.config';
 
@@ -24,7 +26,6 @@ export class MemberService {
 
     async signup({ name, password, email, phone }: SignupCommand) {
         const emails = this.config.get<string>('MAIL_SIGNUP_ALERT_USER');
-        const salt = this.config.get<string>('SECRET');
         const role = MemberRole.CUSTOMER;
 
         if (IdBlackList.includes(name)) throw new BadRequestException(new InvalidMember());
@@ -33,11 +34,15 @@ export class MemberService {
             await this.repository.insert({
                 name,
                 email,
-                hashedPassword: MemberDomain.generateHashedPassword(password, salt),
+                hashedPassword: await MemberDomain.hashPassword(password),
                 phone,
                 role,
             });
         } catch (error: unknown) {
+            if (error instanceof PasswordKdfSaturatedError) {
+                throw new ServiceUnavailableException(new PasswordKdfBusy());
+            }
+
             // 사전 조회는 replica 지연과 동시 요청을 막지 못하므로 DB unique 제약을 최종 경계로 사용한다.
             if (error instanceof UniqueConstraintViolationException) {
                 throw new ConflictException(new ExistingMember());
