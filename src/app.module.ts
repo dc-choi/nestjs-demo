@@ -3,13 +3,16 @@ import { APP_PIPE } from '@nestjs/core';
 
 import { ApplicationModule } from './application.module';
 
+import { PaymentWebhookRecoveryWorker } from '~/api/payment/application/payment-webhook-recovery.worker';
+import { PaymentModule } from '~/api/payment/payment.module';
 import { RequestContextMiddleware } from '~/global/common/context/request-context';
 import { GlobalGraphqlModule } from '~/global/graphql/graphql.module';
 import { SearchHttpModule } from '~/infra/search/search-http.module';
 
 @Module({
-    imports: [ApplicationModule, SearchHttpModule, GlobalGraphqlModule],
+    imports: [PaymentModule, ApplicationModule, SearchHttpModule, GlobalGraphqlModule],
     providers: [
+        PaymentWebhookRecoveryWorker,
         {
             provide: APP_PIPE,
             useFactory: () =>

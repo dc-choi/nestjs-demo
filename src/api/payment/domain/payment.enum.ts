@@ -35,3 +35,11 @@ export const PaymentWebhookEventStatus = {
 } as const;
 
 export type PaymentWebhookEventStatus = (typeof PaymentWebhookEventStatus)[keyof typeof PaymentWebhookEventStatus];
+
+export const PaymentWebhookOutcome = {
+    CAPTURED: 'CAPTURED',
+    FAILED: 'FAILED',
+    REFUNDED: 'REFUNDED',
+} as const;
+
+export type PaymentWebhookOutcome = (typeof PaymentWebhookOutcome)[keyof typeof PaymentWebhookOutcome];
