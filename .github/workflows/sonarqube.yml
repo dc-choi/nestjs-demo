@@ -95,6 +95,9 @@ jobs:
             - name: Run MySQL integration tests
               run: pnpm integration:mysql
 
+            - name: Run Redis session integration tests
+              run: pnpm integration:redis
+
             - name: Run GraphQL end-to-end tests
               run: |
                   pnpm prod:build
@@ -129,3 +132,81 @@ jobs:
               env:
                   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
                   SONAR_HOST_URL: https://sonarcloud.io
+
+    search-integration:
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        env:
+            ENV: test
+            MYSQL_HOST: 127.0.0.1
+            MYSQL_PORT: 3306
+            MYSQL_USER: demo_nest
+            MYSQL_PASSWORD: demo_nest_ci
+            MYSQL_DATABASE: demo_nest_search_integration
+            MYSQL_READ_REPLICA_HOST: 127.0.0.1
+            MYSQL_READ_REPLICA_PORT: 3306
+            MYSQL_READ_REPLICA_USER: demo_nest
+            MYSQL_READ_REPLICA_PASSWORD: demo_nest_ci
+            MYSQL_READ_REPLICA_DATABASE: demo_nest_search_integration
+            OPENSEARCH_NODE_URL: http://127.0.0.1:9200
+        services:
+            mysql:
+                image: mysql:8.0.42
+                env:
+                    MYSQL_DATABASE: demo_nest_search_integration
+                    MYSQL_USER: demo_nest
+                    MYSQL_PASSWORD: demo_nest_ci
+                    MYSQL_ROOT_PASSWORD: demo_nest_root_ci
+                ports:
+                    - 3306:3306
+                options: >-
+                    --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -pdemo_nest_root_ci --silent"
+                    --health-interval=5s
+                    --health-timeout=3s
+                    --health-retries=20
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '26.7.0'
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 11.21.0
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+            - name: Start OpenSearch with Nori
+              run: |
+                  sudo sysctl -w vm.max_map_count=262144
+                  docker build -t demo-nest-search-ci deployment/opensearch
+                  docker run --detach --name demo-nest-search-ci -p 127.0.0.1:9200:9200 \
+                      -e discovery.type=single-node \
+                      -e DISABLE_INSTALL_DEMO_CONFIG=true \
+                      -e DISABLE_SECURITY_PLUGIN=true \
+                      -e 'OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m' \
+                      demo-nest-search-ci
+                  for attempt in $(seq 1 60); do
+                      if curl --fail --silent \
+                          'http://127.0.0.1:9200/_cluster/health?wait_for_status=yellow&timeout=1s' \
+                          | python3 -c 'import json,sys; sys.exit(json.load(sys.stdin)["status"] not in ("yellow", "green"))'; then
+                          break
+                      fi
+                      if [ "$attempt" -eq 60 ]; then exit 1; fi
+                      sleep 1
+                  done
+            - name: Apply and verify database migrations
+              run: |
+                  pnpm database:migrate
+                  pnpm database:migration:check
+            - name: Run real OpenSearch and MySQL projection tests
+              run: |
+                  pnpm integration:opensearch
+                  pnpm integration:search-pipeline
+            - name: OpenSearch failure logs
+              if: failure()
+              run: docker logs demo-nest-search-ci
+            - name: Stop OpenSearch
+              if: always()
+              run: docker rm --force demo-nest-search-ci || true
