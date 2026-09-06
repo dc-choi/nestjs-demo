@@ -2,7 +2,7 @@
 
 상태: 현재 MikroORM metadata 기준 정본
 
-이 문서는 현재 등록된 25개 MikroORM 모델을 도메인 관점에서 읽기 위한 스키마 안내서입니다.
+이 문서는 현재 등록된 27개 MikroORM 모델을 도메인 관점에서 읽기 위한 스키마 안내서입니다.
 컬럼 타입, 외래 키, unique/index의 실행 가능한 정본은
 [`databaseEntities`](../../src/infra/database/entities.ts)와 각 Entity source입니다. 이 문서는 그 구조가
 왜 존재하고, 어느 상태를 권위 있게 다루며, 구현이 어디까지 완료됐는지를 설명합니다.
@@ -113,7 +113,7 @@ Catalog의 11개 테이블 중 10개는 현재 판매 상태이고, `product_sna
 | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | [`PaymentAttemptEntity`](../../src/api/payment/domain/payment-attempt.entity.ts), `payment_attempts`                  | 주문에 대해 결제 provider에 요청한 하나의 결제 시도와 요청 금액을 표현합니다.   | 생성/매입/실패/부분 및 전체 환불/취소 전이를 보호합니다. provider와 idempotency key 범위에서 재실행을 수렴시킵니다.                      |
 | [`PaymentTransactionEntity`](../../src/api/payment/domain/payment-transaction.entity.ts), `payment_transactions`      | 결제 시도 아래 매입/환불과 실패 작업을 기록합니다.                              | 현재 Service는 성공 `CAPTURE`/`REFUND`, 실패 `AUTHORIZE` 원장을 만들고 시도별 idempotency key를 검사합니다.                              |
-| [`PaymentWebhookEventEntity`](../../src/api/payment/domain/payment-webhook-event.entity.ts), `payment_webhook_events` | provider webhook event의 중복 수신 방지, payload hash와 처리 결과를 보존합니다. | HMAC 검증 뒤 `RECEIVED`, `PROCESSED`, `FAILED`로 처리하며 같은 event ID의 다른 payload를 거절합니다. PaymentAttempt FK는 nullable입니다. |
+| [`PaymentWebhookEventEntity`](../../src/api/payment/domain/payment-webhook-event.entity.ts), `payment_webhook_events` | 검증된 webhook의 최소 명령, payload hash와 처리 결과를 보존합니다. | HMAC 검증 뒤 `RECEIVED`, `PROCESSED`, `FAILED`로 처리하며 같은 event ID의 다른 payload를 거절합니다. PaymentAttempt FK는 nullable입니다. |
 
 ### 6. Fulfillment
 
@@ -127,6 +127,8 @@ Catalog의 11개 테이블 중 10개는 현재 판매 상태이고, `product_sna
 | 모델, 테이블                                                                                                            | 역할                                                             | 상태와 생명주기                                                                                          |
 | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | [`SearchProjectionOutboxEntity`](../../src/infra/search/search-projection-outbox.entity.ts), `search_projection_outbox` | Catalog 변경을 OpenSearch에 전달할 Product/revision event입니다. | `PENDING`, `PROCESSING`, `PROCESSED`, `DEAD_LETTER`. lease, 재시도 시각/횟수와 마지막 오류를 보존합니다. |
+| [`SearchOutboxRetryHistoryEntity`](../../src/infra/search/search-outbox-retry-history.entity.ts), `search_projection_outbox_retry_history` | 실패 작업 재처리의 이전 횟수/오류와 사유를 보존합니다. | 명시적 재처리 transaction에서 추가하는 감사 이력입니다. |
+| [`CatalogMaintenanceEntity`](../../src/infra/search/catalog-maintenance.entity.ts), `catalog_maintenance` | 활성 rebuild의 Catalog 쓰기/검색 갱신 진입을 제한합니다. | singleton의 owner token과 시작 시각을 보존하며, 실패 후 명시적 재개가 필요합니다. |
 
 ## Catalog 관계도
 
@@ -273,7 +275,7 @@ DB 제약이 존재한다는 이유만으로 유스케이스가 완성되는 것
 Query.product(id)
   -> ProductResolver
   -> ProductService.findCurrentById
-  -> live Product/Item/옵션/카테고리/태그 JOIN
+  -> writer REPEATABLE READ에서 live Product/Item/옵션/카테고리/태그 BALANCED 조회
   -> ProductReadResult
   -> GraphQL ProductType
 ```
@@ -337,7 +339,7 @@ Catalog command
 
 | 범위                                            | 상태 | 비고                                                                           |
 | ----------------------------------------------- | ---- | ------------------------------------------------------------------------------ |
-| 25개 Entity 등록과 MikroORM mapping             | 구현 | [`entities.ts`](../../src/infra/database/entities.ts)가 등록 정본입니다.       |
+| 27개 Entity 등록과 MikroORM mapping             | 구현 | [`entities.ts`](../../src/infra/database/entities.ts)가 등록 정본입니다.       |
 | Member/Auth 영속성                              | 구현 | MikroORM repository를 직접 사용합니다.                                         |
 | live Catalog GraphQL 조회                       | 구현 | Product/Item/옵션/카테고리/태그를 반환합니다.                                  |
 | live Item 기반 주문, 분산락과 Product/Item 잠금 | 구현 | 고정 순서 잠금 뒤 합산 재고를 검사하는 primary transaction입니다.              |
