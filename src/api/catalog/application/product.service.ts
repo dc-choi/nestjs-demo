@@ -1,4 +1,4 @@
-import { type EntityRepository, LoadStrategy, type Loaded, PopulateHint } from '@mikro-orm/core';
+import { type EntityRepository, IsolationLevel, LoadStrategy, type Loaded, PopulateHint } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 
@@ -29,27 +29,34 @@ export class ProductService {
     ) {}
 
     async findCurrentById(productId: bigint): Promise<ProductReadResult | null> {
-        const product = await this.repository.findOne(
-            {
-                id: productId,
-                status: ProductStatus.ACTIVE,
-                deletedAt: null,
-                items: {
-                    saleStatus: ItemSaleStatus.ALLOW,
-                    deletedAt: null,
-                },
-            },
-            {
-                populate: currentProductPopulate,
-                populateWhere: PopulateHint.INFER,
-                strategy: LoadStrategy.JOINED,
-                connectionType: 'write',
-                disableIdentityMap: true,
-                loggerContext: { label: 'catalog.current-product' },
-            }
-        );
+        // Split collections without mixing catalog revisions between their reads.
+        return this.repository.getEntityManager().transactional(
+            async (em) => {
+                const product = await em.findOne(
+                    ProductEntity,
+                    {
+                        id: productId,
+                        status: ProductStatus.ACTIVE,
+                        deletedAt: null,
+                        items: {
+                            saleStatus: ItemSaleStatus.ALLOW,
+                            deletedAt: null,
+                        },
+                    },
+                    {
+                        populate: currentProductPopulate,
+                        populateWhere: PopulateHint.INFER,
+                        strategy: LoadStrategy.BALANCED,
+                        connectionType: 'write',
+                        disableIdentityMap: true,
+                        loggerContext: { label: 'catalog.current-product' },
+                    }
+                );
 
-        return product ? toProductReadResult(product) : null;
+                return product ? toProductReadResult(product) : null;
+            },
+            { isolationLevel: IsolationLevel.REPEATABLE_READ, readOnly: true }
+        );
     }
 }
 

@@ -1,4 +1,11 @@
-import { Collection, type EntityRepository, LoadStrategy, PopulateHint } from '@mikro-orm/core';
+import {
+    Collection,
+    type EntityManager,
+    type EntityRepository,
+    IsolationLevel,
+    LoadStrategy,
+    PopulateHint,
+} from '@mikro-orm/core';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProductService } from '~/api/catalog/application/product.service';
@@ -14,21 +21,26 @@ import { ProductTagEntity } from '~/api/catalog/domain/entity/product-tag.entity
 import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
 
 describe('ProductService', () => {
-    const findOne = vi.fn<EntityRepository<ProductEntity>['findOne']>();
-    const repository = { findOne } as unknown as EntityRepository<ProductEntity>;
+    const findOne = vi.fn<EntityManager['findOne']>();
+    const transactional = vi.fn(async (work: (em: EntityManager) => Promise<unknown>) =>
+        work({ findOne } as unknown as EntityManager)
+    );
+    const repository = { getEntityManager: () => ({ transactional }) } as unknown as EntityRepository<ProductEntity>;
     const service = new ProductService(repository);
 
     beforeEach(() => {
         findOne.mockReset();
+        transactional.mockClear();
     });
 
-    it('현재 판매 상품을 단일 writer JOINED 조회하고 read result 순서를 안정적으로 맞춘다', async () => {
+    it('현재 판매 상품을 writer의 동일 snapshot에서 나눠 조회하고 결과 순서를 맞춘다', async () => {
         findOne.mockResolvedValue(createProduct() as never);
 
         const product = await service.findCurrentById(9007199254740993n);
 
         expect(findOne).toHaveBeenCalledTimes(1);
         expect(findOne).toHaveBeenCalledWith(
+            ProductEntity,
             {
                 id: 9007199254740993n,
                 status: ProductStatus.ACTIVE,
@@ -40,12 +52,16 @@ describe('ProductService', () => {
             },
             expect.objectContaining({
                 populateWhere: PopulateHint.INFER,
-                strategy: LoadStrategy.JOINED,
+                strategy: LoadStrategy.BALANCED,
                 connectionType: 'write',
                 disableIdentityMap: true,
             })
         );
-        expect(findOne.mock.calls[0][1]?.populate).not.toContain('snapshots');
+        expect(findOne.mock.calls[0][2]?.populate).not.toContain('snapshots');
+        expect(transactional).toHaveBeenCalledWith(expect.any(Function), {
+            isolationLevel: IsolationLevel.REPEATABLE_READ,
+            readOnly: true,
+        });
         expect(product).toMatchObject({
             id: 9007199254740993n,
             slug: 'basic-tshirt',
@@ -86,20 +102,20 @@ describe('ProductService', () => {
         await expect(service.findCurrentById(1n)).resolves.toBeNull();
     });
 
-    it('DENY 또는 삭제된 Item을 JOIN 단계에서 제외한다', async () => {
+    it('DENY 또는 삭제된 Item을 조회에서 제외한다', async () => {
         findOne.mockResolvedValue(null);
 
         await service.findCurrentById(1n);
 
-        expect(findOne.mock.calls[0][0]).toMatchObject({
+        expect(findOne.mock.calls[0][1]).toMatchObject({
             items: {
                 saleStatus: ItemSaleStatus.ALLOW,
                 deletedAt: null,
             },
         });
-        expect(findOne.mock.calls[0][1]).toMatchObject({
+        expect(findOne.mock.calls[0][2]).toMatchObject({
             populateWhere: PopulateHint.INFER,
-            strategy: LoadStrategy.JOINED,
+            strategy: LoadStrategy.BALANCED,
         });
     });
 });
