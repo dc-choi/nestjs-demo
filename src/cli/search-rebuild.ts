@@ -21,6 +21,7 @@ function parseArguments(values: string[]): {
     analyzer?: CatalogAnalyzer;
     activate?: boolean;
     evaluationAlias?: string;
+    resumeMaintenance?: boolean;
 } {
     const options: {
         buildId?: string;
@@ -28,9 +29,15 @@ function parseArguments(values: string[]): {
         analyzer?: CatalogAnalyzer;
         activate?: boolean;
         evaluationAlias?: string;
+        resumeMaintenance?: boolean;
     } = {};
     for (let index = 0; index < values.length; ) {
         const key = values[index];
+        if (key === '--resume-maintenance') {
+            options.resumeMaintenance = true;
+            index += 1;
+            continue;
+        }
         if (key === '--no-activate') {
             options.activate = false;
             index += 1;
@@ -50,7 +57,7 @@ function parseArguments(values: string[]): {
 
 function usageError(): Error {
     return new Error(
-        'Usage: search-rebuild [--build-id <id>] [--batch-size <1..500>] [--analyzer standard|nori] [--no-activate] [--evaluation-alias <alias>]'
+        'Usage: search-rebuild [--build-id <id>] [--batch-size <1..500>] [--analyzer standard|nori] [--no-activate] [--evaluation-alias <alias>] [--resume-maintenance]'
     );
 }
 

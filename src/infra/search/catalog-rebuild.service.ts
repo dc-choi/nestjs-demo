@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
 
 import { CatalogAnalyzer, createCatalogIndexName } from './catalog-index.definition';
-import { CatalogIndexManager } from './catalog-index.manager';
+import { CatalogAliasTargets, CatalogIndexManager } from './catalog-index.manager';
+import { CatalogMaintenanceService } from './catalog-maintenance.service';
 import { CatalogProjectionReader } from './catalog-projection.reader';
+import { SearchReconciliationService } from './search-reconciliation.service';
 import { SearchConfig } from './search.config';
 
 import { projectCatalogProduct } from '~/api/catalog/search/domain/catalog-projector';
@@ -21,7 +23,9 @@ export class CatalogRebuildService {
     constructor(
         private readonly config: SearchConfig,
         private readonly reader: CatalogProjectionReader,
-        private readonly indexManager: CatalogIndexManager
+        private readonly indexManager: CatalogIndexManager,
+        private readonly maintenance: CatalogMaintenanceService,
+        private readonly reconciliation: SearchReconciliationService
     ) {}
 
     async rebuild(
@@ -31,6 +35,7 @@ export class CatalogRebuildService {
             analyzer?: CatalogAnalyzer;
             activate?: boolean;
             evaluationAlias?: string;
+            resumeMaintenance?: boolean;
         } = {}
     ): Promise<CatalogRebuildResult> {
         if (!this.config.enabled) throw new Error('OpenSearch must be enabled before rebuilding the search index');
@@ -53,12 +58,29 @@ export class CatalogRebuildService {
             throw new Error('Search rebuild batch size must be between 1 and 500');
         }
 
+        if (options.resumeMaintenance && !activate) throw new Error('Only an active rebuild can resume maintenance');
+        if (!activate) return this.buildIndex(indexName, batchSize, analyzer, evaluationAlias);
+        return this.maintenance.rebuild(async (assertOwnership) => {
+            const aliases = await this.indexManager.getActiveAliasTargets();
+            await assertOwnership();
+            return this.buildIndex(indexName, batchSize, analyzer, evaluationAlias, { aliases, assertOwnership });
+        }, options.resumeMaintenance);
+    }
+
+    private async buildIndex(
+        indexName: string,
+        batchSize: number,
+        analyzer: CatalogAnalyzer,
+        evaluationAlias: string | null,
+        activation?: { aliases: CatalogAliasTargets; assertOwnership: () => Promise<void> }
+    ): Promise<CatalogRebuildResult> {
         await this.indexManager.createIndex(indexName, analyzer);
         let cursor: bigint | null = null;
         let indexedDocuments = 0;
         let sample: ProductSearchDocument | null = null;
 
         while (true) {
+            await activation?.assertOwnership();
             const batch = await this.reader.fetchSearchableBatch(cursor, batchSize);
             if (batch.sources.length === 0) break;
             const documents = batch.sources.map((source) => {
@@ -89,9 +111,13 @@ export class CatalogRebuildService {
 
         if (sample) await this.verifySample(indexName, sample);
         await this.indexManager.verifyQueryable(indexName);
-        if (activate) await this.indexManager.cutOverAliases(indexName);
-        else if (evaluationAlias) await this.indexManager.replaceReadAlias(indexName, evaluationAlias);
-        return { indexName, indexedDocuments, analyzer, activated: activate, evaluationAlias };
+        if (activation) {
+            const verified = await this.reconciliation.reconcile({ batchSize, maxSamples: 10 }, indexName);
+            if (verified.differenceCount !== 0) throw new Error('Candidate index does not match the current catalog');
+            await activation.assertOwnership();
+            await this.indexManager.cutOverAliases(indexName, activation.aliases);
+        } else if (evaluationAlias) await this.indexManager.replaceReadAlias(indexName, evaluationAlias);
+        return { indexName, indexedDocuments, analyzer, activated: activation !== undefined, evaluationAlias };
     }
 
     private async verifySample(indexName: string, expected: ProductSearchDocument): Promise<void> {

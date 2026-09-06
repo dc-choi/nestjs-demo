@@ -54,6 +54,7 @@ import {
 import { MemberRole } from '~/api/member/domain/member-role';
 import { MemberEntity } from '~/api/member/domain/member.entity';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
+import { assertCatalogWritable } from '~/infra/search/catalog-maintenance.service';
 import { enqueueSearchProjection } from '~/infra/search/search-projection-outbox.entity';
 
 const snapshotPopulate = [
@@ -225,10 +226,16 @@ export class ProductCommandService {
 
     private async transaction<T>(work: (tx: EntityManager) => Promise<T>): Promise<T> {
         try {
-            return await this.em.transactional(work, {
-                clear: true,
-                loggerContext: { label: 'catalog.product-command' },
-            });
+            return await this.em.transactional(
+                async (tx) => {
+                    await assertCatalogWritable(tx);
+                    return work(tx);
+                },
+                {
+                    clear: true,
+                    loggerContext: { label: 'catalog.product-command' },
+                }
+            );
         } catch (error: unknown) {
             if (error instanceof CatalogGraphError) {
                 throw invalidChange(error.message);

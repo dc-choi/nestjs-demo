@@ -22,6 +22,8 @@ import { OrderEntity } from '~/api/order/domain/entity/order.entity';
 import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity';
 import { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity';
 import { PaymentWebhookEventEntity } from '~/api/payment/domain/payment-webhook-event.entity';
+import { CatalogMaintenanceEntity } from '~/infra/search/catalog-maintenance.entity';
+import { SearchOutboxRetryHistoryEntity } from '~/infra/search/search-outbox-retry-history.entity';
 import { SearchProjectionOutboxEntity } from '~/infra/search/search-projection-outbox.entity';
 
 export const databaseEntities = [
@@ -50,4 +52,6 @@ export const databaseEntities = [
     FulfillmentEntity,
     FulfillmentItemEntity,
     SearchProjectionOutboxEntity,
+    SearchOutboxRetryHistoryEntity,
+    CatalogMaintenanceEntity,
 ] as const;

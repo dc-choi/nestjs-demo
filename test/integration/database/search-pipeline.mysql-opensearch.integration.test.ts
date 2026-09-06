@@ -3,7 +3,10 @@ import { ReflectMetadataProvider } from '@mikro-orm/decorators/legacy';
 import { MikroORM, MySqlDriver } from '@mikro-orm/mysql';
 
 import { randomUUID } from 'node:crypto';
-import { readMySqlIntegrationConnection } from 'test/integration/database/mysql-integration.config';
+import {
+    readMySqlIntegrationConnection,
+    seedCatalogMaintenance,
+} from 'test/integration/database/mysql-integration.config';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ProductCommandService } from '~/api/catalog/application/product-command.service';
 import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status';
@@ -13,6 +16,7 @@ import { MemberEntity } from '~/api/member/domain/member.entity';
 import { databaseEntities } from '~/infra/database/entities';
 import { createCatalogIndexName } from '~/infra/search/catalog-index.definition';
 import { CatalogIndexManager } from '~/infra/search/catalog-index.manager';
+import { CatalogMaintenanceService } from '~/infra/search/catalog-maintenance.service';
 import { CatalogProjectionReader } from '~/infra/search/catalog-projection.reader';
 import { CatalogRebuildService } from '~/infra/search/catalog-rebuild.service';
 import { CatalogSearchWorker } from '~/infra/search/catalog-search.worker';
@@ -57,6 +61,7 @@ describePipeline('MySQL to OpenSearch catalog pipeline integration', () => {
             throw new Error(`Integration database does not match the applied migrations:\n${schemaDiff}`);
         }
         await orm.schema.clear();
+        await seedCatalogMaintenance(orm.em.fork());
     }, 60_000);
 
     afterAll(async () => {
@@ -66,6 +71,7 @@ describePipeline('MySQL to OpenSearch catalog pipeline integration', () => {
             if (orm) {
                 try {
                     await orm.schema.clear();
+                    await seedCatalogMaintenance(orm.em.fork());
                 } finally {
                     await orm.close(true);
                 }
@@ -119,10 +125,11 @@ describePipeline('MySQL to OpenSearch catalog pipeline integration', () => {
         });
 
         const reader = new CatalogProjectionReader(orm!);
-        const rebuild = new CatalogRebuildService(config, reader, manager);
-        const worker = new CatalogSearchWorker(config, reader, manager);
+        const maintenance = new CatalogMaintenanceService(orm!);
+        const worker = new CatalogSearchWorker(reader, manager, maintenance);
         const relay = new SearchOutboxRelay(orm!, worker, config);
-        const reconciliation = new SearchReconciliationService(config, reader, manager, worker);
+        const reconciliation = new SearchReconciliationService(config, reader, manager, worker, maintenance);
+        const rebuild = new CatalogRebuildService(config, reader, manager, maintenance, reconciliation);
         const buildId = `pipeline-${suffix}`;
         indexName = createCatalogIndexName(buildId);
         const rebuilt = await rebuild.rebuild({ buildId, batchSize: 10 });

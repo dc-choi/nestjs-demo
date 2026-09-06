@@ -53,13 +53,14 @@ describeOpenSearch('OpenSearch catalog integration', () => {
         await manager.replaceReadAlias(noriIndexName, noriAlias);
 
         const updated = { ...documents[0], productRevision: 2, name: '무선 기계식 키보드' };
-        await manager.writeExternal(updated);
-        await expect(manager.writeExternal(documents[0])).rejects.toBeInstanceOf(CatalogBulkError);
+        const target = await manager.resolveWriteTarget();
+        await manager.writeExternal(updated, target);
+        await expect(manager.writeExternal(documents[0], target)).rejects.toBeInstanceOf(CatalogBulkError);
         await expect(manager.getDocument(config.writeAlias, '1')).resolves.toMatchObject({
             version: 2,
             source: { productRevision: 2, name: '무선 기계식 키보드' },
         });
-        await manager.repairExternal({ ...updated, name: '복구된 무선 키보드' });
+        await manager.repairExternal({ ...updated, name: '복구된 무선 키보드' }, target);
         await expect(manager.getDocument(config.writeAlias, '1')).resolves.toMatchObject({
             version: 2,
             source: { productRevision: 2, name: '복구된 무선 키보드' },
@@ -68,7 +69,7 @@ describeOpenSearch('OpenSearch catalog integration', () => {
 
         const missingAlias = `catalog-products-missing-${suffix}`;
         const missingAliasManager = new CatalogIndexManager(client, { ...config, writeAlias: missingAlias });
-        await expect(missingAliasManager.writeExternal(documents[0])).rejects.toBeInstanceOf(CatalogBulkError);
+        await expect(missingAliasManager.resolveWriteTarget()).rejects.toThrow('exactly one index');
         await expect(client.request('GET', `/${missingAlias}`)).rejects.toMatchObject({ status: 404 });
 
         const search = new ProductSearchService(
@@ -105,8 +106,32 @@ describeOpenSearch('OpenSearch catalog integration', () => {
         expect(relevance.candidate.recallAt10).toBe(1);
         expect(relevance.regressedQueries).toEqual([]);
 
-        await manager.repairDeleteExternal('2', 1);
+        await manager.repairDeleteExternal('2', 1, target);
         await expect(manager.getDocument(config.writeAlias, '2')).resolves.toBeNull();
+    });
+
+    it('keeps writes on their admitted generation after cutover and fails closed after its removal', async () => {
+        const retiredIndex = createCatalogIndexName(`retired-${suffix}`);
+        const activeIndex = createCatalogIndexName(`active-${suffix}`);
+        try {
+            await manager.createIndex(retiredIndex);
+            await manager.createIndex(activeIndex);
+            await manager.cutOverAliases(retiredIndex);
+            const target = await manager.resolveWriteTarget();
+            await manager.cutOverAliases(activeIndex);
+
+            await manager.writeExternal(createDocument('7'), target);
+            await expect(manager.getDocument(activeIndex, '7')).resolves.toBeNull();
+            await expect(manager.getDocument(retiredIndex, '7')).resolves.not.toBeNull();
+
+            await manager.deleteIndex(retiredIndex);
+            await expect(manager.writeExternal(createDocument('8'), target)).rejects.toBeInstanceOf(CatalogBulkError);
+            await expect(client.request('GET', `/${retiredIndex}`)).rejects.toMatchObject({ status: 404 });
+            await expect(client.request('GET', `/${target.writeAlias}`)).rejects.toMatchObject({ status: 404 });
+        } finally {
+            await manager.deleteIndex(retiredIndex);
+            await manager.deleteIndex(activeIndex);
+        }
     });
 });
 

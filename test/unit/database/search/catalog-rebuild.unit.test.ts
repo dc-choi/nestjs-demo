@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { CatalogProductProjectionSource } from '~/api/catalog/search/domain/product-search.document';
 import { CatalogIndexManager } from '~/infra/search/catalog-index.manager';
+import { CatalogMaintenanceService } from '~/infra/search/catalog-maintenance.service';
 import { CatalogProjectionBatch, CatalogProjectionReader } from '~/infra/search/catalog-projection.reader';
 import { CatalogRebuildService } from '~/infra/search/catalog-rebuild.service';
+import { SearchReconciliationService } from '~/infra/search/search-reconciliation.service';
 import { SearchConfig } from '~/infra/search/search.config';
 
 describe('Catalog rebuild', () => {
@@ -17,6 +19,7 @@ describe('Catalog rebuild', () => {
         } as unknown as CatalogProjectionReader;
         const calls: string[] = [];
         const indexManager = {
+            getActiveAliasTargets: vi.fn(async () => ({ read: ['previous'], write: ['previous'] })),
             createIndex: vi.fn(async () => calls.push('create')),
             bulkIndex: vi.fn(async () => calls.push('bulk')),
             refresh: vi.fn(async () => calls.push('refresh')),
@@ -57,7 +60,13 @@ describe('Catalog rebuild', () => {
             verifyQueryable: vi.fn(async () => calls.push('verify')),
             cutOverAliases: vi.fn(async () => calls.push('cutover')),
         } as unknown as CatalogIndexManager;
-        const service = new CatalogRebuildService({ enabled: true } as SearchConfig, reader, indexManager);
+        const service = new CatalogRebuildService(
+            { enabled: true } as SearchConfig,
+            reader,
+            indexManager,
+            maintenance,
+            reconciliation
+        );
 
         await expect(service.rebuild({ buildId: 'test' })).resolves.toEqual({
             indexName: 'catalog-products-v001-test',
@@ -67,6 +76,10 @@ describe('Catalog rebuild', () => {
             evaluationAlias: null,
         });
         expect(calls).toEqual(['create', 'bulk', 'refresh', 'verify', 'cutover']);
+        expect(indexManager.cutOverAliases).toHaveBeenCalledWith('catalog-products-v001-test', {
+            read: ['previous'],
+            write: ['previous'],
+        });
     });
 
     it('does not move aliases when Bulk indexing fails', async () => {
@@ -76,15 +89,51 @@ describe('Catalog rebuild', () => {
             ),
         } as unknown as CatalogProjectionReader;
         const indexManager = {
+            getActiveAliasTargets: vi.fn(async () => ({ read: [], write: [] })),
             createIndex: vi.fn(),
             bulkIndex: vi.fn(async () => {
                 throw new Error('bulk failed');
             }),
             cutOverAliases: vi.fn(),
         } as unknown as CatalogIndexManager;
-        const service = new CatalogRebuildService({ enabled: true } as SearchConfig, reader, indexManager);
+        const service = new CatalogRebuildService(
+            { enabled: true } as SearchConfig,
+            reader,
+            indexManager,
+            maintenance,
+            reconciliation
+        );
 
         await expect(service.rebuild({ buildId: 'failed' })).rejects.toThrow('bulk failed');
+        expect(indexManager.cutOverAliases).not.toHaveBeenCalled();
+    });
+
+    it('rejects a snapshot acquired after maintenance ownership was lost', async () => {
+        let ownsLock = true;
+        const indexManager = {
+            getActiveAliasTargets: vi.fn(async () => {
+                ownsLock = false;
+                return { read: ['successor'], write: ['successor'] };
+            }),
+            createIndex: vi.fn(),
+            cutOverAliases: vi.fn(),
+        } as unknown as CatalogIndexManager;
+        const ownership = {
+            rebuild: async <T>(work: (check: () => Promise<void>) => Promise<T>) =>
+                work(async () => {
+                    if (!ownsLock) throw new Error('Lock connection lost');
+                }),
+        } as CatalogMaintenanceService;
+        const service = new CatalogRebuildService(
+            { enabled: true } as SearchConfig,
+            {} as CatalogProjectionReader,
+            indexManager,
+            ownership,
+            reconciliation
+        );
+
+        await expect(service.rebuild({ buildId: 'stale' })).rejects.toThrow('Lock connection lost');
+        expect(indexManager.createIndex).not.toHaveBeenCalled();
         expect(indexManager.cutOverAliases).not.toHaveBeenCalled();
     });
 
@@ -96,7 +145,7 @@ describe('Catalog rebuild', () => {
         } as SearchConfig;
         const reader = {} as CatalogProjectionReader;
         const indexManager = { createIndex: vi.fn() } as unknown as CatalogIndexManager;
-        const service = new CatalogRebuildService(config, reader, indexManager);
+        const service = new CatalogRebuildService(config, reader, indexManager, maintenance, reconciliation);
 
         await expect(service.rebuild({ evaluationAlias: alias, activate: false })).rejects.toThrow(
             'cannot replace a catalog read or write alias'
@@ -134,3 +183,10 @@ function createSource(): CatalogProductProjectionSource {
         media: [],
     };
 }
+
+const maintenance = {
+    withProjection: async <T>(work: () => Promise<T>) => work(),
+    rebuild: async <T>(work: (check: () => Promise<void>) => Promise<T>) => work(async () => undefined),
+} as CatalogMaintenanceService;
+
+const reconciliation = { reconcile: async () => ({ differenceCount: 0 }) } as SearchReconciliationService;

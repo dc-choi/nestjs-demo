@@ -3,7 +3,10 @@ import { ReflectMetadataProvider } from '@mikro-orm/decorators/legacy';
 import { MikroORM, MySqlDriver } from '@mikro-orm/mysql';
 import { ConflictException } from '@nestjs/common';
 
-import { readMySqlIntegrationConnection } from 'test/integration/database/mysql-integration.config';
+import {
+    readMySqlIntegrationConnection,
+    seedCatalogMaintenance,
+} from 'test/integration/database/mysql-integration.config';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { ProductCommandService } from '~/api/catalog/application/product-command.service';
 import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
@@ -66,6 +69,7 @@ describeCommerceMySql('Commerce lifecycle MySQL integration', () => {
 
     beforeEach(async () => {
         await orm!.schema.clear();
+        await seedCatalogMaintenance(orm!.em.fork());
         await seedDatabase(orm!.em.fork());
 
         const fixture = await orm!.em

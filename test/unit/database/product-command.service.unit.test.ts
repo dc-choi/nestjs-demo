@@ -342,7 +342,7 @@ describe('ProductCommandService', () => {
         expect(created).toMatchObject({ stock: 9, saleStatus: ItemSaleStatus.DENY });
         expect(created.deletedAt).toBeInstanceOf(Date);
         expect(harness.findOne).toHaveBeenCalledTimes(3);
-        for (const call of harness.findOne.mock.calls) {
+        for (const call of harness.findOne.mock.calls.filter(([entity]) => entity === ProductEntity)) {
             expect(call).toEqual([ProductEntity, { id: product.id }, { lockMode: LockMode.PESSIMISTIC_WRITE }]);
         }
 
@@ -562,7 +562,18 @@ function createHarness(options: HarnessOptions = {}) {
     const populate = vi.fn(async () => undefined);
     const getReference = vi.fn((_: unknown, id: bigint) => Object.assign(new MemberEntity(), { id }));
 
-    const tx = { persist, remove, flush, find, findOne, populate, getReference } as unknown as EntityManager;
+    const tx = {
+        persist,
+        remove,
+        flush,
+        find,
+        findOne,
+        populate,
+        getReference,
+        isInTransaction: () => true,
+        getTransactionContext: () => ({}),
+        getConnection: () => ({ execute: async () => [{ owner_token: null }] }),
+    } as unknown as EntityManager;
     const transactional = vi.fn(async (work: (transaction: EntityManager) => Promise<unknown>) => {
         try {
             return await work(tx);

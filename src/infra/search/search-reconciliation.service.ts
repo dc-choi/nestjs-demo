@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
-import { CatalogIndexManager, StoredProductSearchDocument } from './catalog-index.manager';
+import { CatalogIndexManager, CatalogWriteTarget, StoredProductSearchDocument } from './catalog-index.manager';
+import { CatalogMaintenanceService } from './catalog-maintenance.service';
 import { CatalogProjectionReader } from './catalog-projection.reader';
 import { CatalogSearchWorker } from './catalog-search.worker';
 import { SearchConfig } from './search.config';
@@ -36,11 +37,30 @@ export class SearchReconciliationService {
         private readonly config: SearchConfig,
         private readonly reader: CatalogProjectionReader,
         private readonly indexManager: CatalogIndexManager,
-        private readonly worker: CatalogSearchWorker
+        private readonly worker: CatalogSearchWorker,
+        private readonly maintenance: CatalogMaintenanceService
     ) {}
 
     async reconcile(
-        options: { repair?: boolean; batchSize?: number; maxSamples?: number } = {}
+        options: { repair?: boolean; batchSize?: number; maxSamples?: number } = {},
+        indexName = this.config.readAlias
+    ): Promise<SearchReconciliationResult> {
+        if (!/^[a-z0-9][a-z0-9_-]{0,254}$/.test(indexName)) throw new Error('Invalid reconciliation index');
+        if (options.repair && indexName !== this.config.readAlias) {
+            throw new Error('Repairs must target the active catalog alias');
+        }
+        if (!options.repair) return this.reconcileIndex(options, indexName);
+        return this.maintenance.withProjection(async (assertOwnership) => {
+            const target = await this.indexManager.resolveWriteTarget();
+            await assertOwnership();
+            return this.reconcileIndex(options, target.indexName, target);
+        });
+    }
+
+    private async reconcileIndex(
+        options: { repair?: boolean; batchSize?: number; maxSamples?: number },
+        indexName: string,
+        target?: CatalogWriteTarget
     ): Promise<SearchReconciliationResult> {
         if (!this.config.enabled) throw new Error('OpenSearch must be enabled before reconciliation');
         const batchSize = options.batchSize ?? 100;
@@ -71,7 +91,7 @@ export class SearchReconciliationService {
                 return document;
             });
             const indexed = await this.indexManager.getDocuments(
-                this.config.readAlias,
+                indexName,
                 documents.map(({ productId }) => productId)
             );
 
@@ -85,8 +105,8 @@ export class SearchReconciliationService {
                         databaseRevision: document.productRevision,
                         indexedRevision: null,
                     });
-                    if (options.repair) {
-                        await this.worker.synchronize(BigInt(document.productId), document.productRevision);
+                    if (target) {
+                        await this.worker.synchronize(BigInt(document.productId), document.productRevision, target);
                         result.repairedCount += 1;
                     }
                 } else if (!documentsMatch(stored, document)) {
@@ -96,11 +116,11 @@ export class SearchReconciliationService {
                         databaseRevision: document.productRevision,
                         indexedRevision: stored.version,
                     });
-                    if (options.repair) {
+                    if (target) {
                         if (stored.version === document.productRevision) {
-                            await this.indexManager.repairExternal(document);
+                            await this.indexManager.repairExternal(document, target);
                         } else {
-                            await this.worker.synchronize(BigInt(document.productId), document.productRevision);
+                            await this.worker.synchronize(BigInt(document.productId), document.productRevision, target);
                         }
                         result.repairedCount += 1;
                     }
@@ -109,7 +129,7 @@ export class SearchReconciliationService {
             cursor = batch.nextCursor;
         }
 
-        for await (const indexedBatch of this.indexManager.scanDocuments(this.config.readAlias, batchSize)) {
+        for await (const indexedBatch of this.indexManager.scanDocuments(indexName, batchSize)) {
             result.checkedIndexedDocuments += indexedBatch.length;
             const ids = indexedBatch.map(({ id }) => BigInt(id));
             const sources = await this.reader.findByIds(ids);
@@ -125,12 +145,12 @@ export class SearchReconciliationService {
                     databaseRevision: source?.revision ?? null,
                     indexedRevision: stored.version,
                 });
-                if (options.repair) {
+                if (target) {
                     const revision = source?.revision ?? nextRevision(stored.version);
                     if (stored.version === revision) {
-                        await this.indexManager.repairDeleteExternal(stored.id, revision);
+                        await this.indexManager.repairDeleteExternal(stored.id, revision, target);
                     } else {
-                        await this.worker.synchronize(BigInt(stored.id), revision);
+                        await this.worker.synchronize(BigInt(stored.id), revision, target);
                     }
                     result.repairedCount += 1;
                 }

@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import { CatalogProductProjectionSource } from '~/api/catalog/search/domain/product-search.document';
 import { CatalogBulkError, CatalogIndexManager } from '~/infra/search/catalog-index.manager';
+import { CatalogMaintenanceService } from '~/infra/search/catalog-maintenance.service';
 import { CatalogProjectionReader } from '~/infra/search/catalog-projection.reader';
 import { CatalogSearchWorker } from '~/infra/search/catalog-search.worker';
-import { SearchConfig } from '~/infra/search/search.config';
+
+const target = { indexName: 'catalog-v1', writeAlias: 'catalog-v1-projection' };
 
 describe('Catalog search worker', () => {
     it('rereads and indexes the current primary revision for an older event', async () => {
@@ -13,7 +15,8 @@ describe('Catalog search worker', () => {
         await worker.synchronize(source.id, 1);
 
         expect(indexManager.writeExternal).toHaveBeenCalledWith(
-            expect.objectContaining({ productId: '1', productRevision: 2, name: '현재 상품' })
+            expect.objectContaining({ productId: '1', productRevision: 2, name: '현재 상품' }),
+            target
         );
     });
 
@@ -34,23 +37,58 @@ describe('Catalog search worker', () => {
         indexManager.getDocument.mockResolvedValue(null);
 
         await expect(worker.synchronize(source.id, 3)).resolves.toBeUndefined();
-        expect(indexManager.deleteExternal).toHaveBeenCalledWith('1', 3);
+        expect(indexManager.deleteExternal).toHaveBeenCalledWith('1', 3, target);
+        expect(indexManager.getDocument).toHaveBeenCalledWith(target.indexName, '1');
+    });
+
+    it('pins the target before reading a revision that can become stale during cutover', async () => {
+        const source = createSource();
+        const { worker, reader, indexManager } = createWorker(source);
+        reader.findById.mockImplementation(async () => {
+            indexManager.resolveWriteTarget.mockResolvedValue({
+                indexName: 'catalog-v2',
+                writeAlias: 'catalog-v2-projection',
+            });
+            return source;
+        });
+
+        await worker.synchronize(source.id, source.revision);
+
+        expect(indexManager.resolveWriteTarget).toHaveBeenCalledTimes(1);
+        expect(indexManager.writeExternal).toHaveBeenCalledWith(expect.anything(), target);
+    });
+
+    it('does not read or write after losing the admission lock while resolving the target', async () => {
+        const { reader, indexManager } = createWorker(createSource());
+        const assertOwnership = vi.fn().mockRejectedValue(new Error('lock connection lost'));
+        const worker = new CatalogSearchWorker(
+            reader as unknown as CatalogProjectionReader,
+            indexManager as unknown as CatalogIndexManager,
+            {
+                withProjection: (work: (assert: () => Promise<void>) => Promise<void>) => work(assertOwnership),
+            } as CatalogMaintenanceService
+        );
+
+        await expect(worker.synchronize(1n, 1)).rejects.toThrow('lock connection lost');
+        expect(reader.findById).not.toHaveBeenCalled();
+        expect(indexManager.writeExternal).not.toHaveBeenCalled();
     });
 });
 
 function createWorker(source: CatalogProductProjectionSource) {
     const reader = { findById: vi.fn(async () => source) };
     const indexManager = {
+        resolveWriteTarget: vi.fn(async () => target),
         writeExternal: vi.fn(async () => undefined),
         deleteExternal: vi.fn(async () => undefined),
         getDocument: vi.fn(async () => null),
     };
     const worker = new CatalogSearchWorker(
-        { writeAlias: 'catalog-products-write' } as SearchConfig,
         reader as unknown as CatalogProjectionReader,
-        indexManager as unknown as CatalogIndexManager
+        indexManager as unknown as CatalogIndexManager,
+        maintenance
     );
-    return { worker, indexManager };
+    return { worker, reader, indexManager };
 }
 
 function createSource(
@@ -85,3 +123,8 @@ function createSource(
         ...overrides,
     };
 }
+
+const maintenance = {
+    withProjection: async <T>(work: (assert: () => Promise<void>) => Promise<T>) => work(async () => undefined),
+    rebuild: async <T>(work: () => Promise<T>) => work(),
+} as CatalogMaintenanceService;
