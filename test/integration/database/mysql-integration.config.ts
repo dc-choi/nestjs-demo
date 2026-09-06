@@ -1,4 +1,7 @@
+import type { EntityManager } from '@mikro-orm/core';
+
 import 'dotenv/config';
+import { CatalogMaintenanceEntity } from '~/infra/search/catalog-maintenance.entity';
 
 export interface MySqlIntegrationConnection {
     host: string;
@@ -39,4 +42,8 @@ function assertIntegrationDatabase(dbName: string): void {
     if (!dbName.endsWith('_integration')) {
         throw new Error('MYSQL_DATABASE must end with _integration before integration data cleanup');
     }
+}
+
+export async function seedCatalogMaintenance(em: EntityManager): Promise<void> {
+    await em.upsert(CatalogMaintenanceEntity, { id: 1, ownerToken: null, startedAt: null });
 }

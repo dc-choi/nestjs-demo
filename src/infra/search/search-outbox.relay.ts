@@ -1,6 +1,7 @@
 import { EntityManager, MikroORM } from '@mikro-orm/mysql';
 import { Injectable } from '@nestjs/common';
 
+import { CatalogMaintenanceError } from './catalog-maintenance.service';
 import { CatalogSearchWorker } from './catalog-search.worker';
 import { SearchConfig } from './search.config';
 
@@ -35,7 +36,9 @@ interface SearchOutboxDrainOptions {
 }
 
 const MAX_ATTEMPTS = 10;
-const LEASE_MILLISECONDS = 5 * 60_000;
+const MAINTENANCE_DEFER_MILLISECONDS = 1_000;
+export const SEARCH_OUTBOX_LEASE_MILLISECONDS = 5 * 60_000;
+export const SEARCH_OUTBOX_HEARTBEAT_MILLISECONDS = SEARCH_OUTBOX_LEASE_MILLISECONDS / 2;
 
 @Injectable()
 export class SearchOutboxRelay {
@@ -46,28 +49,7 @@ export class SearchOutboxRelay {
     ) {}
 
     async drainBatch(limit = 50, signal?: AbortSignal): Promise<SearchOutboxDrainResult> {
-        if (!this.config.enabled) throw new Error('OpenSearch must be enabled before draining the search outbox');
-        if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
-            throw new Error('Search outbox batch size must be between 1 and 100');
-        }
-
-        if (signal?.aborted) return emptyDrainResult();
-        const events = await this.claim(limit);
-        const result: SearchOutboxDrainResult = { ...emptyDrainResult(), claimed: events.length };
-        for (const event of events) {
-            if (signal?.aborted) break;
-            try {
-                await this.worker.synchronize(event.productId, event.productRevision);
-                await this.markProcessed(event);
-                result.processed += 1;
-            } catch (error) {
-                const deadLettered = event.attempts >= MAX_ATTEMPTS;
-                await this.markFailed(event, error, deadLettered);
-                result.failed += 1;
-                if (deadLettered) result.deadLettered += 1;
-            }
-        }
-        return result;
+        return (await this.drainBatchInternal(limit, signal)).result;
     }
 
     async drainUntilEmpty(options: SearchOutboxDrainOptions = {}): Promise<SearchOutboxDrainResult> {
@@ -80,19 +62,58 @@ export class SearchOutboxRelay {
         const total = emptyDrainResult();
         for (let batch = 0; batch < maxBatches; batch += 1) {
             if (options.signal?.aborted) return total;
-            const current = await this.drainBatch(batchSize, options.signal);
-            total.claimed += current.claimed;
-            total.processed += current.processed;
-            total.failed += current.failed;
-            total.deadLettered += current.deadLettered;
-            if (current.claimed === 0) return total;
+            const current = await this.drainBatchInternal(batchSize, options.signal);
+            total.claimed += current.result.claimed;
+            total.processed += current.result.processed;
+            total.failed += current.result.failed;
+            total.deadLettered += current.result.deadLettered;
+            if (current.maintenanceDeferred || current.result.claimed === 0) return total;
         }
         return total;
     }
 
-    private async claim(limit: number): Promise<ClaimedOutboxRow[]> {
+    private async drainBatchInternal(
+        limit: number,
+        signal?: AbortSignal
+    ): Promise<{ result: SearchOutboxDrainResult; maintenanceDeferred: boolean }> {
+        if (!this.config.enabled) throw new Error('OpenSearch must be enabled before draining the search outbox');
+        if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+            throw new Error('Search outbox batch size must be between 1 and 100');
+        }
+
+        const result = emptyDrainResult();
+        let maintenanceDeferred = false;
+        while (result.claimed < limit && !signal?.aborted) {
+            const event = await this.claimOne();
+            if (!event) break;
+
+            result.claimed += 1;
+            const outcome = await this.synchronizeWithLeaseHeartbeat(event);
+            if (!outcome.ownsLease) continue;
+
+            if (outcome.error instanceof CatalogMaintenanceError) {
+                await this.deferForMaintenance(event);
+                maintenanceDeferred = true;
+                break;
+            }
+
+            if (outcome.synchronized) {
+                if (await this.markProcessed(event)) result.processed += 1;
+                continue;
+            }
+
+            const deadLettered = event.attempts + 1 >= MAX_ATTEMPTS;
+            if (await this.markFailed(event, outcome.error, deadLettered)) {
+                result.failed += 1;
+                if (deadLettered) result.deadLettered += 1;
+            }
+        }
+        return { result, maintenanceDeferred };
+    }
+
+    private async claimOne(): Promise<ClaimedOutboxRow | undefined> {
         const leaseToken = randomUUID();
-        const leasedUntil = new Date(Date.now() + LEASE_MILLISECONDS);
+        const leasedUntil = new Date(Date.now() + SEARCH_OUTBOX_LEASE_MILLISECONDS);
         const em = this.orm.em.fork({ useContext: false });
         return em.transactional(async (tx) => {
             const rows = await tx.execute<OutboxRow[]>(
@@ -102,57 +123,121 @@ export class SearchOutboxRelay {
                     AND available_at <= CURRENT_TIMESTAMP(3)
                     AND (status = 'PENDING' OR leased_until < CURRENT_TIMESTAMP(3))
                   ORDER BY id
-                  LIMIT ?
-                    FOR UPDATE SKIP LOCKED`,
-                [limit]
+                  LIMIT 1
+                    FOR UPDATE SKIP LOCKED`
             );
-            if (rows.length === 0) return [];
+            const row = rows[0];
+            if (!row) return undefined;
 
-            const ids = rows.map(({ id }) => toBigInt(id, 'outbox id'));
+            const id = toBigInt(row.id, 'outbox id');
             await tx.execute(
                 `UPDATE search_projection_outbox
                     SET status = 'PROCESSING',
-                        attempts = attempts + 1,
                         lease_token = ?,
-                        leased_until = ?,
-                        last_error = NULL
-                  WHERE id IN (${ids.map(() => '?').join(', ')})`,
-                [leaseToken, leasedUntil, ...ids.map(String)],
+                        leased_until = ?
+                  WHERE id = ?`,
+                [leaseToken, leasedUntil, id.toString()],
                 'run'
             );
-            return rows.map((row) => ({
-                id: toBigInt(row.id, 'outbox id'),
+            return {
+                id,
                 productId: toBigInt(row.product_id, 'outbox product id'),
                 productRevision: toInteger(row.product_revision, 'outbox product revision'),
-                attempts: toInteger(row.attempts, 'outbox attempts') + 1,
+                attempts: toInteger(row.attempts, 'outbox attempts'),
                 leaseToken,
-            }));
+            };
         });
     }
 
-    private async markProcessed(event: ClaimedOutboxRow): Promise<void> {
-        await this.executeLeaseUpdate(
+    private async synchronizeWithLeaseHeartbeat(
+        event: ClaimedOutboxRow
+    ): Promise<{ ownsLease: boolean; synchronized: boolean; error: unknown }> {
+        let ownsLease = true;
+        let renewal: Promise<void> | undefined;
+        const heartbeat = () => {
+            if (!ownsLease || renewal) return;
+            renewal = this.renewLease(event)
+                .then((renewed) => {
+                    if (!renewed) ownsLease = false;
+                })
+                .catch(() => {
+                    ownsLease = false;
+                })
+                .finally(() => {
+                    renewal = undefined;
+                });
+        };
+        const timer = setInterval(heartbeat, SEARCH_OUTBOX_HEARTBEAT_MILLISECONDS);
+        timer.unref();
+
+        let synchronized = false;
+        let error: unknown = undefined;
+        try {
+            await this.worker.synchronize(event.productId, event.productRevision);
+            synchronized = true;
+        } catch (caught: unknown) {
+            error = caught;
+        } finally {
+            clearInterval(timer);
+            await renewal;
+        }
+        return { ownsLease, synchronized, error };
+    }
+
+    private async renewLease(event: ClaimedOutboxRow): Promise<boolean> {
+        return this.executeLeaseUpdate(
+            `UPDATE search_projection_outbox
+                SET leased_until = ?
+              WHERE id = ?
+                AND status = 'PROCESSING'
+                AND lease_token = ?`,
+            [new Date(Date.now() + SEARCH_OUTBOX_LEASE_MILLISECONDS), event.id.toString(), event.leaseToken]
+        );
+    }
+
+    private async markProcessed(event: ClaimedOutboxRow): Promise<boolean> {
+        return this.executeLeaseUpdate(
             `UPDATE search_projection_outbox
                 SET status = 'PROCESSED',
                     processed_at = CURRENT_TIMESTAMP(3),
                     lease_token = NULL,
                     leased_until = NULL,
                     last_error = NULL
-              WHERE id = ? AND lease_token = ?`,
+              WHERE id = ?
+                AND status = 'PROCESSING'
+                AND lease_token = ?`,
             [event.id.toString(), event.leaseToken]
         );
     }
 
-    private async markFailed(event: ClaimedOutboxRow, error: unknown, deadLettered: boolean): Promise<void> {
-        const availableAt = new Date(Date.now() + Math.min(60_000, 250 * 2 ** Math.min(event.attempts, 8)));
-        await this.executeLeaseUpdate(
+    private async deferForMaintenance(event: ClaimedOutboxRow): Promise<boolean> {
+        return this.executeLeaseUpdate(
+            `UPDATE search_projection_outbox
+                SET status = 'PENDING',
+                    available_at = ?,
+                    lease_token = NULL,
+                    leased_until = NULL
+              WHERE id = ?
+                AND status = 'PROCESSING'
+                AND lease_token = ?`,
+            [new Date(Date.now() + MAINTENANCE_DEFER_MILLISECONDS), event.id.toString(), event.leaseToken]
+        );
+    }
+
+    private async markFailed(event: ClaimedOutboxRow, error: unknown, deadLettered: boolean): Promise<boolean> {
+        const attempts = event.attempts + 1;
+        const availableAt = new Date(Date.now() + Math.min(60_000, 250 * 2 ** Math.min(attempts, 8)));
+        return this.executeLeaseUpdate(
             `UPDATE search_projection_outbox
                 SET status = ?,
+                    attempts = attempts + 1,
                     available_at = ?,
                     lease_token = NULL,
                     leased_until = NULL,
                     last_error = ?
-              WHERE id = ? AND lease_token = ?`,
+              WHERE id = ?
+                AND status = 'PROCESSING'
+                AND lease_token = ?`,
             [
                 deadLettered ? 'DEAD_LETTER' : 'PENDING',
                 availableAt,
@@ -163,10 +248,10 @@ export class SearchOutboxRelay {
         );
     }
 
-    private async executeLeaseUpdate(sql: string, params: unknown[]): Promise<void> {
+    private async executeLeaseUpdate(sql: string, params: unknown[]): Promise<boolean> {
         const em: EntityManager = this.orm.em.fork({ useContext: false });
         const result = await em.execute<{ affectedRows?: number }>(sql, params, 'run');
-        if (result.affectedRows !== 1) throw new Error('Search outbox lease was lost before status update');
+        return result.affectedRows === 1;
     }
 }
 

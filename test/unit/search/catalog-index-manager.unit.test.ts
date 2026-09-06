@@ -1,7 +1,7 @@
 import { type Mock, describe, expect, it, vi } from 'vitest';
 import { catalogIndexDefinition, catalogNoriIndexDefinition } from '~/infra/search/catalog-index.definition';
 import { CatalogBulkError, CatalogIndexManager } from '~/infra/search/catalog-index.manager';
-import { OpenSearchHttpClient } from '~/infra/search/opensearch.client';
+import { OpenSearchHttpClient, OpenSearchHttpError } from '~/infra/search/opensearch.client';
 import { SearchConfig } from '~/infra/search/search.config';
 
 describe('Catalog index manager', () => {
@@ -47,13 +47,24 @@ describe('Catalog index manager', () => {
         expect(request).toHaveBeenLastCalledWith('POST', '/_aliases', {
             body: {
                 actions: [
-                    { remove: { index: 'old', alias: 'catalog-products-read' } },
-                    { remove: { index: 'old', alias: 'catalog-products-write' } },
+                    { remove: { index: 'old', alias: 'catalog-products-read', must_exist: true } },
+                    { remove: { index: 'old', alias: 'catalog-products-write', must_exist: true } },
                     { add: { index: 'new-index', alias: 'catalog-products-read' } },
                     { add: { index: 'new-index', alias: 'catalog-products-write', is_write_index: true } },
                 ],
             },
         });
+    });
+
+    it('does not adopt successor aliases when completing a rebuild with a captured target', async () => {
+        const request = vi.fn().mockRejectedValue(new Error('expected alias no longer exists'));
+        const manager = createManager(request);
+
+        await expect(manager.cutOverAliases('stale-index', { read: ['old'], write: ['old'] })).rejects.toThrow(
+            'expected alias no longer exists'
+        );
+        expect(request).toHaveBeenCalledTimes(1);
+        expect(request.mock.calls[0].slice(0, 2)).toEqual(['POST', '/_aliases']);
     });
 
     it('uses external_gte only for an explicit equal-version repair', async () => {
@@ -63,11 +74,43 @@ describe('Catalog index manager', () => {
         });
         const manager = createManager(request);
 
-        await manager.repairExternal(createDocument('1'));
+        await manager.repairExternal(createDocument('1'), { indexName: 'old-index', writeAlias: 'old-projection' });
 
         const options = request.mock.calls[0][2] as { ndjson: string; query: unknown };
         expect(options.query).toEqual({ require_alias: true });
         expect(options.ndjson).toContain('"version_type":"external_gte"');
+        expect(options.ndjson).toContain('"_index":"old-projection"');
+    });
+
+    it('creates a generation-specific write alias and adopts older indexes without moving it', async () => {
+        const request = vi.fn().mockResolvedValue({ acknowledged: true });
+        const manager = createManager(request);
+        await manager.createIndex('old-index');
+        const body = request.mock.calls[0][2].body as { aliases: Record<string, unknown> };
+        const writeAlias = Object.keys(body.aliases)[0];
+        expect(body.aliases[writeAlias]).toEqual({ is_write_index: true });
+        request.mockReset();
+        request
+            .mockResolvedValueOnce({ 'old-index': {} })
+            .mockRejectedValueOnce(new OpenSearchHttpError(404, {}, 'missing'))
+            .mockResolvedValueOnce({ acknowledged: true });
+
+        await expect(manager.resolveWriteTarget()).resolves.toEqual({ indexName: 'old-index', writeAlias });
+        expect(request).toHaveBeenLastCalledWith('POST', '/_aliases', {
+            body: { actions: [{ add: { index: 'old-index', alias: writeAlias, is_write_index: true } }] },
+        });
+    });
+
+    it('rejects missing or ambiguous active targets and conflicting projection aliases', async () => {
+        const request = vi.fn();
+        const manager = createManager(request);
+        request.mockResolvedValueOnce({});
+        await expect(manager.resolveWriteTarget()).rejects.toThrow('exactly one index');
+        request.mockResolvedValueOnce({ first: {}, second: {} });
+        await expect(manager.resolveWriteTarget()).rejects.toThrow('exactly one index');
+        request.mockResolvedValueOnce({ first: {} }).mockResolvedValueOnce({ second: {} });
+        await expect(manager.resolveWriteTarget()).rejects.toThrow('does not match');
+        expect(request.mock.calls.every(([method]) => method === 'GET')).toBe(true);
     });
 });
 

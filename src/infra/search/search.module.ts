@@ -2,18 +2,22 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
 import { CatalogIndexManager } from './catalog-index.manager';
+import { CatalogMaintenanceService } from './catalog-maintenance.service';
 import { CatalogProjectionReader } from './catalog-projection.reader';
 import { CatalogRebuildService } from './catalog-rebuild.service';
 import { CatalogSearchWorker } from './catalog-search.worker';
 import { OpenSearchProductSearchAdapter } from './opensearch-product-search.adapter';
 import { OpenSearchHttpClient } from './opensearch.client';
 import { SearchHealthService } from './search-health.service';
+import { SearchOutboxRecoveryService } from './search-outbox-recovery.service';
 import { SearchOutboxRelay } from './search-outbox.relay';
 import { SearchReconciliationService } from './search-reconciliation.service';
 import { SearchRelevanceEvaluationService } from './search-relevance-evaluation.service';
 import { SearchConfig } from './search.config';
 
 const infrastructureProviders = [
+    SearchOutboxRecoveryService,
+    CatalogMaintenanceService,
     SearchConfig,
     OpenSearchHttpClient,
     OpenSearchProductSearchAdapter,

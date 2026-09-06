@@ -7,7 +7,7 @@ import type { EnvConfig } from '~/global/config/env/env.config';
 import { createMikroOrmOptions } from '~/infra/database/mikro-orm.config';
 
 describe('MikroORM config', () => {
-    it('25개 엔티티와 writer/replica 운영 기본값을 명시한다', () => {
+    it('27개 엔티티와 writer/replica 운영 기본값을 명시한다', () => {
         const env: EnvConfig = {
             SERVER_PORT: 3000,
             MYSQL_HOST: 'writer',
@@ -45,7 +45,7 @@ describe('MikroORM config', () => {
             debug: ['query'],
             slowQueryThreshold: 500,
         });
-        expect(options.entities).toHaveLength(25);
+        expect(options.entities).toHaveLength(27);
         expect(options.replicas).toEqual([
             expect.objectContaining({
                 name: 'read-replica-1',

@@ -4,6 +4,7 @@ import { CatalogAnalyzer, catalogIndexDefinition, catalogNoriIndexDefinition } f
 import { OpenSearchHttpClient, OpenSearchHttpError, escapeOpenSearchPathSegment } from './opensearch.client';
 import { SearchConfig } from './search.config';
 
+import { createHash } from 'node:crypto';
 import { ProductSearchDocument } from '~/api/catalog/search/domain/product-search.document';
 
 interface AliasResponse {
@@ -56,6 +57,16 @@ export interface StoredProductSearchDocument {
     source: ProductSearchDocument;
 }
 
+export interface CatalogAliasTargets {
+    readonly read: readonly string[];
+    readonly write: readonly string[];
+}
+
+export interface CatalogWriteTarget {
+    readonly indexName: string;
+    readonly writeAlias: string;
+}
+
 export interface CatalogBulkFailure {
     documentId: string;
     status: number;
@@ -78,8 +89,28 @@ export class CatalogIndexManager {
 
     async createIndex(indexName: string, analyzer: CatalogAnalyzer = 'standard'): Promise<void> {
         await this.client.request('PUT', `/${escapeOpenSearchPathSegment(indexName)}`, {
-            body: analyzer === 'nori' ? catalogNoriIndexDefinition : catalogIndexDefinition,
+            body: {
+                ...(analyzer === 'nori' ? catalogNoriIndexDefinition : catalogIndexDefinition),
+                aliases: { [projectionWriteAlias(indexName)]: { is_write_index: true } },
+            },
         });
+    }
+
+    async resolveWriteTarget(): Promise<CatalogWriteTarget> {
+        const targets = await this.getAliasTargets(this.config.writeAlias);
+        if (targets.length !== 1) throw new Error('Catalog write alias must reference exactly one index');
+        const indexName = targets[0];
+        const writeAlias = projectionWriteAlias(indexName);
+        const pinnedTargets = await this.getAliasTargets(writeAlias);
+        if (pinnedTargets.length === 0) {
+            // Adopt indexes created before generation-specific aliases were introduced.
+            await this.client.request('POST', '/_aliases', {
+                body: { actions: [{ add: { index: indexName, alias: writeAlias, is_write_index: true } }] },
+            });
+        } else if (pinnedTargets.length !== 1 || pinnedTargets[0] !== indexName) {
+            throw new Error('Catalog projection alias does not match its physical index');
+        }
+        return { indexName, writeAlias };
     }
 
     async deleteIndex(indexName: string): Promise<void> {
@@ -104,33 +135,34 @@ export class CatalogIndexManager {
         }
     }
 
-    async writeExternal(document: ProductSearchDocument): Promise<void> {
-        const failures = await this.sendBulkIndex(this.config.writeAlias, [document], true, 'external');
+    async writeExternal(document: ProductSearchDocument, target: CatalogWriteTarget): Promise<void> {
+        const failures = await this.sendBulkIndex(target.writeAlias, [document], true, 'external');
         if (failures.length > 0) throw new CatalogBulkError(failures);
     }
 
-    async repairExternal(document: ProductSearchDocument): Promise<void> {
-        const failures = await this.sendBulkIndex(this.config.writeAlias, [document], true, 'external_gte');
+    async repairExternal(document: ProductSearchDocument, target: CatalogWriteTarget): Promise<void> {
+        const failures = await this.sendBulkIndex(target.writeAlias, [document], true, 'external_gte');
         if (failures.length > 0) throw new CatalogBulkError(failures);
     }
 
-    async deleteExternal(productId: string, productRevision: number): Promise<void> {
-        await this.sendBulkDelete(productId, productRevision, 'external');
+    async deleteExternal(productId: string, productRevision: number, target: CatalogWriteTarget): Promise<void> {
+        await this.sendBulkDelete(productId, productRevision, 'external', target);
     }
 
-    async repairDeleteExternal(productId: string, productRevision: number): Promise<void> {
-        await this.sendBulkDelete(productId, productRevision, 'external_gte');
+    async repairDeleteExternal(productId: string, productRevision: number, target: CatalogWriteTarget): Promise<void> {
+        await this.sendBulkDelete(productId, productRevision, 'external_gte', target);
     }
 
     private async sendBulkDelete(
         productId: string,
         productRevision: number,
-        versionType: 'external' | 'external_gte'
+        versionType: 'external' | 'external_gte',
+        target: CatalogWriteTarget
     ): Promise<void> {
         const ndjson = serializeNdjson([
             {
                 delete: {
-                    _index: this.config.writeAlias,
+                    _index: target.writeAlias,
                     _id: productId,
                     version: productRevision,
                     version_type: versionType,
@@ -171,14 +203,25 @@ export class CatalogIndexManager {
         });
     }
 
-    async cutOverAliases(indexName: string): Promise<void> {
-        const [readTargets, writeTargets] = await Promise.all([
+    async getActiveAliasTargets(): Promise<CatalogAliasTargets> {
+        const [read, write] = await Promise.all([
             this.getAliasTargets(this.config.readAlias),
             this.getAliasTargets(this.config.writeAlias),
         ]);
+        return { read, write };
+    }
+
+    async cutOverAliases(indexName: string, expected?: CatalogAliasTargets): Promise<void> {
+        const targets = expected ?? (await this.getActiveAliasTargets());
         const actions: unknown[] = [];
-        for (const index of readTargets) actions.push({ remove: { index, alias: this.config.readAlias } });
-        for (const index of writeTargets) actions.push({ remove: { index, alias: this.config.writeAlias } });
+        // A delayed rebuild must not replace aliases already moved by its successor.
+        for (const index of targets.read) {
+            actions.push({ remove: { index, alias: this.config.readAlias, must_exist: true } });
+        }
+        for (const index of targets.write) {
+            actions.push({ remove: { index, alias: this.config.writeAlias, must_exist: true } });
+        }
+        // On first activation, the single-write-index constraint rejects competing additions atomically.
         actions.push(
             { add: { index: indexName, alias: this.config.readAlias } },
             { add: { index: indexName, alias: this.config.writeAlias, is_write_index: true } }
@@ -332,6 +375,10 @@ export class CatalogIndexManager {
             throw error;
         }
     }
+}
+
+function projectionWriteAlias(indexName: string): string {
+    return `catalog-projection-${createHash('sha256').update(indexName).digest('hex')}`;
 }
 
 function parseBulkFailures(response: BulkResponse, expectedIds: readonly string[]): CatalogBulkFailure[] {

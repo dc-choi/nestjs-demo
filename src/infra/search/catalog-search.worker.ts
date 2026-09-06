@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 
-import { CatalogBulkError, CatalogIndexManager } from './catalog-index.manager';
+import { CatalogBulkError, CatalogIndexManager, CatalogWriteTarget } from './catalog-index.manager';
+import { CatalogMaintenanceService } from './catalog-maintenance.service';
 import { CatalogProjectionReader } from './catalog-projection.reader';
-import { SearchConfig } from './search.config';
 
 import { projectCatalogProduct } from '~/api/catalog/search/domain/catalog-projector';
 import { MAX_PRODUCT_REVISION } from '~/api/catalog/search/domain/product-search.document';
@@ -10,12 +10,25 @@ import { MAX_PRODUCT_REVISION } from '~/api/catalog/search/domain/product-search
 @Injectable()
 export class CatalogSearchWorker {
     constructor(
-        private readonly config: SearchConfig,
         private readonly reader: CatalogProjectionReader,
-        private readonly indexManager: CatalogIndexManager
+        private readonly indexManager: CatalogIndexManager,
+        private readonly maintenance: CatalogMaintenanceService
     ) {}
 
-    async synchronize(productId: bigint, eventRevision: number): Promise<void> {
+    async synchronize(productId: bigint, eventRevision: number, target?: CatalogWriteTarget): Promise<void> {
+        if (target) return this.synchronizeCurrent(productId, eventRevision, target);
+        return this.maintenance.withProjection(async (assertOwnership) => {
+            const pinnedTarget = await this.indexManager.resolveWriteTarget();
+            await assertOwnership();
+            return this.synchronizeCurrent(productId, eventRevision, pinnedTarget);
+        });
+    }
+
+    private async synchronizeCurrent(
+        productId: bigint,
+        eventRevision: number,
+        target: CatalogWriteTarget
+    ): Promise<void> {
         validateRevision(eventRevision);
         const source = await this.reader.findById(productId);
         if (source && eventRevision > source.revision) {
@@ -28,20 +41,21 @@ export class CatalogSearchWorker {
         validateRevision(currentRevision);
         const desired = source ? projectCatalogProduct(source) : null;
         try {
-            if (desired) await this.indexManager.writeExternal(desired);
-            else await this.indexManager.deleteExternal(productId.toString(), currentRevision);
+            if (desired) await this.indexManager.writeExternal(desired, target);
+            else await this.indexManager.deleteExternal(productId.toString(), currentRevision, target);
         } catch (error) {
             if (!(error instanceof CatalogBulkError) || !error.failures.every(isConvergenceCandidate)) throw error;
-            await this.assertAlreadyConverged(productId.toString(), currentRevision, desired);
+            await this.assertAlreadyConverged(productId.toString(), currentRevision, desired, target);
         }
     }
 
     private async assertAlreadyConverged(
         productId: string,
         desiredRevision: number,
-        desired: ReturnType<typeof projectCatalogProduct>
+        desired: ReturnType<typeof projectCatalogProduct>,
+        target: CatalogWriteTarget
     ): Promise<void> {
-        const indexed = await this.indexManager.getDocument(this.config.writeAlias, productId);
+        const indexed = await this.indexManager.getDocument(target.indexName, productId);
         if (!desired && !indexed) return;
         if (
             desired &&
