@@ -5,6 +5,7 @@ import { InventoryService } from '~/api/inventory/application/inventory.service'
 import { InventoryModule } from '~/api/inventory/inventory.module';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity';
 import { PAYMENT_INVENTORY_PORT } from '~/api/payment/application/payment-inventory.port';
+import { PaymentWebhookRecoveryRelay } from '~/api/payment/application/payment-webhook-recovery.relay';
 import { PaymentService } from '~/api/payment/application/payment.service';
 import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity';
 import { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity';
@@ -29,6 +30,7 @@ import { PaymentResolver } from '~/api/payment/presentation/payment.resolver';
     controllers: [PaymentWebhookController],
     providers: [
         PaymentService,
+        PaymentWebhookRecoveryRelay,
         PaymentResolver,
         { provide: PAYMENT_INVENTORY_PORT, useExisting: InventoryService },
         {
@@ -36,6 +38,6 @@ import { PaymentResolver } from '~/api/payment/presentation/payment.resolver';
             useClass: HmacPaymentWebhookSignatureVerifier,
         },
     ],
-    exports: [PaymentService],
+    exports: [PaymentService, PaymentWebhookRecoveryRelay],
 })
 export class PaymentModule {}

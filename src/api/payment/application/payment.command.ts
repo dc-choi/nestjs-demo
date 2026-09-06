@@ -1,3 +1,7 @@
+import { PaymentWebhookOutcome } from '~/api/payment/domain/payment.enum';
+
+export { PaymentWebhookOutcome } from '~/api/payment/domain/payment.enum';
+
 export interface CreatePaymentAttemptCommand {
     readonly orderId: bigint;
     readonly provider: string;
@@ -33,14 +37,6 @@ export interface ReceivePaymentWebhookCommand {
     readonly payloadHash: string;
 }
 
-export const PaymentWebhookOutcome = {
-    CAPTURED: 'CAPTURED',
-    FAILED: 'FAILED',
-    REFUNDED: 'REFUNDED',
-} as const;
-
-export type PaymentWebhookOutcome = (typeof PaymentWebhookOutcome)[keyof typeof PaymentWebhookOutcome];
-
 export interface ProcessPaymentWebhookCommand extends ReceivePaymentWebhookCommand {
     readonly outcome: PaymentWebhookOutcome;
     readonly providerTransactionId?: string | null;
@@ -48,3 +44,6 @@ export interface ProcessPaymentWebhookCommand extends ReceivePaymentWebhookComma
     readonly errorCode?: string | null;
     readonly errorMessage?: string | null;
 }
+
+/** A command persisted only after a provider signature has been verified. */
+export type VerifiedPaymentWebhookCommand = ProcessPaymentWebhookCommand;

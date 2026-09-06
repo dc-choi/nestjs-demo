@@ -47,6 +47,7 @@ class PaymentWebhookHttpBody {
 
     @IsOptional()
     @IsString()
+    @MaxLength(1_000)
     errorMessage?: string | null;
 }
 
@@ -89,28 +90,27 @@ export class PaymentWebhookController {
         if (!verified) throw new UnauthorizedException('Webhook 서명이 올바르지 않습니다.');
 
         const payloadHash = createHash('sha256').update(request.rawBody).digest('hex');
-        await this.paymentService.receiveWebhook({
+        await this.paymentService.receiveVerifiedWebhook({
+            ...body,
+            provider,
+            providerEventId,
+            payloadHash,
+        });
+
+        const recovery = await this.paymentService.recoverStoredWebhook(provider, providerEventId);
+        if (recovery.disposition === 'FAILED') {
+            await this.paymentService.failWebhook(
+                provider,
+                providerEventId,
+                recovery.errorMessage ?? 'Webhook 복구를 완료할 수 없습니다.'
+            );
+        }
+        const { event } = await this.paymentService.receiveWebhook({
             provider,
             providerEventId,
             providerPaymentId: body.providerPaymentId,
             payloadHash,
         });
-
-        try {
-            const { event } = await this.paymentService.processWebhook({
-                ...body,
-                provider,
-                providerEventId,
-                payloadHash,
-            });
-            return { eventId: event.providerEventId, status: event.status };
-        } catch (error) {
-            await this.paymentService.failWebhook(provider, providerEventId, this.safeErrorMessage(error));
-            throw error;
-        }
-    }
-
-    private safeErrorMessage(error: unknown): string {
-        return error instanceof Error ? error.message.slice(0, 1000) : 'Webhook 처리 실패';
+        return { eventId: event.providerEventId, status: event.status };
     }
 }
