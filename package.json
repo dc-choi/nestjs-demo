@@ -36,13 +36,16 @@
         "database:seed": "mikro-orm seeder:run",
         "inventory:expire": "node dist/src/cli/inventory-expire.js",
         "search:rebuild": "node dist/src/cli/search-rebuild.js",
+        "search:outbox:inspect": "node dist/src/cli/search-outbox-dead-letter-inspect.js",
+        "search:outbox:retry": "node dist/src/cli/search-outbox-dead-letter-retry.js",
         "search:outbox:drain": "node dist/src/cli/search-outbox-relay.js",
         "search:reconcile": "node dist/src/cli/search-reconcile.js",
         "search:evaluate": "node dist/src/cli/search-evaluate.js",
         "integration": "NODE_ENV=test vitest run --project integration",
+        "integration:redis": "NODE_ENV=test REDIS_INTEGRATION=1 vitest run --project integration test/integration/token-provider.redis.integration.test.ts test/integration/login-rate-limiter.redis.integration.test.ts",
         "integration:mysql": "NODE_ENV=test MYSQL_INTEGRATION=1 vitest run --project integration test/integration/database",
         "integration:opensearch": "NODE_ENV=test OPENSEARCH_INTEGRATION=1 vitest run --project integration test/integration/search",
-        "integration:search-pipeline": "NODE_ENV=test MYSQL_INTEGRATION=1 OPENSEARCH_INTEGRATION=1 vitest run --project integration test/integration/database/search-pipeline.mysql-opensearch.integration.test.ts",
+        "integration:search-pipeline": "NODE_ENV=test MYSQL_INTEGRATION=1 OPENSEARCH_INTEGRATION=1 vitest run --project integration test/integration/database/search-pipeline.mysql-opensearch.integration.test.ts test/integration/database/catalog-rebuild-recovery.mysql-opensearch.integration.test.ts",
         "e2e": "NODE_ENV=test vitest run --project e2e"
     },
     "dependencies": {
