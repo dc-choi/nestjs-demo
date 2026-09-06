@@ -1,11 +1,12 @@
 import type { EntityRepository } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { MemberDomain } from '~/api/member/domain/member.domain';
 import { MemberEntity } from '~/api/member/domain/member.entity';
-import { InvalidIdOrPassword } from '~/global/common/error/auth.error';
+import { PasswordKdfSaturatedError } from '~/api/member/domain/password-kdf.admission';
+import { InvalidIdOrPassword, PasswordKdfBusy } from '~/global/common/error/auth.error';
 import { NotExistingMember } from '~/global/common/error/member.error';
 import { EnvConfig } from '~/global/config/env/env.config';
 import { TokenProvider } from '~/global/jwt/token.provider';
@@ -20,19 +21,28 @@ export class AuthService {
     ) {}
 
     async login({ email, password }: LoginCommand) {
-        const salt = this.config.get<string>('SECRET');
-        const hashedPassword = MemberDomain.generateHashedPassword(password, salt);
         const findMember = await this.repository.findOne(
-            { email, hashedPassword, deletedAt: null },
+            { email, deletedAt: null },
             {
-                fields: ['id', 'role'],
+                fields: ['id', 'role', 'hashedPassword'],
                 connectionType: 'write',
                 disableIdentityMap: true,
             }
         );
-        if (!findMember) throw new UnauthorizedException(new InvalidIdOrPassword());
+        const passwordVerification = await this.runPasswordKdf(() =>
+            MemberDomain.verifyPassword(password, findMember?.hashedPassword ?? null, this.config.get<string>('SECRET'))
+        );
+        if (!findMember || !passwordVerification.isValid) throw new UnauthorizedException(new InvalidIdOrPassword());
 
         const { id, role } = findMember;
+        if (passwordVerification.needsRehash) {
+            const hashedPassword = await this.runPasswordKdf(() => MemberDomain.hashPassword(password));
+            await this.repository.nativeUpdate(
+                { id, hashedPassword: findMember.hashedPassword, deletedAt: null },
+                { hashedPassword }
+            );
+        }
+
         const loggedInAt = new Date();
         // 조건부 UPDATE의 affected row 수로 동시 로그인 중 한 요청만 최초 로그인으로 판정한다.
         const updated = await this.repository.nativeUpdate(
@@ -55,7 +65,7 @@ export class AuthService {
     }
 
     async token({ accessToken, refreshToken }: RefreshTokenCommand) {
-        const { memberId } = await this.tokenProvider.verifyToken(accessToken, refreshToken);
+        const memberId = await this.tokenProvider.verifyExpiredAccessToken(accessToken);
         const findMember = await this.repository.findOne(
             { id: memberId, deletedAt: null },
             {
@@ -66,15 +76,28 @@ export class AuthService {
         );
         if (!findMember) throw new UnauthorizedException(new NotExistingMember());
 
-        const { accessToken: newAccessToken, refreshToken: newRefreshToken } = await this.tokenProvider.generateToken(
+        const { accessToken: newAccessToken, refreshToken: newRefreshToken } = await this.tokenProvider.rotateToken(
             memberId,
-            findMember.role
+            findMember.role,
+            refreshToken
         );
 
         return {
             accessToken: newAccessToken,
             refreshToken: newRefreshToken,
         };
+    }
+
+    private async runPasswordKdf<T>(operation: () => Promise<T>): Promise<T> {
+        try {
+            return await operation();
+        } catch (error: unknown) {
+            if (error instanceof PasswordKdfSaturatedError) {
+                throw new ServiceUnavailableException(new PasswordKdfBusy());
+            }
+
+            throw error;
+        }
     }
 }
 

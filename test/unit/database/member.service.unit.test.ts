@@ -1,5 +1,5 @@
 import { type EntityRepository, UniqueConstraintViolationException } from '@mikro-orm/core';
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventBus } from '@nestjs/cqrs';
 
@@ -9,6 +9,7 @@ import { MemberService } from '~/api/member/application/member.service';
 import { MemberRole } from '~/api/member/domain/member-role';
 import { MemberDomain } from '~/api/member/domain/member.domain';
 import { MemberEntity } from '~/api/member/domain/member.entity';
+import { PasswordKdfSaturatedError } from '~/api/member/domain/password-kdf.admission';
 import { EnvConfig } from '~/global/config/env/env.config';
 
 describe('MemberService', () => {
@@ -45,13 +46,14 @@ describe('MemberService', () => {
     it('회원 생성 후 가입 이벤트와 CUSTOMER 응답을 반환한다', async () => {
         const insert = vi.fn<() => Promise<bigint>>().mockResolvedValue(1n);
         const { service, eventBus } = createService(insert);
+        vi.spyOn(MemberDomain, 'hashPassword').mockResolvedValue('scrypt-v1$test');
 
         const result = await service.signup(command);
 
         expect(insert).toHaveBeenCalledWith({
             name: command.name,
             email: command.email,
-            hashedPassword: MemberDomain.generateHashedPassword(command.password, configValues.SECRET),
+            hashedPassword: 'scrypt-v1$test',
             phone: command.phone,
             role: MemberRole.CUSTOMER,
         });
@@ -80,6 +82,14 @@ describe('MemberService', () => {
                 type: 'EXISTING_MEMBER',
             },
         });
+        expect(eventBus.publish).not.toHaveBeenCalled();
+    });
+
+    it('KDF 동시 처리 한도 초과를 ServiceUnavailable으로 반환한다', async () => {
+        const { service, eventBus } = createService(vi.fn());
+        vi.spyOn(MemberDomain, 'hashPassword').mockRejectedValue(new PasswordKdfSaturatedError());
+
+        await expect(service.signup(command)).rejects.toBeInstanceOf(ServiceUnavailableException);
         expect(eventBus.publish).not.toHaveBeenCalled();
     });
 

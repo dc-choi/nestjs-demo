@@ -44,8 +44,7 @@ const demoMembers = [
 export class DatabaseSeeder extends Seeder {
     async run(em: EntityManager): Promise<void> {
         const password = requireSeedEnvironment('DEMO_SEED_PASSWORD');
-        const secret = requireSeedEnvironment('SECRET');
-        const members = await seedMembers(em, password, secret);
+        const members = await seedMembers(em, password);
         const keyboardCategory = await seedCategories(em);
         const seller = requireMember(members, MemberRole.SELLER);
         const sellerActor: JwtPayload = { memberId: seller.id, role: seller.role };
@@ -55,14 +54,14 @@ export class DatabaseSeeder extends Seeder {
     }
 }
 
-async function seedMembers(em: EntityManager, password: string, secret: string): Promise<MemberEntity[]> {
+async function seedMembers(em: EntityManager, password: string): Promise<MemberEntity[]> {
     const members: MemberEntity[] = [];
     for (const definition of demoMembers) {
         let member = await em.findOne(MemberEntity, { email: definition.email }, { connectionType: 'write' });
         if (!member) {
             member = Object.assign(new MemberEntity(), {
                 ...definition,
-                hashedPassword: MemberDomain.generateHashedPassword(password, secret),
+                hashedPassword: await MemberDomain.hashPassword(password),
                 lastLoginAt: null,
                 membershipAt: null,
                 deletedAt: null,
@@ -255,7 +254,7 @@ function requireMember(members: readonly MemberEntity[], role: MemberRole): Memb
     return member;
 }
 
-function requireSeedEnvironment(name: 'DEMO_SEED_PASSWORD' | 'SECRET'): string {
+function requireSeedEnvironment(name: 'DEMO_SEED_PASSWORD'): string {
     const value = process.env[name];
     if (!value || value.length < 8) throw new Error(`${name} must contain at least eight characters`);
     return value;
