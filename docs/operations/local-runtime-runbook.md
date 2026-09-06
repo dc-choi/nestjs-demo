@@ -18,8 +18,8 @@ pnpm install
 `cp .env.example .env`로 시작한 뒤 로컬 서비스의 실제 접속값을 입력합니다.
 
 `.env`의 `SECRET`, `OPENSEARCH_CURSOR_SECRET`, `DEMO_SEED_PASSWORD`는 예시 문자열을 그대로 사용하지 말고
-로컬 전용 임의 값으로 바꿉니다. Cursor secret은 32자 이상이어야 하며 seed에서 사용하는 `SECRET`과
-`DEMO_SEED_PASSWORD`는 8자 이상이어야 합니다. 결제 Webhook에 별도 키를 쓰려는 환경에서만 선택 항목인
+로컬 전용 임의 값으로 바꿉니다. Cursor secret은 32자 이상이어야 하며 `DEMO_SEED_PASSWORD`는 8자
+이상이어야 합니다. 결제 Webhook에 별도 키를 쓰려는 환경에서만 선택 항목인
 `PAYMENT_WEBHOOK_SECRET`을 32자 이상으로 지정합니다. 지정하지 않으면 기존 `SECRET`을 HMAC key로
 사용합니다. `.env`는 커밋하지 않습니다.
 
@@ -64,7 +64,8 @@ docker compose -f deployment/compose/docker-compose.yaml down
 ## 3. MikroORM migration
 
 애플리케이션 시작은 schema를 자동 변경하지 않습니다. Entity 변경은 migration 파일로 검토하고 적용합니다.
-현재 fresh DB의 기준은
+새 버전 기동 전 `20260905000200`, `20260905000300`, `20260905000400` 마이그레이션으로 웹훅 복구 필드,
+검색 재처리 감사 이력과 유지보수 singleton을 먼저 적용합니다. 현재 fresh DB의 초기 기준은
 [`Migration20260904140344_initial_schema.ts`](../../src/infra/database/migrations/Migration20260904140344_initial_schema.ts)입니다.
 
 ### 변경 SQL 확인과 migration 생성
@@ -108,10 +109,10 @@ pnpm database:migrate:prod
 
 ## 4. 멱등 seed
 
-seed는 `DEMO_SEED_PASSWORD`와 `SECRET`을 각각 8자 이상으로 필수 입력받고, 고정 비밀번호를 소스에
+seed는 `DEMO_SEED_PASSWORD`를 8자 이상으로 필수 입력받고, 고정 비밀번호를 소스에
 저장하지 않습니다. Admin/Seller/Customer 회원, 카테고리, 활성 상품과 두 Item, revision별 Snapshot,
-초기 입고 원장과 검색 Outbox를 만듭니다. Seeder와 애플리케이션은 비밀번호 hashing에 같은 `.env`의
-`SECRET`을 사용해야 합니다.
+초기 입고 원장과 검색 Outbox를 만듭니다. 비밀번호는 사용자별 salt를 가진 scrypt 해시로 저장합니다.
+기존 HMAC 계정은 기존 `SECRET`으로 로그인 검증한 뒤 자동 이관하므로 이관 전 키를 바꾸지 않습니다.
 
 ```sh
 pnpm database:seed
@@ -217,8 +218,8 @@ OPENSEARCH_CURSOR_SECRET=replace-with-a-long-random-cursor-secret
 ## 7. 전체 rebuild와 Alias 전환
 
 CLI는 Nest application context를 사용하므로 MySQL, Redis와 OpenSearch 환경 변수가 모두 필요합니다.
-먼저 production 산출물을 만듭니다. 다음 기본 명령은 read/write Alias를 전환하므로 아래 유지보수 절차로
-Catalog 쓰기를 차단한 상태에서만 실행합니다.
+먼저 migration을 적용하고 production 산출물을 만듭니다. 활성 rebuild는 DB의 유지보수 상태를 통해
+모든 서버의 Catalog command와 검색 projection 진입을 자동 차단합니다.
 
 ```sh
 pnpm prod:build
@@ -226,7 +227,7 @@ pnpm search:rebuild --analyzer standard
 ```
 
 Rebuild는 새 물리 인덱스를 생성하고 MySQL의 검색 노출 대상 Product를 bounded batch로 읽습니다. Bulk 각
-항목, root document 수, 표본 문서와 기본 query를 검증한 뒤 한 Alias 요청으로 read/write Alias를
+항목, root document 수, 표본 문서, 기본 query와 전체 source를 검증한 뒤 한 Alias 요청으로 read/write Alias를
 전환합니다. 검증 전에 Alias를 옮기지 않습니다.
 
 옵션:
@@ -244,20 +245,26 @@ pnpm search:rebuild \
   --evaluation-alias catalog-products-nori-candidate
 ```
 
-후보 인덱스는 `--no-activate`로 만들고 별도 evaluation Alias에 연결합니다. 현재 rebuild는 실행 중인
-Catalog 쓰기를 멈추는 cutover barrier나 후보 인덱스별 Outbox delivery를 제공하지 않습니다. 따라서
-read/write Alias를 전환하는 활성 rebuild는 Catalog command 유입을 막은 유지보수 구간에서만 실행합니다.
+후보 인덱스는 `--no-activate`로 만들고 별도 evaluation Alias에 연결합니다. 이 경로는 쓰기를 차단하지
+않으므로 고정 fixture로 비교합니다. 활성 rebuild의 절차는 다음과 같습니다.
 
-1. 유지보수를 시작하고 Catalog 쓰기 진입점을 차단합니다.
-2. 기존 write Alias가 있으면 `pnpm search:outbox:drain`으로 Outbox를 비웁니다. 최초 bootstrap처럼 Alias가
-   아직 없으면 이 사전 drain은 건너뜁니다.
-3. 활성 `search:rebuild`를 실행해 검증된 인덱스로 Alias를 전환합니다.
-4. `pnpm search:outbox:drain`을 다시 실행해 남은 event를 처리합니다.
-5. `pnpm search:reconcile` 결과가 0건인지 확인합니다.
-6. Catalog 쓰기를 다시 허용합니다.
+1. 모든 Catalog writer를 유지보수 barrier가 포함된 버전으로 배포합니다.
+2. `search:rebuild`를 실행합니다. 진행 중인 command/projection 때문에 잠금을 얻지 못하면 재시도합니다.
+3. 검증과 Alias 전환이 성공하면 차단이 자동 해제됩니다.
+4. `search:outbox:drain`, `search:reconcile`로 남은 event와 최종 차이를 확인합니다.
 
-후보 평가도 비교 중 원본이 바뀌지 않는 고정 fixture/유지보수 구간에서 수행합니다. 온라인 무중단 전환이
-필요하면 후보 인덱스별 event delivery와 실제 cutover barrier를 먼저 구현해야 합니다.
+실패하면 DB의 차단 상태가 남아 상품 변경이 일시적으로 거절됩니다. 원인을 고친 뒤 새 build ID로 복구합니다.
+
+```sh
+pnpm search:rebuild --resume-maintenance --build-id recovered-001
+```
+
+재개도 전체 build와 검증을 성공해야 차단을 해제합니다. 실행 중인 rebuild가 잠금을 보유하면 다른 재개는
+거절됩니다. 직접 SQL 변경과 이전 버전 writer는 이 제한을 따르지 않으므로 함께 실행하지 않습니다.
+
+Alias 대상이 바뀌어 조건부 전환이 거절되면 이전 rebuild 프로세스를 종료하고 새 build ID로 다시 재개합니다.
+차단 상태만 해제하거나 Alias를 수동으로 과거 인덱스에 되돌리지 않습니다. 다른 재개가 이미 성공한 뒤
+이전 실행만 실패했다면 현재 유지보수 상태와 Alias를 확인하며, 실패 메시지만으로 재개를 반복하지 않습니다.
 
 ## 8. Outbox relay와 reconciliation
 
@@ -275,10 +282,18 @@ pnpm search:outbox:drain
 pnpm search:reconcile
 ```
 
-Relay는 50행씩 최대 100 batch를 처리하고, 처리 가능한 행이 없어지면 일찍 종료한 뒤 JSON 합계를
-출력합니다. 한 번에 5,000행을 모두 claim했다면 남은 행을 위해 다시 실행합니다. 실패 행은 backoff 뒤
-재시도하며 최대 시도 횟수를 넘기면 `DEAD_LETTER`로 남깁니다. 원인을 고치고 DB 상태를 확인한 뒤 재처리
-정책을 결정합니다.
+Relay는 작업 직전 한 행씩 claim하고 batch당 최대 50행, 최대 100 batch를 처리합니다. 처리 가능한 행이
+없어지면 일찍 종료한 뒤 JSON 합계를 출력합니다. 한 실행에서 5,000행을 claim했다면 남은 행을 위해
+다시 실행합니다. 실패 행은 backoff 뒤
+재시도하며 실제 실패 10회에 `DEAD_LETTER`로 남깁니다. Lease 회수와 유지보수 차단은 횟수를 늘리지 않습니다.
+원인을 고친 뒤 명시 ID 또는 product 범위와 한도, 사유를 지정해 재처리합니다. 이전 오류/횟수는 감사 이력에 남습니다.
+
+```sh
+pnpm search:outbox:inspect --limit 50
+pnpm search:outbox:retry --id 123 --id 124 --reason "연결 설정 복구"
+pnpm search:outbox:retry --product-id 42 --limit 10 --reason "매핑 복구"
+pnpm search:outbox:drain
+```
 
 Reconciliation은 기본적으로 읽기 전용입니다. MySQL과 read Alias의 누락, 오래된 문서, 초과 문서를
 확인한 뒤 차이를 실제로 고칠 때만 다음 명령을 사용합니다.
@@ -341,7 +356,7 @@ parse한 뒤 다시 직렬화하면 byte가 달라져 서명이 실패하므로 
 
 아래 예시는 실행 중인 애플리케이션과 같은 secret을 shell에 주입하고, 앞서 `createPaymentAttempt`로
 `provider=demo`, `providerPaymentId=pay-local-001`인 결제 시도를 만든 경우에 성공합니다. 일치하는 결제
-시도가 없으면 서명 검증에 성공해도 Webhook 처리는 대상 없음으로 실패합니다.
+시도가 없으면 검증된 최소 명령을 inbox에 보존하고 HTTP background worker가 재시도합니다.
 
 ```sh
 webhook_signing_secret='same-secret-used-by-the-running-app'
@@ -364,7 +379,11 @@ error code, 환불에는 provider transaction ID와 금액이 추가로 필요�
 payload가 다시 오면 기존 결과로 수렴하고, 다른 payload가 오면 충돌로 거절합니다.
 
 현재 구현은 provider 중립적인 결제 상태/원장과 HMAC 수신 adapter입니다. 실제 PG의 승인 API 호출,
-provider별 secret/서명 규격 변환, 재시도 scheduler와 정산은 포함하지 않습니다. 배송도 관리자 GraphQL
+provider별 secret/서명 규격 변환과 정산은 포함하지 않습니다. HTTP worker는 서명 검증된 `RECEIVED` 행을
+lease와 backoff로 처리 실패를 최대 10회 재시도합니다. 결제 시도가 아직 없는 경우에는 예산을 소모하지 않고
+60초 뒤 다시 확인합니다. 환불이 매입보다 먼저 도착한 경우도 선행 매입을 기다립니다. 관리 API는
+저장된 서명 검증 명령의 내용을 바꿔 처리할 수 없습니다. 원문 body 대신 hash와 최소 처리 필드, 최대 1,000자의 실패 진단을 저장합니다. 검증 필드가
+없는 과거 이벤트는 원본을 복원할 수 없으므로 provider의 재전송이 필요합니다. 배송도 관리자 GraphQL
 command로 포장/발송/배송완료 상태와 수량을 기록하지만 실제 택배사 API, 송장 구매와 배송 추적 연동은
 포함하지 않습니다.
 

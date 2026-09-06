@@ -180,6 +180,8 @@ GraphQL `OrderType`과 presentation mapper는 유지합니다. Entity의 `Collec
 
 공개 Product는 live `ProductEntity`와 `ItemEntity`, 옵션, 카테고리, 태그를 조합한 Query입니다.
 `ProductReadResult`와 GraphQL Product 타입은 이 Entity graph를 외부 계약으로 바꾸기 위해 유지합니다.
+조회는 writer의 `REPEATABLE READ` transaction에서 `BALANCED` 전략으로 collection을 나눠 읽어,
+관계 수의 곱만큼 행이 늘어나는 문제를 피하면서 같은 DB snapshot을 유지합니다.
 
 `ProductSnapshotEntity`는 현재본이 아니라 `Product.revision`별 전체 판매 상태를 JSON으로 보존하는
 append-only 감사 이력입니다. 이 경계는 다음과 같이 고정합니다.
@@ -201,7 +203,9 @@ Admin은 전체 상품을 관리할 수 있습니다.
 
 `MemberType`은 `hashedPassword`, soft delete와 내부 relation을 공개하지 않기 위해 분리합니다.
 비밀번호 hashing, token 발급과 최초 로그인 조건부 갱신은 설정, repository와 DB 원자 연산이 필요하므로
-Service 책임입니다. Member 상태 전이가 실제로 추가되기 전에는 억지로 rich Entity 메서드를 만들지
+Service 책임입니다. 새 비밀번호는 사용자별 salt를 가진 비동기 scrypt로 저장하고, 기존 HMAC은
+로그인 성공 시 조건부 갱신으로 이관합니다. Refresh token은 해시로 저장하며 Redis Lua가 소비/회전과
+재사용 차단을 원자적으로 처리합니다. Member 상태 전이가 실제로 추가되기 전에는 억지로 rich Entity 메서드를 만들지
 않습니다.
 
 ### OpenSearch
