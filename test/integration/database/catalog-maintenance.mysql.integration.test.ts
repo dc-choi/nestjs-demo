@@ -9,6 +9,7 @@ import { MemberRole } from '~/api/member/domain/member-role';
 import { databaseEntities } from '~/infra/database/entities';
 import { CatalogMaintenanceEntity } from '~/infra/search/catalog-maintenance.entity';
 import { CatalogMaintenanceError, CatalogMaintenanceService } from '~/infra/search/catalog-maintenance.service';
+import { catalogSearchWriteEffects } from '~/infra/search/catalog-write-effects';
 
 const describeMySql = process.env.MYSQL_INTEGRATION === '1' ? describe : describe.skip;
 
@@ -72,7 +73,7 @@ describeMySql('Catalog maintenance MySQL concurrency', () => {
 
     it('blocks catalog writers, projectors and concurrent resume during cutover', async () => {
         await maintenance.rebuild(async () => {
-            const commands = new ProductCommandService(orm.em.fork());
+            const commands = new ProductCommandService(orm.em.fork(), catalogSearchWriteEffects);
             await expect(
                 commands.create({ memberId: 1n, role: MemberRole.SELLER }, { slug: 'blocked-product', name: 'Blocked' })
             ).rejects.toBeInstanceOf(CatalogMaintenanceError);

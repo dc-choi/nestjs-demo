@@ -18,6 +18,7 @@ import { createProductSnapshotPayload } from '~/api/catalog/domain/product-snaps
 import { MemberRole } from '~/api/member/domain/member-role';
 import { MemberEntity } from '~/api/member/domain/member.entity';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
+import { catalogSearchWriteEffects } from '~/infra/search/catalog-write-effects';
 import { SearchProjectionOutboxEntity } from '~/infra/search/search-projection-outbox.entity';
 
 const seller: JwtPayload = { memberId: 7n, role: MemberRole.SELLER };
@@ -25,7 +26,7 @@ const seller: JwtPayload = { memberId: 7n, role: MemberRole.SELLER };
 describe('ProductCommandService', () => {
     it('상품과 revision 1 Snapshot, 검색 outbox를 하나의 transaction에 생성한다', async () => {
         const harness = createHarness({ assignCreatedProductId: 101n });
-        const service = new ProductCommandService(harness.em);
+        const service = new ProductCommandService(harness.em, catalogSearchWriteEffects);
 
         const result = await service.create(seller, {
             slug: 'basic-shirt',
@@ -70,7 +71,7 @@ describe('ProductCommandService', () => {
     it('Product row를 잠그고 expectedRevision이 일치할 때 revision과 Snapshot을 같이 올린다', async () => {
         const product = createProduct({ revision: 4 });
         const harness = createHarness({ product });
-        const service = new ProductCommandService(harness.em);
+        const service = new ProductCommandService(harness.em, catalogSearchWriteEffects);
 
         const result = await service.update(seller, {
             productId: product.id,
@@ -101,7 +102,7 @@ describe('ProductCommandService', () => {
     it('row lock 후 expectedRevision 불일치를 감지하고 쓰기를 남기지 않는다', async () => {
         const product = createProduct({ revision: 5 });
         const harness = createHarness({ product });
-        const service = new ProductCommandService(harness.em);
+        const service = new ProductCommandService(harness.em, catalogSearchWriteEffects);
 
         await expect(
             service.update(seller, { productId: product.id, expectedRevision: 4, name: '다른 이름' })
@@ -115,7 +116,7 @@ describe('ProductCommandService', () => {
     it('판매자가 다른 판매자의 상품을 변경하지 못하게 한다', async () => {
         const product = createProduct({ sellerId: 8n });
         const harness = createHarness({ product });
-        const service = new ProductCommandService(harness.em);
+        const service = new ProductCommandService(harness.em, catalogSearchWriteEffects);
 
         await expect(
             service.update(seller, { productId: product.id, expectedRevision: product.revision, name: '탈인 상품' })
@@ -127,7 +128,7 @@ describe('ProductCommandService', () => {
     it('관리자는 다른 판매자의 정지된 상품도 감사 주체를 남기며 변경할 수 있다', async () => {
         const product = createProduct({ sellerId: 8n, status: ProductStatus.SUSPENDED });
         const harness = createHarness({ product });
-        const service = new ProductCommandService(harness.em);
+        const service = new ProductCommandService(harness.em, catalogSearchWriteEffects);
         const admin: JwtPayload = { memberId: 99n, role: MemberRole.ADMIN };
 
         await expect(
@@ -144,7 +145,7 @@ describe('ProductCommandService', () => {
     it('ACTIVE로 변경할 때 판매 가능한 Item이 없으면 transaction을 rollback한다', async () => {
         const product = createProduct();
         const harness = createHarness({ product });
-        const service = new ProductCommandService(harness.em);
+        const service = new ProductCommandService(harness.em, catalogSearchWriteEffects);
 
         await expect(
             service.update(seller, {
@@ -161,7 +162,7 @@ describe('ProductCommandService', () => {
     it('soft delete 상태와 DELETE Snapshot, 검색 outbox를 같은 revision으로 저장한다', async () => {
         const product = createProduct({ revision: 2, status: ProductStatus.PAUSED });
         const harness = createHarness({ product });
-        const service = new ProductCommandService(harness.em);
+        const service = new ProductCommandService(harness.em, catalogSearchWriteEffects);
 
         const result = await service.delete(seller, {
             productId: product.id,
@@ -195,7 +196,7 @@ describe('ProductCommandService', () => {
             parent: categoryRoot,
         });
         const harness = createHarness({ product, categories: [category] });
-        const service = new ProductCommandService(harness.em);
+        const service = new ProductCommandService(harness.em, catalogSearchWriteEffects);
 
         const result = await service.replaceCatalog(seller, {
             productId: product.id,
@@ -292,7 +293,7 @@ describe('ProductCommandService', () => {
         whiteItem.saleStatus = ItemSaleStatus.DENY;
         whiteItem.deletedAt = new Date('2026-09-03T00:00:00.000Z');
         const harness = createHarness({ product });
-        const service = new ProductCommandService(harness.em);
+        const service = new ProductCommandService(harness.em, catalogSearchWriteEffects);
 
         await service.createItem(seller, {
             productId: product.id,
@@ -372,7 +373,7 @@ describe('ProductCommandService', () => {
         const product = createProduct();
         attachCatalogGraph(product);
         const harness = createHarness({ product });
-        const service = new ProductCommandService(harness.em);
+        const service = new ProductCommandService(harness.em, catalogSearchWriteEffects);
 
         await expect(
             service.createItem(seller, {
@@ -398,7 +399,7 @@ describe('ProductCommandService', () => {
     it('aggregate Item 가격/필수 옵션 규칙 위반을 transaction 반영 전에 거부한다', async () => {
         const product = createProduct({ revision: 1 });
         const harness = createHarness({ product });
-        const service = new ProductCommandService(harness.em);
+        const service = new ProductCommandService(harness.em, catalogSearchWriteEffects);
 
         await expect(
             service.replaceCatalog(seller, {
@@ -466,7 +467,7 @@ describe('ProductCommandService', () => {
         blackItem.name = '변경된 검정 셔츠';
         blackItem.stock = 17;
         const harness = createHarness({ product, source });
-        const service = new ProductCommandService(harness.em);
+        const service = new ProductCommandService(harness.em, catalogSearchWriteEffects);
 
         const result = await service.restore(seller, {
             productId: product.id,
@@ -501,7 +502,7 @@ describe('ProductCommandService', () => {
         const product = createProduct({ revision: 2 });
         const databaseError = new Error('snapshot insert failed');
         const harness = createHarness({ product, failOnFlush: 1, flushError: databaseError });
-        const service = new ProductCommandService(harness.em);
+        const service = new ProductCommandService(harness.em, catalogSearchWriteEffects);
 
         await expect(
             service.update(seller, { productId: product.id, expectedRevision: 2, name: '롤백 대상' })

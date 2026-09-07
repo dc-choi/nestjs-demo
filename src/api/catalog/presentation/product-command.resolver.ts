@@ -8,13 +8,10 @@ import { DeleteProductItemInput } from '~/api/catalog/presentation/delete-produc
 import { DeleteProductInput } from '~/api/catalog/presentation/delete-product.input';
 import { parseCatalogId, parseProductId } from '~/api/catalog/presentation/product-id.parser';
 import { ProductMutationPayload } from '~/api/catalog/presentation/product-mutation.payload';
-import {
-    ReplaceProductCatalogInput,
-    ReplaceProductItemInput,
-} from '~/api/catalog/presentation/replace-product-catalog.input';
+import { ReplaceProductCatalogInput } from '~/api/catalog/presentation/replace-product-catalog.input';
 import { RestoreProductInput } from '~/api/catalog/presentation/restore-product.input';
 import { UpdateProductInput } from '~/api/catalog/presentation/update-product.input';
-import { WriteProductItemInput } from '~/api/catalog/presentation/write-product-item.input';
+import { CreateProductItemInput, UpdateProductItemInput } from '~/api/catalog/presentation/write-product-item.input';
 import { Jwt } from '~/global/jwt/decorator/jwt.decorator';
 import { SellerGuard } from '~/global/jwt/guard/seller.guard';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
@@ -55,13 +52,13 @@ export class ProductCommandResolver {
     @UseGuards(SellerGuard)
     async createProductItem(
         @Jwt() actor: JwtPayload,
-        @Args('input') input: WriteProductItemInput
+        @Args('input') input: CreateProductItemInput
     ): Promise<ProductMutationPayload> {
         return toPayload(
             await this.productCommandService.createItem(actor, {
                 ...input,
                 productId: parseProductId(input.productId),
-                item: toItemCommand(input.item),
+                item: input.item,
             })
         );
     }
@@ -70,7 +67,7 @@ export class ProductCommandResolver {
     @UseGuards(SellerGuard)
     async updateProductItem(
         @Jwt() actor: JwtPayload,
-        @Args('input') input: WriteProductItemInput
+        @Args('input') input: UpdateProductItemInput
     ): Promise<ProductMutationPayload> {
         return toPayload(
             await this.productCommandService.updateItem(actor, {
@@ -78,7 +75,7 @@ export class ProductCommandResolver {
                 productId: parseProductId(input.productId),
                 item: {
                     ...input.item,
-                    id: parseCatalogId(input.item.id ?? '', 'Item ID'),
+                    id: parseCatalogId(input.item.id, 'Item ID'),
                 },
             })
         );
@@ -148,12 +145,5 @@ function toPayload(result: ProductWriteResult): ProductMutationPayload {
         revision: result.revision,
         status: result.status,
         deletedAt: result.deletedAt,
-    };
-}
-
-function toItemCommand(item: ReplaceProductItemInput) {
-    return {
-        ...item,
-        id: item.id ? parseCatalogId(item.id, 'Item ID') : undefined,
     };
 }

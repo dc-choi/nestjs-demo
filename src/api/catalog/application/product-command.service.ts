@@ -3,10 +3,12 @@ import {
     BadRequestException,
     ConflictException,
     ForbiddenException,
+    Inject,
     Injectable,
     NotFoundException,
 } from '@nestjs/common';
 
+import { CATALOG_WRITE_EFFECTS, type CatalogWriteEffects } from './catalog-write-effects.port';
 import {
     createProductItem,
     deleteProductItem,
@@ -54,8 +56,6 @@ import {
 import { MemberRole } from '~/api/member/domain/member-role';
 import { MemberEntity } from '~/api/member/domain/member.entity';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
-import { assertCatalogWritable } from '~/infra/search/catalog-maintenance.service';
-import { enqueueSearchProjection } from '~/infra/search/search-projection-outbox.entity';
 
 const snapshotPopulate = [
     'seller',
@@ -75,7 +75,10 @@ const productStatuses = new Set<ProductStatus>(Object.values(ProductStatus));
 
 @Injectable()
 export class ProductCommandService {
-    constructor(private readonly em: EntityManager) {}
+    constructor(
+        private readonly em: EntityManager,
+        @Inject(CATALOG_WRITE_EFFECTS) private readonly writeEffects: CatalogWriteEffects
+    ) {}
 
     async create(actor: JwtPayload, command: CreateProductCommand): Promise<ProductWriteResult> {
         this.assertCatalogActor(actor);
@@ -95,7 +98,7 @@ export class ProductCommandService {
             await tx.flush();
 
             this.persistSnapshot(tx, product, actor.memberId, ProductSnapshotChangeType.CREATE, command.reason);
-            enqueueSearchProjection(tx, product, product.revision);
+            this.writeEffects.recordChange(tx, product);
             await tx.flush();
 
             return toWriteResult(product);
@@ -121,7 +124,7 @@ export class ProductCommandService {
             product.revision += 1;
 
             this.persistSnapshot(tx, product, actor.memberId, ProductSnapshotChangeType.UPDATE, command.reason);
-            enqueueSearchProjection(tx, product, product.revision);
+            this.writeEffects.recordChange(tx, product);
             await tx.flush();
 
             return toWriteResult(product);
@@ -142,7 +145,7 @@ export class ProductCommandService {
             product.revision += 1;
 
             this.persistSnapshot(tx, product, actor.memberId, ProductSnapshotChangeType.DELETE, command.reason);
-            enqueueSearchProjection(tx, product, product.revision);
+            this.writeEffects.recordChange(tx, product);
             await tx.flush();
 
             return toWriteResult(product);
@@ -183,7 +186,7 @@ export class ProductCommandService {
             product.revision += 1;
 
             this.persistSnapshot(tx, product, actor.memberId, ProductSnapshotChangeType.UPDATE, command.reason);
-            enqueueSearchProjection(tx, product, product.revision);
+            this.writeEffects.recordChange(tx, product);
             await tx.flush();
 
             return toWriteResult(product);
@@ -217,7 +220,7 @@ export class ProductCommandService {
             product.revision += 1;
 
             this.persistSnapshot(tx, product, actor.memberId, ProductSnapshotChangeType.RESTORE, command.reason);
-            enqueueSearchProjection(tx, product, product.revision);
+            this.writeEffects.recordChange(tx, product);
             await tx.flush();
 
             return toWriteResult(product);
@@ -228,7 +231,7 @@ export class ProductCommandService {
         try {
             return await this.em.transactional(
                 async (tx) => {
-                    await assertCatalogWritable(tx);
+                    await this.writeEffects.assertWritable(tx);
                     return work(tx);
                 },
                 {

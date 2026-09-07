@@ -38,7 +38,7 @@ export interface ReplaceProductCatalogCommand extends DeleteProductCommand {
 }
 
 export interface CreateProductItemCommand extends DeleteProductCommand {
-    readonly item: ReplaceProductItemCommand;
+    readonly item: Omit<ReplaceProductItemCommand, 'id'> & { readonly id?: never };
 }
 
 export interface UpdateProductItemCommand extends DeleteProductCommand {

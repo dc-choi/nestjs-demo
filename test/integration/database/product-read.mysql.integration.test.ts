@@ -20,6 +20,7 @@ import { MemberRole } from '~/api/member/domain/member-role';
 import { MemberEntity } from '~/api/member/domain/member.entity';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
 import { databaseEntities } from '~/infra/database/entities';
+import { catalogSearchWriteEffects } from '~/infra/search/catalog-write-effects';
 
 const describeMySql = process.env.MYSQL_INTEGRATION === '1' ? describe : describe.skip;
 
@@ -155,7 +156,7 @@ async function createFixture(em: EntityManager): Promise<CatalogFixture> {
     await em.flush();
 
     const actor = { memberId: seller.id, role: MemberRole.SELLER };
-    const commands = new ProductCommandService(em);
+    const commands = new ProductCommandService(em, catalogSearchWriteEffects);
     const name = 'Large Current Product';
     const tags = ['stable-tag', 'core-tag'];
     const catalog: Omit<ReplaceProductCatalogCommand, 'expectedRevision' | 'productId'> = {
@@ -212,7 +213,7 @@ async function createFixture(em: EntityManager): Promise<CatalogFixture> {
 }
 
 async function replaceCatalogAfterRootRead(orm: CoreMikroORM<MySqlDriver>, fixture: CatalogFixture): Promise<void> {
-    const commands = new ProductCommandService(orm.em.fork());
+    const commands = new ProductCommandService(orm.em.fork(), catalogSearchWriteEffects);
     await commands.replaceCatalog(fixture.actor, {
         productId: fixture.productId,
         expectedRevision: fixture.revision,

@@ -21,6 +21,7 @@ import { CatalogMaintenanceError, CatalogMaintenanceService } from '~/infra/sear
 import { CatalogProjectionReader } from '~/infra/search/catalog-projection.reader';
 import { CatalogRebuildService } from '~/infra/search/catalog-rebuild.service';
 import { CatalogSearchWorker } from '~/infra/search/catalog-search.worker';
+import { catalogSearchWriteEffects } from '~/infra/search/catalog-write-effects';
 import { OpenSearchHttpClient } from '~/infra/search/opensearch.client';
 import { SearchOutboxRelay } from '~/infra/search/search-outbox.relay';
 import { SearchReconciliationService } from '~/infra/search/search-reconciliation.service';
@@ -336,7 +337,7 @@ async function createActiveProduct(orm: CoreMikroORM<MySqlDriver>, suffix: strin
     });
     em.persist(seller);
     await em.flush();
-    const commands = new ProductCommandService(em);
+    const commands = new ProductCommandService(em, catalogSearchWriteEffects);
     const actor = { memberId: seller.id, role: MemberRole.SELLER };
     const created = await commands.create(actor, { slug: `recovery-${suffix}`, name: '복구 대상 상품' });
     const replaced = await commands.replaceCatalog(actor, {

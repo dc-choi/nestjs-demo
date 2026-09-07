@@ -20,6 +20,7 @@ import { CatalogMaintenanceService } from '~/infra/search/catalog-maintenance.se
 import { CatalogProjectionReader } from '~/infra/search/catalog-projection.reader';
 import { CatalogRebuildService } from '~/infra/search/catalog-rebuild.service';
 import { CatalogSearchWorker } from '~/infra/search/catalog-search.worker';
+import { catalogSearchWriteEffects } from '~/infra/search/catalog-write-effects';
 import { OpenSearchHttpClient } from '~/infra/search/opensearch.client';
 import { SearchOutboxRelay } from '~/infra/search/search-outbox.relay';
 import { SearchReconciliationService } from '~/infra/search/search-reconciliation.service';
@@ -94,7 +95,7 @@ describePipeline('MySQL to OpenSearch catalog pipeline integration', () => {
         em.persist(seller);
         await em.flush();
 
-        const catalog = new ProductCommandService(em);
+        const catalog = new ProductCommandService(em, catalogSearchWriteEffects);
         const actor = { memberId: seller.id, role: MemberRole.SELLER };
         const created = await catalog.create(actor, {
             slug: `search-pipeline-${suffix}`,

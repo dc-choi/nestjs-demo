@@ -16,6 +16,7 @@ import { MemberRole } from '~/api/member/domain/member-role';
 import { MemberEntity } from '~/api/member/domain/member.entity';
 import type { EnvConfig } from '~/global/config/env/env.config';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
+import { catalogSearchWriteEffects } from '~/infra/search/catalog-write-effects';
 
 const DEMO_PRODUCT_SLUG = 'demo-wireless-keyboard';
 const initialStockBySku = new Map([
@@ -110,7 +111,7 @@ async function seedCategories(em: EntityManager): Promise<CategoryEntity> {
 }
 
 async function seedCatalog(em: EntityManager, seller: JwtPayload, category: CategoryEntity): Promise<void> {
-    const service = new ProductCommandService(em);
+    const service = new ProductCommandService(em, catalogSearchWriteEffects);
     let product = await em.findOne(ProductEntity, { slug: DEMO_PRODUCT_SLUG }, { connectionType: 'write' });
     if (!product) {
         const created = await service.create(seller, {

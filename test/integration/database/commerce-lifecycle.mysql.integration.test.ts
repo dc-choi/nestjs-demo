@@ -38,6 +38,7 @@ import type { DistributedLockService } from '~/global/common/lock/distributed-lo
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
 import { databaseEntities } from '~/infra/database/entities';
 import { DatabaseSeeder } from '~/infra/database/seeders/DatabaseSeeder';
+import { catalogSearchWriteEffects } from '~/infra/search/catalog-write-effects';
 
 const describeCommerceMySql = process.env.MYSQL_INTEGRATION === '1' ? describe : describe.skip;
 
@@ -470,7 +471,7 @@ describeCommerceMySql('Commerce lifecycle MySQL integration', () => {
         });
         const catalogEm = orm!.em.fork({ useContext: true });
         const item = await catalogEm.findOneOrFail(ItemEntity, itemId, { populate: ['product'] });
-        await new ProductCommandService(catalogEm).deleteItem(seller, {
+        await new ProductCommandService(catalogEm, catalogSearchWriteEffects).deleteItem(seller, {
             productId: item.product.id,
             itemId,
             expectedRevision: item.product.revision,

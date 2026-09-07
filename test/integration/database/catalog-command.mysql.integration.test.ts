@@ -19,6 +19,7 @@ import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
 import { MemberRole } from '~/api/member/domain/member-role';
 import { MemberEntity } from '~/api/member/domain/member.entity';
 import { databaseEntities } from '~/infra/database/entities';
+import { catalogSearchWriteEffects } from '~/infra/search/catalog-write-effects';
 
 const describeMySql = process.env.MYSQL_INTEGRATION === '1' ? describe : describe.skip;
 
@@ -85,7 +86,7 @@ async function verifyCatalogRoundTrip(em: EntityManager): Promise<bigint> {
     await em.flush();
 
     const actor = { memberId: seller.id, role: MemberRole.SELLER };
-    const commandService = new ProductCommandService(em);
+    const commandService = new ProductCommandService(em, catalogSearchWriteEffects);
     const created = await commandService.create(actor, {
         slug: `integration-wireless-keyboard-${suffix}`,
         name: 'Integration Wireless Keyboard',
