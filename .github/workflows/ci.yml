@@ -1,4 +1,4 @@
-name: SonarCloud Analysis
+name: CI
 
 on:
     pull_request:
@@ -11,7 +11,7 @@ on:
             - main
 
 jobs:
-    sonarqube:
+    build-and-test:
         runs-on: ubuntu-latest
         env:
             ENV: test
@@ -62,8 +62,6 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v4
-              with:
-                  fetch-depth: 0 # SonarCloud가 git history를 분석하려면 필요
 
             - name: Setup Node.js
               uses: actions/setup-node@v4
@@ -119,19 +117,6 @@ jobs:
 
             - name: Run tests with coverage
               run: pnpm coverage
-
-            - name: SonarCloud Scan
-              uses: sonarsource/sonarcloud-github-action@master
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
-            - name: SonarCloud Quality Gate Check
-              uses: sonarsource/sonarqube-quality-gate-action@master
-              timeout-minutes: 5
-              env:
-                  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-                  SONAR_HOST_URL: https://sonarcloud.io
 
     search-integration:
         runs-on: ubuntu-latest

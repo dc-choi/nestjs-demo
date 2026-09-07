@@ -579,8 +579,7 @@ typecheck/lint/unit/coverage/build/boot/e2e/Docker 검증도 완료했다.
 - CI의 Prisma generate 단계
 
 의도적으로 남을 수 있는 `Prisma` 문자열은 application 의존성이 아니다. `snapshot/prisma-graphql`
-브랜치 이름과 이 문서의 전환 이력은 복구/설명 기준으로 유지한다. `sonar.projectKey`와
-`sonar.projectName`은 외부 Sonar 프로젝트 식별자이므로 이 전환에서 임의로 바꾸지 않는다. lockfile에
+브랜치 이름과 이 문서의 전환 이력은 복구/설명 기준으로 유지한다. lockfile에
 다른 패키지의 optional peer metadata로 나타나는 `@prisma/client`도 설치된 직접 의존성을 뜻하지 않는다.
 
 MikroORM v7이 내부적으로 사용하는 Kysely는 MySQL driver의 구현 세부다. 애플리케이션의 직접
@@ -737,7 +736,7 @@ Phase 0-4의 기능 전환 조건과 Prisma/direct Kysely package 제거를 충�
 - TypeScript no-emit compile과 전체 `src/test` ESLint
 - 일반 unit 7 suites, 17 tests
 - MikroORM native ESM unit 9 suites, 23 tests
-- 두 unit suite의 별도 LCOV 생성과 Sonar 경로 등록
+- 두 unit suite의 별도 LCOV 생성
 - Nest stage build와 SWC production build
 - SWC production 산출물의 MySQL/Redis 연결 및 `/graphql` 부팅
 - 실행 중인 서버 대상 GraphQL e2e 1 suite, 3 tests
