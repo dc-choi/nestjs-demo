@@ -1,5 +1,6 @@
 import { type EntityManager, LockMode } from '@mikro-orm/core';
 import { Seeder } from '@mikro-orm/seeder';
+import { ConfigService } from '@nestjs/config';
 
 import { ProductCommandService } from '~/api/catalog/application/product-command.service';
 import { CategoryEntity } from '~/api/catalog/domain/entity/category.entity';
@@ -9,9 +10,11 @@ import { ProductStatus } from '~/api/catalog/domain/entity/product-status';
 import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
 import { InventoryMovementEntity } from '~/api/inventory/domain/inventory-movement.entity';
 import { InventoryMovementType } from '~/api/inventory/domain/inventory.enum';
+import { PasswordKdfAdmission } from '~/api/member/application/password-kdf.admission';
+import { PasswordService } from '~/api/member/application/password.service';
 import { MemberRole } from '~/api/member/domain/member-role';
-import { MemberDomain } from '~/api/member/domain/member.domain';
 import { MemberEntity } from '~/api/member/domain/member.entity';
+import type { EnvConfig } from '~/global/config/env/env.config';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
 
 const DEMO_PRODUCT_SLUG = 'demo-wireless-keyboard';
@@ -56,12 +59,13 @@ export class DatabaseSeeder extends Seeder {
 
 async function seedMembers(em: EntityManager, password: string): Promise<MemberEntity[]> {
     const members: MemberEntity[] = [];
+    const passwords = new PasswordService(new ConfigService<EnvConfig, true>(), new PasswordKdfAdmission());
     for (const definition of demoMembers) {
         let member = await em.findOne(MemberEntity, { email: definition.email }, { connectionType: 'write' });
         if (!member) {
             member = Object.assign(new MemberEntity(), {
                 ...definition,
-                hashedPassword: await MemberDomain.hashPassword(password),
+                hashedPassword: await passwords.hash(password),
                 lastLoginAt: null,
                 membershipAt: null,
                 deletedAt: null,

@@ -1,16 +1,14 @@
 import { type EntityRepository, UniqueConstraintViolationException } from '@mikro-orm/core';
 import { ConflictException, ServiceUnavailableException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { EventBus } from '@nestjs/cqrs';
 
 import { describe, expect, it, vi } from 'vitest';
 import { SignupEvent } from '~/api/member/application/event/signup.event';
 import { MemberService } from '~/api/member/application/member.service';
+import { PasswordKdfSaturatedError } from '~/api/member/application/password-kdf.admission';
+import { PasswordService } from '~/api/member/application/password.service';
 import { MemberRole } from '~/api/member/domain/member-role';
-import { MemberDomain } from '~/api/member/domain/member.domain';
 import { MemberEntity } from '~/api/member/domain/member.entity';
-import { PasswordKdfSaturatedError } from '~/api/member/domain/password-kdf.admission';
-import { EnvConfig } from '~/global/config/env/env.config';
 
 describe('MemberService', () => {
     const command = {
@@ -19,25 +17,17 @@ describe('MemberService', () => {
         password: 'password',
         phone: '01012345678',
     };
-    const configValues = {
-        MAIL_SIGNUP_ALERT_USER: 'operator@example.com',
-        SECRET: 'test-secret',
-    };
-
-    function createService(insert: ReturnType<typeof vi.fn>, find = vi.fn()) {
+    function createService(insert: ReturnType<typeof vi.fn>, passwordService: PasswordService, find = vi.fn()) {
         const repository = {
             insert,
             find,
         } as unknown as EntityRepository<MemberEntity>;
-        const config = {
-            get: vi.fn((key: keyof typeof configValues) => configValues[key]),
-        } as unknown as ConfigService<EnvConfig, true>;
         const eventBus = {
             publish: vi.fn(),
         } as unknown as EventBus;
 
         return {
-            service: new MemberService(repository, config, eventBus),
+            service: new MemberService(repository, passwordService, eventBus),
             eventBus,
             find,
         };
@@ -45,8 +35,8 @@ describe('MemberService', () => {
 
     it('회원 생성 후 가입 이벤트와 CUSTOMER 응답을 반환한다', async () => {
         const insert = vi.fn<() => Promise<bigint>>().mockResolvedValue(1n);
-        const { service, eventBus } = createService(insert);
-        vi.spyOn(MemberDomain, 'hashPassword').mockResolvedValue('scrypt-v1$test');
+        const passwordService = { hash: vi.fn().mockResolvedValue('scrypt-v1$test') } as unknown as PasswordService;
+        const { service, eventBus } = createService(insert, passwordService);
 
         const result = await service.signup(command);
 
@@ -57,9 +47,7 @@ describe('MemberService', () => {
             phone: command.phone,
             role: MemberRole.CUSTOMER,
         });
-        expect(eventBus.publish).toHaveBeenCalledWith(
-            new SignupEvent(command.email, command.name, command.phone, configValues.MAIL_SIGNUP_ALERT_USER)
-        );
+        expect(eventBus.publish).toHaveBeenCalledWith(new SignupEvent(command.email, command.name, command.phone));
         expect(result).toEqual({
             name: command.name,
             email: command.email,
@@ -71,7 +59,8 @@ describe('MemberService', () => {
     it('DB 이메일 unique 제약 오류를 EXISTING_MEMBER ConflictException으로 변환한다', async () => {
         const error = new UniqueConstraintViolationException(new Error('Duplicate entry'));
         const insert = vi.fn<() => Promise<bigint>>().mockRejectedValue(error);
-        const { service, eventBus } = createService(insert);
+        const passwordService = { hash: vi.fn().mockResolvedValue('scrypt-v1$test') } as unknown as PasswordService;
+        const { service, eventBus } = createService(insert, passwordService);
 
         const signup = service.signup(command);
 
@@ -86,8 +75,10 @@ describe('MemberService', () => {
     });
 
     it('KDF 동시 처리 한도 초과를 ServiceUnavailable으로 반환한다', async () => {
-        const { service, eventBus } = createService(vi.fn());
-        vi.spyOn(MemberDomain, 'hashPassword').mockRejectedValue(new PasswordKdfSaturatedError());
+        const passwordService = {
+            hash: vi.fn().mockRejectedValue(new PasswordKdfSaturatedError()),
+        } as unknown as PasswordService;
+        const { service, eventBus } = createService(vi.fn(), passwordService);
 
         await expect(service.signup(command)).rejects.toBeInstanceOf(ServiceUnavailableException);
         expect(eventBus.publish).not.toHaveBeenCalled();
@@ -106,7 +97,7 @@ describe('MemberService', () => {
             },
         ];
         const find = vi.fn<() => Promise<typeof members>>().mockResolvedValue(members);
-        const { service } = createService(vi.fn(), find);
+        const { service } = createService(vi.fn(), {} as PasswordService, find);
 
         await expect(service.findAll()).resolves.toEqual(members);
         expect(find).toHaveBeenCalledWith(

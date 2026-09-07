@@ -1,14 +1,12 @@
 import type { EntityRepository } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 
-import { MemberDomain } from '~/api/member/domain/member.domain';
+import { PasswordKdfSaturatedError } from '~/api/member/application/password-kdf.admission';
+import { PasswordService } from '~/api/member/application/password.service';
 import { MemberEntity } from '~/api/member/domain/member.entity';
-import { PasswordKdfSaturatedError } from '~/api/member/domain/password-kdf.admission';
 import { InvalidIdOrPassword, PasswordKdfBusy } from '~/global/common/error/auth.error';
 import { NotExistingMember } from '~/global/common/error/member.error';
-import { EnvConfig } from '~/global/config/env/env.config';
 import { TokenProvider } from '~/global/jwt/token.provider';
 
 @Injectable()
@@ -16,7 +14,7 @@ export class AuthService {
     constructor(
         @InjectRepository(MemberEntity)
         private readonly repository: EntityRepository<MemberEntity>,
-        private readonly config: ConfigService<EnvConfig, true>,
+        private readonly passwordService: PasswordService,
         private readonly tokenProvider: TokenProvider
     ) {}
 
@@ -30,13 +28,13 @@ export class AuthService {
             }
         );
         const passwordVerification = await this.runPasswordKdf(() =>
-            MemberDomain.verifyPassword(password, findMember?.hashedPassword ?? null, this.config.get<string>('SECRET'))
+            this.passwordService.verify(password, findMember?.hashedPassword ?? null)
         );
         if (!findMember || !passwordVerification.isValid) throw new UnauthorizedException(new InvalidIdOrPassword());
 
         const { id, role } = findMember;
         if (passwordVerification.needsRehash) {
-            const hashedPassword = await this.runPasswordKdf(() => MemberDomain.hashPassword(password));
+            const hashedPassword = await this.runPasswordKdf(() => this.passwordService.hash(password));
             await this.repository.nativeUpdate(
                 { id, hashedPassword: findMember.hashedPassword, deletedAt: null },
                 { hashedPassword }

@@ -1,31 +1,28 @@
 import { type EntityRepository, UniqueConstraintViolationException } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { BadRequestException, ConflictException, Injectable, ServiceUnavailableException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { EventBus } from '@nestjs/cqrs';
 
 import { SignupEvent } from './event/signup.event';
 
+import { PasswordKdfSaturatedError } from '~/api/member/application/password-kdf.admission';
+import { PasswordService } from '~/api/member/application/password.service';
 import { IdBlackList } from '~/api/member/domain/idBlackList';
 import { MemberRole } from '~/api/member/domain/member-role';
-import { MemberDomain } from '~/api/member/domain/member.domain';
 import { MemberEntity } from '~/api/member/domain/member.entity';
-import { PasswordKdfSaturatedError } from '~/api/member/domain/password-kdf.admission';
 import { PasswordKdfBusy } from '~/global/common/error/auth.error';
 import { ExistingMember, InvalidMember } from '~/global/common/error/member.error';
-import { EnvConfig } from '~/global/config/env/env.config';
 
 @Injectable()
 export class MemberService {
     constructor(
         @InjectRepository(MemberEntity)
         private readonly repository: EntityRepository<MemberEntity>,
-        private readonly config: ConfigService<EnvConfig, true>,
+        private readonly passwordService: PasswordService,
         private readonly eventBus: EventBus
     ) {}
 
     async signup({ name, password, email, phone }: SignupCommand) {
-        const emails = this.config.get<string>('MAIL_SIGNUP_ALERT_USER');
         const role = MemberRole.CUSTOMER;
 
         if (IdBlackList.includes(name)) throw new BadRequestException(new InvalidMember());
@@ -34,7 +31,7 @@ export class MemberService {
             await this.repository.insert({
                 name,
                 email,
-                hashedPassword: await MemberDomain.hashPassword(password),
+                hashedPassword: await this.passwordService.hash(password),
                 phone,
                 role,
             });
@@ -51,7 +48,7 @@ export class MemberService {
             throw error;
         }
 
-        this.eventBus.publish(new SignupEvent(email, name, phone, emails));
+        this.eventBus.publish(new SignupEvent(email, name, phone));
 
         return { name, email, phone, role };
     }

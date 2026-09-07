@@ -16,7 +16,8 @@ export class SignupMailHandler implements IEventHandler<SignupEvent> {
     ) {}
 
     handle(event: SignupEvent): void {
-        const { email, name, phone, to } = event;
+        const { email, name, phone } = event;
+        const to = this.config.get<string>('MAIL_SIGNUP_ALERT_USER');
 
         this.mailerService
             .sendMail({

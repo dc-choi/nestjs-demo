@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PasswordKdfAdmission, PasswordKdfSaturatedError } from '~/api/member/domain/password-kdf.admission';
+import { PasswordKdfAdmission, PasswordKdfSaturatedError } from '~/api/member/application/password-kdf.admission';
 
 describe('PasswordKdfAdmission', () => {
     it('fails immediately when full and admits work after the running KDF completes', async () => {

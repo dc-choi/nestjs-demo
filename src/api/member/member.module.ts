@@ -4,10 +4,11 @@ import { CqrsModule } from '@nestjs/cqrs';
 
 import { MemberService } from './application/member.service';
 import { MemberEntity } from './domain/member.entity';
+import { PasswordModule } from './password.module';
 import { MemberResolver } from './presentation/member.resolver';
 
 @Module({
-    imports: [CqrsModule, MikroOrmModule.forFeature([MemberEntity])],
+    imports: [CqrsModule, MikroOrmModule.forFeature([MemberEntity]), PasswordModule],
     providers: [MemberService, MemberResolver],
 })
 export class MemberModule {}
