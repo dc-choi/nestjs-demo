@@ -65,7 +65,6 @@ function createSearchConfig(enabled: boolean): SearchConfig {
                       OPENSEARCH_NODE_URL: 'http://127.0.0.1:9200',
                       OPENSEARCH_READ_ALIAS: 'catalog-products-read',
                       OPENSEARCH_WRITE_ALIAS: 'catalog-products-write',
-                      OPENSEARCH_CURSOR_SECRET: 'cursor-secret-at-least-32-characters',
                   }
                 : { OPENSEARCH_ENABLED: false }
         )

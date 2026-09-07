@@ -1,10 +1,10 @@
 import { NestFactory } from '@nestjs/core';
 
 import { SearchOutboxRelay } from '~/infra/search/search-outbox.relay';
-import { MaintenanceAppModule } from '~/maintenance-app.module';
+import { SearchMaintenanceAppModule } from '~/search-maintenance-app.module';
 
 async function main(): Promise<void> {
-    const app = await NestFactory.createApplicationContext(MaintenanceAppModule, { logger: ['error', 'warn'] });
+    const app = await NestFactory.createApplicationContext(SearchMaintenanceAppModule, { logger: ['error', 'warn'] });
     try {
         const result = await app.get(SearchOutboxRelay).drainUntilEmpty();
         process.stdout.write(`${JSON.stringify(result)}\n`);

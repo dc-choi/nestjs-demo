@@ -22,7 +22,6 @@ describeOpenSearch('OpenSearch catalog integration', () => {
         nodeUrl: new URL(process.env.OPENSEARCH_NODE_URL ?? 'http://127.0.0.1:9200'),
         readAlias: `catalog-products-read-${suffix}`,
         writeAlias: `catalog-products-write-${suffix}`,
-        cursorSecret: 'integration-test-cursor-secret-at-least-32',
         requestTimeoutMs: 5_000,
     } as SearchConfig;
     const client = new OpenSearchHttpClient(config);
@@ -74,7 +73,7 @@ describeOpenSearch('OpenSearch catalog integration', () => {
 
         const search = new ProductSearchService(
             new OpenSearchProductSearchAdapter(config, client),
-            config.cursorSecret
+            'integration-test-cursor-secret-at-least-32'
         );
         const input = {
             categorySlug: 'keyboards',

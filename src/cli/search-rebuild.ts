@@ -2,11 +2,13 @@ import { NestFactory } from '@nestjs/core';
 
 import { CatalogAnalyzer } from '~/infra/search/catalog-index.definition';
 import { CatalogRebuildService } from '~/infra/search/catalog-rebuild.service';
-import { MaintenanceAppModule } from '~/maintenance-app.module';
+import { SearchMaintenanceAppModule } from '~/search-maintenance-app.module';
 
 async function main(): Promise<void> {
     const options = parseArguments(process.argv.slice(2));
-    const app = await NestFactory.createApplicationContext(MaintenanceAppModule, { logger: ['error', 'warn', 'log'] });
+    const app = await NestFactory.createApplicationContext(SearchMaintenanceAppModule, {
+        logger: ['error', 'warn', 'log'],
+    });
     try {
         const result = await app.get(CatalogRebuildService).rebuild(options);
         process.stdout.write(`${JSON.stringify(result)}\n`);

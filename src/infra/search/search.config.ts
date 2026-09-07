@@ -9,7 +9,6 @@ export class SearchConfig {
     readonly nodeUrl: URL;
     readonly readAlias: string;
     readonly writeAlias: string;
-    readonly cursorSecret: string;
     readonly requestTimeoutMs: number;
 
     constructor(config: ConfigService) {
@@ -28,10 +27,6 @@ export class SearchConfig {
         if (this.enabled && this.readAlias === this.writeAlias) {
             throw new Error('OpenSearch read and write aliases must be different');
         }
-        this.cursorSecret = parseCursorSecret(
-            config.get<unknown>('OPENSEARCH_CURSOR_SECRET') ?? config.get<unknown>('SECRET'),
-            this.enabled
-        );
         this.requestTimeoutMs = parseTimeout(config.get<unknown>('OPENSEARCH_REQUEST_TIMEOUT_MS'));
     }
 }
@@ -66,17 +61,6 @@ function parseAlias(value: unknown, fallback: string, required: boolean): string
     const alias = value.trim();
     if (!ALIAS_PATTERN.test(alias)) throw new Error(`Invalid OpenSearch alias: ${alias}`);
     return alias;
-}
-
-function parseCursorSecret(value: unknown, required: boolean): string {
-    if (typeof value === 'string' && value.length >= 32) return value;
-    if (required) {
-        throw new Error(
-            'OPENSEARCH_CURSOR_SECRET or SECRET must contain at least 32 characters when OpenSearch is enabled'
-        );
-    }
-    if (typeof value === 'string' && value.length > 0) return value;
-    return 'search-disabled';
 }
 
 function parseTimeout(value: unknown): number {

@@ -55,13 +55,22 @@ export class ProductSearchService {
             return { nodes: page.nodes, pageInfo: { hasNextPage: false, endCursor: null } };
         }
 
-        if (!page.nextSortValues) throw new Error('Product search page is missing cursor sort values');
-        return {
-            nodes: page.nodes,
-            pageInfo: {
-                hasNextPage: true,
-                endCursor: encodeSearchCursor(page.sessionId, [...page.nextSortValues], fingerprint, this.cursorSecret),
-            },
-        };
+        try {
+            return {
+                nodes: page.nodes,
+                pageInfo: {
+                    hasNextPage: true,
+                    endCursor: encodeSearchCursor(
+                        page.sessionId,
+                        [...page.nextSortValues],
+                        fingerprint,
+                        this.cursorSecret
+                    ),
+                },
+            };
+        } catch (error) {
+            await this.searchPort.close(page.sessionId);
+            throw error;
+        }
     }
 }

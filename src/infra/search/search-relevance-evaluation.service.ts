@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
-import { buildOpenSearchProductRequest } from './opensearch-product-search.adapter';
 import { OpenSearchHttpClient, escapeOpenSearchPathSegment } from './opensearch.client';
+import { buildOpenSearchProductRequest } from './product-search-query.compiler';
 
 import { performance } from 'node:perf_hooks';
 import { ProductSearchInput, canonicalizeProductSearchInput } from '~/api/catalog/search/domain/product-search.query';

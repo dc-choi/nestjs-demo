@@ -36,7 +36,6 @@ describePipeline('MySQL to OpenSearch catalog pipeline integration', () => {
         nodeUrl: new URL(process.env.OPENSEARCH_NODE_URL ?? 'http://127.0.0.1:9200'),
         readAlias: `catalog-pipeline-read-${suffix}`,
         writeAlias: `catalog-pipeline-write-${suffix}`,
-        cursorSecret: 'integration-test-cursor-secret-at-least-32',
         requestTimeoutMs: 5_000,
     } as SearchConfig;
     const client = new OpenSearchHttpClient(config);

@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 import { SearchHealthController } from './search-health.controller';
 import { SearchOutboxWorker } from './search-outbox.worker';
 import { SearchModule } from './search.module';
 
+import { resolveProductSearchCursorSecret } from '~/api/catalog/search/application/product-search-cursor-secret';
 import {
     PRODUCT_SEARCH_CURSOR_SECRET,
     PRODUCT_SEARCH_PORT,
@@ -12,7 +14,6 @@ import { ProductSearchService } from '~/api/catalog/search/application/product-s
 import { DecimalScalar } from '~/api/catalog/search/presentation/decimal.scalar';
 import { ProductSearchResolver } from '~/api/catalog/search/presentation/product-search.resolver';
 import { OpenSearchProductSearchAdapter } from '~/infra/search/opensearch-product-search.adapter';
-import { SearchConfig } from '~/infra/search/search.config';
 
 @Module({
     imports: [SearchModule],
@@ -28,8 +29,8 @@ import { SearchConfig } from '~/infra/search/search.config';
         },
         {
             provide: PRODUCT_SEARCH_CURSOR_SECRET,
-            inject: [SearchConfig],
-            useFactory: (config: SearchConfig) => config.cursorSecret,
+            inject: [ConfigService],
+            useFactory: resolveProductSearchCursorSecret,
         },
     ],
 })

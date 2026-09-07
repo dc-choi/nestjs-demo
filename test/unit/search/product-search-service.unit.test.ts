@@ -60,6 +60,20 @@ describe('Product search service', () => {
         expect(result.pageInfo).toMatchObject({ hasNextPage: true, endCursor: expect.any(String) });
         expect(close).not.toHaveBeenCalled();
     });
+
+    it('closes a returned PIT when an invalid continuation cannot become a cursor', async () => {
+        const close = vi.fn().mockResolvedValue(undefined);
+        const search = vi.fn().mockResolvedValue({
+            sessionId: 'session-1',
+            nodes: [node('1', '11')],
+            hasNextPage: true,
+            nextSortValues: null,
+        });
+        const service = new ProductSearchService({ isAvailable: () => true, search, close }, 'test-secret');
+
+        await expect(service.search({ first: 1 })).rejects.toBeInstanceOf(TypeError);
+        expect(close).toHaveBeenCalledWith('session-1');
+    });
 });
 
 function node(productId: string, itemId: string): ProductSearchNode {

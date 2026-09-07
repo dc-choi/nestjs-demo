@@ -8,7 +8,7 @@ import {
     encodeSearchCursor,
     fingerprintProductSearchInput,
 } from '~/api/catalog/search/domain/product-search.query';
-import { buildOpenSearchProductRequest } from '~/infra/search/opensearch-product-search.adapter';
+import { buildOpenSearchProductRequest } from '~/infra/search/product-search-query.compiler';
 
 describe('Product search query contract', () => {
     it('canonicalizes whitespace, decimals and option order before fingerprinting', () => {

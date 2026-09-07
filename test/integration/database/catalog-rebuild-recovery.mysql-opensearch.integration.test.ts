@@ -41,7 +41,6 @@ describeRecovery('catalog rebuild recovery after MySQL connection loss', () => {
         nodeUrl: new URL(process.env.OPENSEARCH_NODE_URL ?? 'http://127.0.0.1:9200'),
         readAlias: `catalog-recovery-read-${suffix}`,
         writeAlias: `catalog-recovery-write-${suffix}`,
-        cursorSecret: 'integration-test-cursor-secret-at-least-32',
         requestTimeoutMs: 5_000,
     } as SearchConfig;
     const manager = new CatalogIndexManager(new OpenSearchHttpClient(config), config);

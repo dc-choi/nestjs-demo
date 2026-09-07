@@ -90,6 +90,67 @@ describe('OpenSearch product search adapter', () => {
         await expect(adapter.search(searchRequest())).rejects.toBeInstanceOf(ProductSearchUnavailableError);
     });
 
+    it('closes a newly opened PIT when the search request fails', async () => {
+        const request = vi
+            .fn()
+            .mockResolvedValueOnce({ pit_id: 'pit-1' })
+            .mockRejectedValueOnce(new Error('offline'))
+            .mockResolvedValueOnce(null);
+        const adapter = new OpenSearchProductSearchAdapter(
+            { enabled: true, readAlias: 'catalog-products-read' } as SearchConfig,
+            { request } as unknown as OpenSearchHttpClient
+        );
+
+        await expect(adapter.search(searchRequest())).rejects.toBeInstanceOf(ProductSearchUnavailableError);
+        expect(request).toHaveBeenLastCalledWith('DELETE', '/_search/point_in_time', { body: { pit_id: 'pit-1' } });
+    });
+
+    it('closes the latest newly opened PIT when response decoding fails', async () => {
+        const request = vi
+            .fn()
+            .mockResolvedValueOnce({ pit_id: 'pit-1' })
+            .mockResolvedValueOnce({ pit_id: 'pit-2', hits: { hits: [{ _source: { productId: 1 } }] } })
+            .mockResolvedValueOnce(null);
+        const adapter = new OpenSearchProductSearchAdapter(
+            { enabled: true, readAlias: 'catalog-products-read' } as SearchConfig,
+            { request } as unknown as OpenSearchHttpClient
+        );
+
+        await expect(adapter.search(searchRequest())).rejects.toBeInstanceOf(ProductSearchUnavailableError);
+        expect(request).toHaveBeenLastCalledWith('DELETE', '/_search/point_in_time', { body: { pit_id: 'pit-2' } });
+    });
+
+    it('does not close a caller-owned PIT after a retriable search failure', async () => {
+        const request = vi.fn().mockRejectedValue(new Error('offline'));
+        const adapter = new OpenSearchProductSearchAdapter(
+            { enabled: true, readAlias: 'catalog-products-read' } as SearchConfig,
+            { request } as unknown as OpenSearchHttpClient
+        );
+
+        await expect(adapter.search({ ...searchRequest(), sessionId: 'cursor-pit' })).rejects.toBeInstanceOf(
+            ProductSearchUnavailableError
+        );
+        expect(request).toHaveBeenCalledTimes(1);
+    });
+
+    it('closes a rotated continuation PIT when decoding fails before its ID can be returned', async () => {
+        const request = vi
+            .fn()
+            .mockResolvedValueOnce({ pit_id: 'rotated-pit', hits: { hits: [{ _source: { productId: 1 } }] } })
+            .mockResolvedValueOnce(null);
+        const adapter = new OpenSearchProductSearchAdapter(
+            { enabled: true, readAlias: 'catalog-products-read' } as SearchConfig,
+            { request } as unknown as OpenSearchHttpClient
+        );
+
+        await expect(adapter.search({ ...searchRequest(), sessionId: 'cursor-pit' })).rejects.toBeInstanceOf(
+            ProductSearchUnavailableError
+        );
+        expect(request).toHaveBeenLastCalledWith('DELETE', '/_search/point_in_time', {
+            body: { pit_id: 'rotated-pit' },
+        });
+    });
+
     it('does not parse the extra sentinel hit', async () => {
         const request = vi
             .fn()

@@ -4,11 +4,11 @@ import {
     type SearchOutboxDeadLetterRetryOptions,
     SearchOutboxRecoveryService,
 } from '~/infra/search/search-outbox-recovery.service';
-import { MaintenanceAppModule } from '~/maintenance-app.module';
+import { SearchMaintenanceAppModule } from '~/search-maintenance-app.module';
 
 async function main(): Promise<void> {
     const options = parseArguments(process.argv.slice(2));
-    const app = await NestFactory.createApplicationContext(MaintenanceAppModule, { logger: ['error', 'warn'] });
+    const app = await NestFactory.createApplicationContext(SearchMaintenanceAppModule, { logger: ['error', 'warn'] });
     try {
         const result = await app.get(SearchOutboxRecoveryService).retryDeadLetters(options);
         process.stdout.write(`${JSON.stringify(result)}\n`);
