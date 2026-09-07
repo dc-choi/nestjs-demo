@@ -9,6 +9,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity';
 import type { PaymentInventoryPort } from '~/api/payment/application/payment-inventory.port';
 import { PaymentWebhookRecoveryRelay } from '~/api/payment/application/payment-webhook-recovery.relay';
+import { PaymentWebhookService } from '~/api/payment/application/payment-webhook.service';
 import { PaymentWebhookOutcome } from '~/api/payment/application/payment.command';
 import { PaymentService } from '~/api/payment/application/payment.service';
 import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity';
@@ -32,7 +33,7 @@ describe('payment webhook recovery', () => {
         const persistence = createPaymentService({ findWebhook: async () => event });
         await expect(
             inRequestContext(persistence.requestContextSource, () =>
-                persistence.service.processWebhook({
+                persistence.webhook.processWebhook({
                     ...verifiedCommand,
                     outcome: PaymentWebhookOutcome.FAILED,
                     errorCode: 'DECLINED',
@@ -71,13 +72,13 @@ describe('payment webhook recovery', () => {
         });
 
         const received = await inRequestContext(persistence.requestContextSource, () =>
-            persistence.service.receiveVerifiedWebhook(verifiedCommand, NOW)
+            persistence.webhook.receiveVerifiedWebhook(verifiedCommand, NOW)
         );
         expect(received.event.verifiedCommand()).toMatchObject(verifiedCommand);
 
         await expect(
             inRequestContext(persistence.requestContextSource, () =>
-                persistence.service.recoverStoredWebhook(verifiedCommand.provider, verifiedCommand.providerEventId, NOW)
+                persistence.webhook.recoverStoredWebhook(verifiedCommand.provider, verifiedCommand.providerEventId, NOW)
             )
         ).resolves.toMatchObject({ disposition: 'RETRY' });
         expect(findWebhook.mock.calls[1]).toEqual([
@@ -86,15 +87,15 @@ describe('payment webhook recovery', () => {
         ]);
 
         attempt = { id: 200n } as PaymentAttemptEntity;
-        const process = vi.spyOn(persistence.service, 'processWebhook').mockImplementation(async () => {
+        const process = vi.spyOn(persistence.webhook, 'processWebhook').mockImplementation(async () => {
             event!.status = PaymentWebhookEventStatus.PROCESSED;
             return { event: event!, transaction: null };
         });
         await inRequestContext(persistence.requestContextSource, () =>
-            persistence.service.recoverStoredWebhook(verifiedCommand.provider, verifiedCommand.providerEventId, NOW)
+            persistence.webhook.recoverStoredWebhook(verifiedCommand.provider, verifiedCommand.providerEventId, NOW)
         );
         await inRequestContext(persistence.requestContextSource, () =>
-            persistence.service.recoverStoredWebhook(verifiedCommand.provider, verifiedCommand.providerEventId, NOW)
+            persistence.webhook.recoverStoredWebhook(verifiedCommand.provider, verifiedCommand.providerEventId, NOW)
         );
 
         expect(process).toHaveBeenCalledTimes(1);
@@ -113,14 +114,14 @@ describe('payment webhook recovery', () => {
         });
 
         const received = await inRequestContext(persistence.requestContextSource, () =>
-            persistence.service.receiveVerifiedWebhook(verifiedCommand, NOW)
+            persistence.webhook.receiveVerifiedWebhook(verifiedCommand, NOW)
         );
         await inRequestContext(persistence.requestContextSource, () =>
-            persistence.service.receiveVerifiedWebhook(verifiedCommand, NOW)
+            persistence.webhook.receiveVerifiedWebhook(verifiedCommand, NOW)
         );
         await expect(
             inRequestContext(persistence.requestContextSource, () =>
-                persistence.service.receiveVerifiedWebhook(
+                persistence.webhook.receiveVerifiedWebhook(
                     { ...verifiedCommand, providerTransactionId: 'other-transaction' },
                     NOW
                 )
@@ -145,7 +146,7 @@ describe('payment webhook recovery', () => {
         });
 
         await inRequestContext(persistence.requestContextSource, () =>
-            persistence.service.receiveVerifiedWebhook(verifiedCommand, NOW)
+            persistence.webhook.receiveVerifiedWebhook(verifiedCommand, NOW)
         );
         expect(event).toMatchObject({
             status: PaymentWebhookEventStatus.RECEIVED,
@@ -156,13 +157,13 @@ describe('payment webhook recovery', () => {
             leaseToken: null,
             leaseUntil: null,
         });
-        const process = vi.spyOn(persistence.service, 'processWebhook').mockImplementation(async () => {
+        const process = vi.spyOn(persistence.webhook, 'processWebhook').mockImplementation(async () => {
             event.status = PaymentWebhookEventStatus.PROCESSED;
             return { event, transaction: null };
         });
         await expect(
             inRequestContext(persistence.requestContextSource, () =>
-                persistence.service.recoverStoredWebhook(event.provider, event.providerEventId, NOW)
+                persistence.webhook.recoverStoredWebhook(event.provider, event.providerEventId, NOW)
             )
         ).resolves.toEqual({ disposition: 'PROCESSED', errorMessage: null });
         expect(process).toHaveBeenCalledOnce();
@@ -181,7 +182,7 @@ describe('payment webhook recovery', () => {
         const persistence = createPaymentService({ findWebhook: async () => event });
 
         await inRequestContext(persistence.requestContextSource, () =>
-            persistence.service.receiveVerifiedWebhook(verifiedCommand, NOW)
+            persistence.webhook.receiveVerifiedWebhook(verifiedCommand, NOW)
         );
         expect(event).toMatchObject({ status, processedAt: new Date(0), retryCount: 10 });
     });
@@ -194,7 +195,7 @@ describe('payment webhook recovery', () => {
 
         await expect(
             inRequestContext(persistence.requestContextSource, () =>
-                persistence.service.receiveVerifiedWebhook({ ...verifiedCommand, payloadHash: 'b'.repeat(64) }, NOW)
+                persistence.webhook.receiveVerifiedWebhook({ ...verifiedCommand, payloadHash: 'b'.repeat(64) }, NOW)
             )
         ).rejects.toThrow('다른 payload');
         expect(event.status).toBe(PaymentWebhookEventStatus.FAILED);
@@ -214,7 +215,7 @@ describe('payment webhook recovery', () => {
         });
 
         await inRequestContext(persistence.requestContextSource, () =>
-            persistence.service.receiveVerifiedWebhook(verifiedCommand, NOW)
+            persistence.webhook.receiveVerifiedWebhook(verifiedCommand, NOW)
         );
         expect(event.verifiedCommand()).toMatchObject(verifiedCommand);
         expect(event.status).toBe(PaymentWebhookEventStatus.RECEIVED);
@@ -242,12 +243,12 @@ describe('payment webhook recovery', () => {
 
         await expect(
             inRequestContext(persistence.requestContextSource, () =>
-                persistence.service.recoverStoredWebhook(poison.provider, poison.providerEventId, NOW)
+                persistence.webhook.recoverStoredWebhook(poison.provider, poison.providerEventId, NOW)
             )
         ).resolves.toMatchObject({ disposition: 'FAILED' });
         await expect(
             inRequestContext(persistence.requestContextSource, () =>
-                persistence.service.recoverStoredWebhook(legacy.provider, legacy.providerEventId, NOW)
+                persistence.webhook.recoverStoredWebhook(legacy.provider, legacy.providerEventId, NOW)
             )
         ).resolves.toMatchObject({ disposition: 'FAILED' });
     });
@@ -298,24 +299,36 @@ function createPaymentService(
 ) {
     const persist = vi.fn(overrides.persist ?? (() => undefined));
     const entityManager = Object.assign(Object.create(EntityManager.prototype), { persist }) as EntityManager;
+    entityManager.isInTransaction = vi.fn(() => true);
     entityManager.lock = vi.fn(async () => undefined) as unknown as EntityManager['lock'];
     entityManager.transactional = vi.fn(async (work: (em: EntityManager) => Promise<unknown>) =>
         work(entityManager)
     ) as unknown as EntityManager['transactional'];
     const requestContextSource = { name: 'default', fork: vi.fn(() => entityManager) } as unknown as EntityManager;
+    const attemptRepository = {
+        findOne: overrides.findAttempt ?? vi.fn(async () => null),
+    } as unknown as EntityRepository<PaymentAttemptEntity>;
+    const transactionRepository = {
+        findOne: vi.fn(async () => null),
+    } as unknown as EntityRepository<PaymentTransactionEntity>;
+    const webhookRepository = {
+        findOne: overrides.findWebhook ?? vi.fn(async () => null),
+    } as unknown as EntityRepository<PaymentWebhookEventEntity>;
     const service = new PaymentService(
         entityManager,
         { findOne: vi.fn(async () => null) } as unknown as EntityRepository<OrderEntity>,
-        {
-            findOne: overrides.findAttempt ?? vi.fn(async () => null),
-        } as unknown as EntityRepository<PaymentAttemptEntity>,
-        { findOne: vi.fn(async () => null) } as unknown as EntityRepository<PaymentTransactionEntity>,
-        {
-            findOne: overrides.findWebhook ?? vi.fn(async () => null),
-        } as unknown as EntityRepository<PaymentWebhookEventEntity>,
+        attemptRepository,
+        transactionRepository,
         { consumeForPayment: vi.fn() } as unknown as PaymentInventoryPort
     );
-    return { service, persist, requestContextSource };
+    const webhook = new PaymentWebhookService(
+        entityManager,
+        attemptRepository,
+        transactionRepository,
+        webhookRepository,
+        service
+    );
+    return { service, webhook, persist, requestContextSource };
 }
 
 function inRequestContext<T>(entityManager: EntityManager, work: () => Promise<T>): Promise<T> {

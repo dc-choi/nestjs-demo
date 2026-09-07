@@ -23,6 +23,7 @@ import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
 import { OrderStatusHistoryEntity } from '~/api/order/domain/entity/order-status-history.entity';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity';
 import { OrderStatus } from '~/api/order/domain/entity/order.enum';
+import { PaymentWebhookService } from '~/api/payment/application/payment-webhook.service';
 import { PaymentWebhookOutcome } from '~/api/payment/application/payment.command';
 import { PaymentService } from '~/api/payment/application/payment.service';
 import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity';
@@ -545,15 +546,15 @@ describeCommerceMySql('Commerce lifecycle MySQL integration', () => {
             providerPaymentId: 'mysql-webhook-payment',
         });
 
-        const webhook = createServices(orm!.em.fork({ useContext: true }), passThroughLock());
+        const { webhook } = createServices(orm!.em.fork({ useContext: true }), passThroughLock());
         const receivedCommand = {
             provider: 'mysql-webhook-provider',
             providerEventId: 'mysql-webhook-event',
             providerPaymentId: 'mysql-webhook-payment',
             payloadHash: 'a'.repeat(64),
         };
-        const received = await webhook.payment.receiveWebhook(receivedCommand);
-        const receivedReplay = await webhook.payment.receiveWebhook(receivedCommand);
+        const received = await webhook.receiveWebhook(receivedCommand);
+        const receivedReplay = await webhook.receiveWebhook(receivedCommand);
         expect(receivedReplay.event.id).toBe(received.event.id);
 
         const processedCommand = {
@@ -561,8 +562,8 @@ describeCommerceMySql('Commerce lifecycle MySQL integration', () => {
             outcome: PaymentWebhookOutcome.CAPTURED,
             providerTransactionId: 'mysql-webhook-capture',
         };
-        const processed = await webhook.payment.processWebhook(processedCommand);
-        const processedReplay = await webhook.payment.processWebhook(processedCommand);
+        const processed = await webhook.processWebhook(processedCommand);
+        const processedReplay = await webhook.processWebhook(processedCommand);
         expect(processedReplay.event.id).toBe(processed.event.id);
         expect(processedReplay.transaction?.id).toBe(processed.transaction?.id);
 
@@ -587,6 +588,13 @@ function createServices(em: EntityManager, distributedLock: DistributedLockServi
         em.getRepository(InventoryReservationEntity),
         em.getRepository(InventoryMovementEntity)
     );
+    const payment = new PaymentService(
+        em,
+        em.getRepository(OrderEntity),
+        em.getRepository(PaymentAttemptEntity),
+        em.getRepository(PaymentTransactionEntity),
+        inventory
+    );
     return {
         inventory,
         order: new OrderService(
@@ -597,13 +605,13 @@ function createServices(em: EntityManager, distributedLock: DistributedLockServi
             inventory,
             distributedLock
         ),
-        payment: new PaymentService(
+        payment,
+        webhook: new PaymentWebhookService(
             em,
-            em.getRepository(OrderEntity),
             em.getRepository(PaymentAttemptEntity),
             em.getRepository(PaymentTransactionEntity),
             em.getRepository(PaymentWebhookEventEntity),
-            inventory
+            payment
         ),
         fulfillment: new FulfillmentService(em, em.getRepository(OrderEntity), em.getRepository(FulfillmentEntity)),
     };

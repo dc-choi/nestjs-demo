@@ -8,15 +8,12 @@ import { MYSQL_SIGNED_INT_MAX, MYSQL_SIGNED_INT_MIN } from '~/global/common/util
 const DECIMAL_ID_PATTERN = /^[1-9]\d*$/;
 
 @InputType()
-export class InventoryReservationInput {
+export class RestoreInventoryReservationInput {
     @Field(() => ID)
     @Matches(DECIMAL_ID_PATTERN)
     @MaxLength(19)
     reservationId!: string;
-}
 
-@InputType()
-export class RestoreInventoryReservationInput extends InventoryReservationInput {
     @Field()
     @IsString()
     @IsNotEmpty()

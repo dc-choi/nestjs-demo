@@ -2,7 +2,7 @@ import { EntityManager, MikroORM } from '@mikro-orm/mysql';
 import { Injectable } from '@nestjs/common';
 
 import { randomUUID } from 'node:crypto';
-import { PaymentService } from '~/api/payment/application/payment.service';
+import { PaymentWebhookService } from '~/api/payment/application/payment-webhook.service';
 
 const MAX_RECOVERY_ATTEMPTS = 10;
 const LEASE_MILLISECONDS = 30_000;
@@ -34,7 +34,7 @@ export interface PaymentWebhookRecoveryDrainResult {
 export class PaymentWebhookRecoveryRelay {
     constructor(
         private readonly orm: MikroORM,
-        private readonly paymentService: PaymentService
+        private readonly webhookService: PaymentWebhookService
     ) {}
 
     async drainBatch(limit = 25): Promise<PaymentWebhookRecoveryDrainResult> {
@@ -51,7 +51,7 @@ export class PaymentWebhookRecoveryRelay {
         };
         for (const event of claimed) {
             try {
-                const recovery = await this.paymentService.recoverStoredWebhook(event.provider, event.providerEventId);
+                const recovery = await this.webhookService.recoverStoredWebhook(event.provider, event.providerEventId);
                 if (recovery.disposition === 'PROCESSED') {
                     if (await this.markProcessed(event)) result.processed += 1;
                 } else if (recovery.disposition === 'FAILED') {

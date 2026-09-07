@@ -1,6 +1,7 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Resolver } from '@nestjs/graphql';
 
+import { PaymentWebhookService } from '~/api/payment/application/payment-webhook.service';
 import { PaymentService } from '~/api/payment/application/payment.service';
 import {
     CapturePaymentInput,
@@ -21,7 +22,10 @@ import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
 
 @Resolver()
 export class PaymentResolver {
-    constructor(private readonly paymentService: PaymentService) {}
+    constructor(
+        private readonly paymentService: PaymentService,
+        private readonly webhookService: PaymentWebhookService
+    ) {}
 
     @Mutation(() => PaymentPayload)
     @UseGuards(CommonGuard)
@@ -75,20 +79,20 @@ export class PaymentResolver {
     @Mutation(() => PaymentWebhookPayload)
     @UseGuards(AdminGuard)
     async receivePaymentWebhook(@Args('input') input: ReceivePaymentWebhookInput): Promise<PaymentWebhookPayload> {
-        return toPaymentWebhookPayload(await this.paymentService.receiveWebhook(input));
+        return toPaymentWebhookPayload(await this.webhookService.receiveWebhook(input));
     }
 
     @Mutation(() => PaymentWebhookPayload)
     @UseGuards(AdminGuard)
     async processPaymentWebhook(@Args('input') input: ProcessPaymentWebhookInput): Promise<PaymentWebhookPayload> {
-        return toPaymentWebhookPayload(await this.paymentService.processWebhook(input));
+        return toPaymentWebhookPayload(await this.webhookService.processWebhook(input));
     }
 
     @Mutation(() => PaymentWebhookPayload)
     @UseGuards(AdminGuard)
     async failPaymentWebhook(@Args('input') input: FailPaymentWebhookInput): Promise<PaymentWebhookPayload> {
         return toPaymentWebhookPayload(
-            await this.paymentService.failWebhook(input.provider, input.providerEventId, input.errorMessage)
+            await this.webhookService.failWebhook(input.provider, input.providerEventId, input.errorMessage)
         );
     }
 }

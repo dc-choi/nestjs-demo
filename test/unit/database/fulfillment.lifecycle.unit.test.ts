@@ -23,6 +23,31 @@ const NOW = new Date('2026-09-04T00:00:00.000Z');
 const ADMIN = { memberId: 1n, role: 'ADMIN' as const };
 
 describe('fulfillment lifecycle', () => {
+    it.each([
+        [FulfillmentStatus.PENDING, true],
+        [FulfillmentStatus.PACKED, true],
+        [FulfillmentStatus.SHIPPED, false],
+        [FulfillmentStatus.DELIVERED, false],
+        [FulfillmentStatus.CANCELLED, true],
+    ])('%s 배송의 API 취소가 도메인 정책과 멱등성을 지킨다', async (status, allowed) => {
+        const { order, orderItem } = createConfirmedOrder(1);
+        const fulfillment = FulfillmentEntity.create(order, 'cancel-policy', [{ orderItem, quantity: 1 }]);
+        fulfillment.id = 50n;
+        fulfillment.status = status;
+        const persistence = createService(order, fulfillment);
+
+        const cancellation = RequestContext.create(persistence.requestContextSource, () =>
+            persistence.service.cancel(ADMIN, fulfillment.id, NOW)
+        );
+        if (allowed) {
+            await expect(cancellation).resolves.toBe(fulfillment);
+            expect(fulfillment.status).toBe(FulfillmentStatus.CANCELLED);
+        } else {
+            await expect(cancellation).rejects.toBeInstanceOf(ConflictException);
+            expect(fulfillment.status).toBe(status);
+        }
+    });
+
     it('DB에서 역방향 배송 컬렉션을 읽지 않은 주문 품목에도 배송을 배정한다', () => {
         const { order, orderItem } = createConfirmedOrder(1);
         orderItem.fulfillmentItems = new Collection(orderItem, undefined, false);

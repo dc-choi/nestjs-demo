@@ -42,7 +42,6 @@ describe('commerce GraphQL schema', () => {
                     'adjustInventory',
                     'cancelOrder',
                     'capturePayment',
-                    'consumeInventoryReservation',
                     'createFulfillment',
                     'createPaymentAttempt',
                     'deliverFulfillment',
@@ -57,6 +56,7 @@ describe('commerce GraphQL schema', () => {
                     'shipFulfillment',
                 ])
             );
+            expect(mutations).not.toContain('consumeInventoryReservation');
         } finally {
             await context.close();
         }

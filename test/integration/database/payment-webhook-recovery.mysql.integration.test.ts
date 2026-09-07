@@ -17,6 +17,7 @@ import { MemberEntity } from '~/api/member/domain/member.entity';
 import { OrderService } from '~/api/order/application/order.service';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity';
 import { PaymentWebhookRecoveryRelay } from '~/api/payment/application/payment-webhook-recovery.relay';
+import { PaymentWebhookService } from '~/api/payment/application/payment-webhook.service';
 import { PaymentWebhookOutcome } from '~/api/payment/application/payment.command';
 import { PaymentService } from '~/api/payment/application/payment.service';
 import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity';
@@ -110,12 +111,12 @@ describeWebhookRecovery('Payment webhook recovery MySQL integration', () => {
         }));
         const events: PaymentWebhookEventEntity[] = [];
         for (const command of refunds) {
-            const { event } = await services.payment.receiveVerifiedWebhook(command);
+            const { event } = await services.webhook.receiveVerifiedWebhook(command);
             events.push(event);
         }
-        const relay = new PaymentWebhookRecoveryRelay(orm!, services.payment);
+        const relay = new PaymentWebhookRecoveryRelay(orm!, services.webhook);
         await expect(relay.drainBatch()).resolves.toEqual({ claimed: 25, processed: 0, retried: 25, failed: 0 });
-        await services.payment.receiveVerifiedWebhook(capture);
+        await services.webhook.receiveVerifiedWebhook(capture);
         await expect(relay.drainBatch()).resolves.toEqual({ claimed: 1, processed: 1, retried: 0, failed: 0 });
         await orm!.em
             .fork()
@@ -144,9 +145,9 @@ describeWebhookRecovery('Payment webhook recovery MySQL integration', () => {
             items: [{ itemId, quantity: 1 }],
         });
         const command = webhookCommand('webhook-status-race');
-        await services.payment.receiveVerifiedWebhook(command);
-        const recover = services.payment.recoverStoredWebhook.bind(services.payment);
-        vi.spyOn(services.payment, 'recoverStoredWebhook').mockImplementationOnce(async (provider, eventId) => {
+        await services.webhook.receiveVerifiedWebhook(command);
+        const recover = services.webhook.recoverStoredWebhook.bind(services.webhook);
+        vi.spyOn(services.webhook, 'recoverStoredWebhook').mockImplementationOnce(async (provider, eventId) => {
             const observed = await recover(provider, eventId);
             expect(observed.disposition).toBe('RETRY');
             const http = createServices(orm!.em.fork({ useContext: true }));
@@ -156,12 +157,12 @@ describeWebhookRecovery('Payment webhook recovery MySQL integration', () => {
                 idempotencyKey: 'webhook-status-race-attempt',
                 providerPaymentId: command.providerPaymentId,
             });
-            await expect(http.payment.recoverStoredWebhook(provider, eventId)).resolves.toMatchObject({
+            await expect(http.webhook.recoverStoredWebhook(provider, eventId)).resolves.toMatchObject({
                 disposition: 'PROCESSED',
             });
             return observed;
         });
-        const relay = new PaymentWebhookRecoveryRelay(orm!, services.payment);
+        const relay = new PaymentWebhookRecoveryRelay(orm!, services.webhook);
         await expect(relay.drainBatch(1)).resolves.toEqual({ claimed: 1, processed: 0, retried: 0, failed: 0 });
         expect(
             await orm!.em.fork().findOneOrFail(PaymentWebhookEventEntity, { providerEventId: command.providerEventId })
@@ -175,7 +176,7 @@ describeWebhookRecovery('Payment webhook recovery MySQL integration', () => {
             items: [{ itemId, quantity: 1 }],
         });
         const command = webhookCommand('webhook-recovery-early');
-        await receiving.payment.receiveVerifiedWebhook(command);
+        await receiving.webhook.receiveVerifiedWebhook(command);
 
         const received = await orm!.em.fork().findOneOrFail(PaymentWebhookEventEntity, {
             provider: command.provider,
@@ -190,7 +191,7 @@ describeWebhookRecovery('Payment webhook recovery MySQL integration', () => {
         });
 
         // More than ten missing-target polls must remain recoverable when an attempt arrives late.
-        const waiting = new PaymentWebhookRecoveryRelay(orm!, receiving.payment);
+        const waiting = new PaymentWebhookRecoveryRelay(orm!, receiving.webhook);
         for (let poll = 0; poll < 12; poll += 1) {
             await orm!.em
                 .fork()
@@ -209,7 +210,7 @@ describeWebhookRecovery('Payment webhook recovery MySQL integration', () => {
 
         // A fresh EntityManager and relay represent a process restart after durable receipt.
         const restarted = createServices(orm!.em.fork({ useContext: true }));
-        const relay = new PaymentWebhookRecoveryRelay(orm!, restarted.payment);
+        const relay = new PaymentWebhookRecoveryRelay(orm!, restarted.webhook);
         await expect(relay.drainBatch(1)).resolves.toEqual({ claimed: 1, processed: 1, retried: 0, failed: 0 });
 
         const attempt = await orm!.em.fork().findOneOrFail(PaymentAttemptEntity, {
@@ -243,13 +244,13 @@ describeWebhookRecovery('Payment webhook recovery MySQL integration', () => {
         const rawBody = Buffer.from(JSON.stringify(body));
         const payloadHash = createHash('sha256').update(rawBody).digest('hex');
 
-        await services.payment.receiveWebhook({
+        await services.webhook.receiveWebhook({
             provider: webhook.provider,
             providerEventId: webhook.providerEventId,
             providerPaymentId: webhook.providerPaymentId,
             payloadHash,
         });
-        await services.payment.failWebhook(webhook.provider, webhook.providerEventId, 'legacy missing attempt');
+        await services.webhook.failWebhook(webhook.provider, webhook.providerEventId, 'legacy missing attempt');
         expect(
             await orm!.em.fork().findOneOrFail(PaymentWebhookEventEntity, {
                 provider: webhook.provider,
@@ -276,7 +277,7 @@ describeWebhookRecovery('Payment webhook recovery MySQL integration', () => {
             get: () => secret,
         } as unknown as ConfigService<EnvConfig, true>);
         const redeliver = () =>
-            new PaymentWebhookController(createServices(orm!.em.fork({ useContext: true })).payment, verifier).receive(
+            new PaymentWebhookController(createServices(orm!.em.fork({ useContext: true })).webhook, verifier).receive(
                 webhook.provider,
                 webhook.providerEventId,
                 `sha256=${signature}`,
@@ -346,7 +347,7 @@ describeWebhookRecovery('Payment webhook recovery MySQL integration', () => {
                 { populate: ['paymentAttempt'], connectionType: 'write' }
             );
             expect(existing).toBeNull();
-            await createServices(orm!.em.fork({ useContext: true })).payment.receiveWebhook({
+            await createServices(orm!.em.fork({ useContext: true })).webhook.receiveWebhook({
                 provider: webhook.provider,
                 providerEventId: webhook.providerEventId,
                 providerPaymentId: webhook.providerPaymentId,
@@ -360,7 +361,7 @@ describeWebhookRecovery('Payment webhook recovery MySQL integration', () => {
             .update(rawBody)
             .digest('hex');
         const controller = new PaymentWebhookController(
-            receiving.payment,
+            receiving.webhook,
             new HmacPaymentWebhookSignatureVerifier({
                 get: () => secret,
             } as unknown as ConfigService<EnvConfig, true>)
@@ -415,23 +416,23 @@ describeWebhookRecovery('Payment webhook recovery MySQL integration', () => {
             providerPaymentId: command.providerPaymentId,
         });
         await Promise.all([
-            first.payment.receiveVerifiedWebhook(command),
-            createServices(orm!.em.fork({ useContext: true })).payment.receiveVerifiedWebhook(command),
+            first.webhook.receiveVerifiedWebhook(command),
+            createServices(orm!.em.fork({ useContext: true })).webhook.receiveVerifiedWebhook(command),
         ]);
 
-        const firstPayment = createServices(orm!.em.fork({ useContext: true })).payment;
-        const recover = firstPayment.recoverStoredWebhook.bind(firstPayment);
+        const firstWebhook = createServices(orm!.em.fork({ useContext: true })).webhook;
+        const recover = firstWebhook.recoverStoredWebhook.bind(firstWebhook);
         const entered = Promise.withResolvers<void>();
         const release = Promise.withResolvers<void>();
-        vi.spyOn(firstPayment, 'recoverStoredWebhook').mockImplementationOnce(async (provider, eventId, now) => {
+        vi.spyOn(firstWebhook, 'recoverStoredWebhook').mockImplementationOnce(async (provider, eventId, now) => {
             entered.resolve();
             await release.promise;
             return recover(provider, eventId, now);
         });
-        const firstRelay = new PaymentWebhookRecoveryRelay(orm!, firstPayment);
+        const firstRelay = new PaymentWebhookRecoveryRelay(orm!, firstWebhook);
         const secondRelay = new PaymentWebhookRecoveryRelay(
             orm!,
-            createServices(orm!.em.fork({ useContext: true })).payment
+            createServices(orm!.em.fork({ useContext: true })).webhook
         );
 
         const firstDrain = firstRelay.drainBatch(1);
@@ -482,12 +483,12 @@ describeWebhookRecovery('Payment webhook recovery MySQL integration', () => {
             idempotencyKey: 'webhook-admin-recovery-lock-order',
             providerPaymentId: command.providerPaymentId,
         });
-        await setup.payment.receiveVerifiedWebhook(command);
+        await setup.webhook.receiveVerifiedWebhook(command);
 
         const recoveryEm = orm!.em.fork({ useContext: true });
         const adminEm = orm!.em.fork({ useContext: true });
-        const recovery = createServices(recoveryEm).payment;
-        const admin = createServices(adminEm).payment;
+        const recovery = createServices(recoveryEm).webhook;
+        const admin = createServices(adminEm).webhook;
         const recoveryRead = Promise.withResolvers<void>();
         const allowRecovery = Promise.withResolvers<void>();
         const adminLockedOrder = Promise.withResolvers<void>();
@@ -550,10 +551,10 @@ describeWebhookRecovery('Payment webhook recovery MySQL integration', () => {
             idempotencyKey: 'webhook-recovery-failed-race-attempt',
             providerPaymentId: command.providerPaymentId,
         });
-        await setup.payment.receiveVerifiedWebhook(command);
+        await setup.webhook.receiveVerifiedWebhook(command);
 
         const recoveryEm = orm!.em.fork({ useContext: true });
-        const recovery = createServices(recoveryEm).payment;
+        const recovery = createServices(recoveryEm).webhook;
         const recoveryRead = Promise.withResolvers<void>();
         const allowRecovery = Promise.withResolvers<void>();
         const webhookRepository = recoveryEm.getRepository(PaymentWebhookEventEntity);
@@ -567,7 +568,7 @@ describeWebhookRecovery('Payment webhook recovery MySQL integration', () => {
 
         const recover = recovery.recoverStoredWebhook(command.provider, command.providerEventId);
         await recoveryRead.promise;
-        await setup.payment.failWebhook(command.provider, command.providerEventId, 'admin stopped recovery');
+        await setup.webhook.failWebhook(command.provider, command.providerEventId, 'admin stopped recovery');
         allowRecovery.resolve();
 
         await expect(recover).resolves.toEqual({
@@ -596,6 +597,16 @@ function createServices(em: EntityManager) {
         em.getRepository(InventoryReservationEntity),
         em.getRepository(InventoryMovementEntity)
     );
+    const attemptRepository = em.getRepository(PaymentAttemptEntity);
+    const transactionRepository = em.getRepository(PaymentTransactionEntity);
+    const webhookRepository = em.getRepository(PaymentWebhookEventEntity);
+    const payment = new PaymentService(
+        em,
+        em.getRepository(OrderEntity),
+        attemptRepository,
+        transactionRepository,
+        inventory
+    );
     return {
         order: new OrderService(
             em,
@@ -605,14 +616,8 @@ function createServices(em: EntityManager) {
             inventory,
             passThroughLock()
         ),
-        payment: new PaymentService(
-            em,
-            em.getRepository(OrderEntity),
-            em.getRepository(PaymentAttemptEntity),
-            em.getRepository(PaymentTransactionEntity),
-            em.getRepository(PaymentWebhookEventEntity),
-            inventory
-        ),
+        payment,
+        webhook: new PaymentWebhookService(em, attemptRepository, transactionRepository, webhookRepository, payment),
     };
 }
 

@@ -22,11 +22,6 @@ import { OrderActorType, OrderStatus } from '~/api/order/domain/entity/order.enu
 import { isPositiveMysqlSignedInt } from '~/global/common/utils/mysql-number';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
 
-const CANCELLABLE_FULFILLMENT_STATUSES: readonly FulfillmentStatus[] = [
-    FulfillmentStatus.PENDING,
-    FulfillmentStatus.PACKED,
-];
-
 @Injectable()
 export class FulfillmentService {
     constructor(
@@ -165,7 +160,7 @@ export class FulfillmentService {
         this.assertAdmin(jwtPayload);
         const fulfillment = await this.findForUpdate(fulfillmentId);
         if (fulfillment.status === FulfillmentStatus.CANCELLED) return fulfillment;
-        if (!CANCELLABLE_FULFILLMENT_STATUSES.includes(fulfillment.status)) {
+        if (!fulfillment.isCancellable()) {
             throw new ConflictException(`${fulfillment.status} 배송은 취소할 수 없습니다.`);
         }
         fulfillment.cancel(now);

@@ -4,7 +4,6 @@ import { Args, Mutation, Resolver } from '@nestjs/graphql';
 import { InventoryService } from '~/api/inventory/application/inventory.service';
 import {
     AdjustInventoryInput,
-    InventoryReservationInput,
     RestoreInventoryReservationInput,
     parseReservationId,
 } from '~/api/inventory/presentation/inventory.input';
@@ -33,16 +32,6 @@ export class InventoryResolver {
             itemId: parseReservationId(input.itemId),
         });
         return toInventoryAdjustmentPayload(movement);
-    }
-
-    @Mutation(() => InventoryTransitionPayload)
-    @UseGuards(AdminGuard)
-    async consumeInventoryReservation(
-        @Jwt() jwtPayload: JwtPayload,
-        @Args('input') input: InventoryReservationInput
-    ): Promise<InventoryTransitionPayload> {
-        const result = await this.inventoryService.consume(jwtPayload, parseReservationId(input.reservationId));
-        return toInventoryTransitionPayload(result);
     }
 
     @Mutation(() => InventoryTransitionPayload)

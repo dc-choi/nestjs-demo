@@ -221,15 +221,32 @@ describe('inventory lifecycle', () => {
         ).toHaveLength(2);
     });
 
-    it('만료된 예약 소비 같은 예상 상태 오류를 Conflict로 번역한다', async () => {
+    it('결제에서 만료된 예약을 소비하면 상태를 바꾸지 않고 Conflict로 번역한다', () => {
         const { reservation } = createReservation();
         const persistence = createReservationService(reservation, () => null);
 
+        expect(() => persistence.service.consumeForPayment(reservation, EXPIRES_AT)).toThrow(ConflictException);
+        expect(reservation.status).toBe(InventoryReservationStatus.RESERVED);
+    });
+
+    it('호출자 트랜잭션이 없으면 예약 생성, 결제 소비, 취소 복구를 모두 거부한다', async () => {
+        const { item, reservation } = createReservation();
+        const service = new InventoryService(
+            { isInTransaction: () => false } as EntityManager,
+            {} as EntityRepository<ItemEntity>,
+            {} as EntityRepository<InventoryReservationEntity>,
+            {} as EntityRepository<InventoryMovementEntity>
+        );
+
         await expect(
-            RequestContext.create(persistence.requestContextSource, () =>
-                persistence.service.consume({ memberId: 2n, role: 'CUSTOMER' }, reservation.id, EXPIRES_AT)
-            )
-        ).rejects.toBeInstanceOf(ConflictException);
+            service.reserveForPlacement(reservation.orderItem, EXPIRES_AT, 'without-transaction', 'order', NOW)
+        ).rejects.toThrow('caller transaction');
+        expect(() => service.consumeForPayment(reservation, NOW)).toThrow('caller transaction');
+        await expect(service.releaseForCancellation(reservation, 'without-transaction', NOW)).rejects.toThrow(
+            'caller transaction'
+        );
+        expect(item.stock).toBe(3);
+        expect(reservation.status).toBe(InventoryReservationStatus.RESERVED);
     });
 
     it('원장 생성 시 0 수량과 불완전한 외부 참조를 거부한다', () => {
@@ -446,7 +463,11 @@ function createService(
     entityManagerOverrides: { readonly persist: ReturnType<typeof vi.fn> }
 ): { service: InventoryService; refresh: ReturnType<typeof vi.fn> } {
     const refresh = vi.fn(async (entity: ItemEntity) => entity);
-    const entityManager = { ...entityManagerOverrides, refresh } as unknown as EntityManager;
+    const entityManager = {
+        ...entityManagerOverrides,
+        refresh,
+        isInTransaction: () => true,
+    } as unknown as EntityManager;
     return {
         service: new InventoryService(
             entityManager,
@@ -476,7 +497,10 @@ function createTransactionalService(
     onPersist: (entity: object) => void = () => undefined
 ) {
     const persist = vi.fn(onPersist);
-    const entityManager = Object.assign(Object.create(EntityManager.prototype), { persist }) as EntityManager;
+    const entityManager = Object.assign(Object.create(EntityManager.prototype), {
+        persist,
+        isInTransaction: () => true,
+    }) as EntityManager;
     const findProduct = vi.fn(async () => item.product as ProductEntity);
     entityManager.findOne = findProduct as unknown as EntityManager['findOne'];
     const transactional = vi.fn<
@@ -508,7 +532,10 @@ function createReservationService(
         : [reservationOrReservations];
     const reservation = reservations[0];
     const persist = vi.fn(onPersist);
-    const entityManager = Object.assign(Object.create(EntityManager.prototype), { persist }) as EntityManager;
+    const entityManager = Object.assign(Object.create(EntityManager.prototype), {
+        persist,
+        isInTransaction: () => true,
+    }) as EntityManager;
     entityManager.findOne = vi.fn(async (entity) =>
         entity === OrderEntity ? reservation.orderItem.order : null
     ) as unknown as EntityManager['findOne'];

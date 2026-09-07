@@ -91,13 +91,17 @@ export class FulfillmentEntity {
 
     cancel(now = new Date()): boolean {
         if (this.status === FulfillmentStatus.CANCELLED) return false;
-        if (!CANCELLABLE_STATUSES.includes(this.status)) {
+        if (!this.isCancellable()) {
             throw new Error(`${this.status} 배송은 취소할 수 없습니다.`);
         }
 
         this.status = FulfillmentStatus.CANCELLED;
         this.cancelledAt = now;
         return true;
+    }
+
+    isCancellable(): boolean {
+        return CANCELLABLE_STATUSES.includes(this.status);
     }
 
     private assertStatus(expected: FulfillmentStatus, action: string): void {

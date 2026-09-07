@@ -12,6 +12,7 @@ import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity';
 import { OrderStatus } from '~/api/order/domain/entity/order.enum';
 import type { PaymentInventoryPort } from '~/api/payment/application/payment-inventory.port';
+import { PaymentWebhookService } from '~/api/payment/application/payment-webhook.service';
 import { PaymentWebhookOutcome } from '~/api/payment/application/payment.command';
 import { PaymentService } from '~/api/payment/application/payment.service';
 import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity';
@@ -63,6 +64,32 @@ describe('payment lifecycle', () => {
         expect(persistence.persist).toHaveBeenCalledWith(
             expect.objectContaining({ fromStatus: OrderStatus.PENDING, toStatus: OrderStatus.CONFIRMED })
         );
+    });
+
+    it('웹훅 수명주기 진입점은 호출자 트랜잭션 밖에서 조회나 상태 변경을 하지 않는다', async () => {
+        const { attempt, reservation } = createAttempt();
+        const persistence = createPaymentService(attempt, { callerTransaction: false });
+        const command = {
+            provider: 'demo-pay',
+            providerEventId: 'event-without-transaction',
+            providerPaymentId: attempt.providerPaymentId,
+            payloadHash: 'a'.repeat(64),
+            outcome: PaymentWebhookOutcome.CAPTURED,
+            providerTransactionId: 'capture-without-transaction',
+        };
+
+        await expect(persistence.service.lockAttemptForWebhook(attempt.id)).rejects.toThrow(
+            'Payment webhook lifecycle requires the caller transaction'
+        );
+        await expect(
+            persistence.service.applyWebhookOutcome(attempt, command, 'webhook:without-transaction', NOW)
+        ).rejects.toThrow('Payment webhook lifecycle requires the caller transaction');
+
+        expect(persistence.findAttempt).not.toHaveBeenCalled();
+        expect(attempt.status).toBe(PaymentAttemptStatus.PENDING);
+        expect(reservation.status).toBe('RESERVED');
+        expect(persistence.consumeForPayment).not.toHaveBeenCalled();
+        expect(persistence.persist).not.toHaveBeenCalled();
     });
 
     it('누적 환불이 매입액을 넘지 않게 하고 부분 및 전액 환불 상태를 구분한다', async () => {
@@ -211,10 +238,10 @@ describe('payment lifecycle', () => {
         };
 
         const first = await RequestContext.create(persistence.requestContextSource, () =>
-            persistence.service.receiveWebhook(command, NOW)
+            persistence.webhook.receiveWebhook(command, NOW)
         );
         const replay = await RequestContext.create(persistence.requestContextSource, () =>
-            persistence.service.receiveWebhook(command, NOW)
+            persistence.webhook.receiveWebhook(command, NOW)
         );
 
         expect(replay.event).toBe(first.event);
@@ -222,7 +249,7 @@ describe('payment lifecycle', () => {
         expect(persistence.persist).toHaveBeenCalledTimes(1);
         await expect(
             RequestContext.create(persistence.requestContextSource, () =>
-                persistence.service.receiveWebhook({ ...command, payloadHash: 'b'.repeat(64) }, NOW)
+                persistence.webhook.receiveWebhook({ ...command, payloadHash: 'b'.repeat(64) }, NOW)
             )
         ).rejects.toThrow('다른 payload');
     });
@@ -258,10 +285,12 @@ function createPaymentService(
     overrides: {
         readonly findWebhook?: () => Promise<PaymentWebhookEventEntity | null>;
         readonly persist?: (entity: object) => void;
+        readonly callerTransaction?: boolean;
     } = {}
 ) {
     const persist = vi.fn(overrides.persist ?? (() => undefined));
     const entityManager = Object.assign(Object.create(EntityManager.prototype), { persist }) as EntityManager;
+    entityManager.isInTransaction = vi.fn(() => overrides.callerTransaction ?? true);
     entityManager.lock = vi.fn(async () => undefined) as unknown as EntityManager['lock'];
     const transactional = vi.fn<
         (work: (entityManager: EntityManager) => Promise<unknown>, options?: TransactionOptions) => Promise<unknown>
@@ -274,18 +303,30 @@ function createPaymentService(
     const findTransaction = vi.fn<() => Promise<PaymentTransactionEntity | null>>().mockResolvedValue(null);
     const consumeForPayment = vi.fn((reservation: InventoryReservationEntity, now: Date) => reservation.consume(now));
 
+    const findAttempt = vi.fn(async () => attempt);
+    const attemptRepository = { findOne: findAttempt } as unknown as EntityRepository<PaymentAttemptEntity>;
+    const transactionRepository = {
+        findOne: findTransaction,
+    } as unknown as EntityRepository<PaymentTransactionEntity>;
+    const webhookRepository = {
+        findOne: overrides.findWebhook ?? vi.fn<() => Promise<null>>().mockResolvedValue(null),
+    } as unknown as EntityRepository<PaymentWebhookEventEntity>;
     const service = new PaymentService(
         entityManager,
         { findOne: vi.fn(async () => attempt.order) } as unknown as EntityRepository<OrderEntity>,
-        { findOne: vi.fn(async () => attempt) } as unknown as EntityRepository<PaymentAttemptEntity>,
-        { findOne: findTransaction } as unknown as EntityRepository<PaymentTransactionEntity>,
-        {
-            findOne: overrides.findWebhook ?? vi.fn<() => Promise<null>>().mockResolvedValue(null),
-        } as unknown as EntityRepository<PaymentWebhookEventEntity>,
+        attemptRepository,
+        transactionRepository,
         { consumeForPayment } satisfies PaymentInventoryPort
     );
+    const webhook = new PaymentWebhookService(
+        entityManager,
+        attemptRepository,
+        transactionRepository,
+        webhookRepository,
+        service
+    );
 
-    return { service, persist, findTransaction, consumeForPayment, requestContextSource };
+    return { service, webhook, persist, findAttempt, findTransaction, consumeForPayment, requestContextSource };
 }
 
 function createAttempt(): { attempt: PaymentAttemptEntity; reservation: InventoryReservationEntity } {

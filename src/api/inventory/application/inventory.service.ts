@@ -99,6 +99,7 @@ export class InventoryService {
         orderNumber: string,
         now = new Date()
     ): Promise<InventoryTransitionResult[]> {
+        this.assertTransaction();
         if (lines.length === 0) throw new BadRequestException('재고 예약 품목은 하나 이상이어야 합니다.');
         if (expiresAt.getTime() <= now.getTime()) {
             throw new BadRequestException('재고 예약 만료 시각은 현재보다 뒤여야 합니다.');
@@ -240,16 +241,8 @@ export class InventoryService {
         return movement;
     }
 
-    @Transactional()
-    async consume(jwtPayload: JwtPayload, reservationId: bigint, now = new Date()): Promise<InventoryTransitionResult> {
-        const reservation = await this.findReservationForUpdate(reservationId);
-        this.assertOwnerOrAdmin(jwtPayload, reservation);
-        if (this.assertConsumable(reservation, now)) reservation.consume(now);
-
-        return { reservation, movement: null };
-    }
-
     consumeForPayment(reservation: InventoryReservationEntity, now = new Date()): void {
+        this.assertTransaction();
         if (this.assertConsumable(reservation, now)) reservation.consume(now);
     }
 
@@ -258,6 +251,7 @@ export class InventoryService {
         idempotencyKey: string,
         now = new Date()
     ): Promise<InventoryTransitionResult | null> {
+        this.assertTransaction();
         this.assertIdempotencyKey(idempotencyKey);
         const item = reservation.orderItem.item;
         await this.em.lock(item, LockMode.PESSIMISTIC_WRITE);
@@ -458,40 +452,6 @@ export class InventoryService {
         return { reservation: requested, movement: requestedMovement };
     }
 
-    private async findReservationForUpdate(id: bigint): Promise<InventoryReservationEntity> {
-        const discovered = await this.reservationRepository.findOne(
-            { id },
-            { populate: ['orderItem.order'], connectionType: 'write' }
-        );
-        if (!discovered) throw new NotFoundException('재고 예약을 찾을 수 없습니다.');
-
-        const order = await this.em.findOne(
-            OrderEntity,
-            { id: discovered.orderItem.order.id, deletedAt: null },
-            {
-                populate: ['member'],
-                connectionType: 'write',
-                lockMode: LockMode.PESSIMISTIC_WRITE,
-                refresh: true,
-            }
-        );
-        if (!order) throw new NotFoundException('주문을 찾을 수 없습니다.');
-
-        const reservation = await this.reservationRepository.findOne(
-            { id },
-            {
-                populate: ['orderItem.item', 'orderItem.order.member'],
-                connectionType: 'write',
-                lockMode: LockMode.PESSIMISTIC_WRITE,
-                refresh: true,
-            }
-        );
-        if (!reservation) throw new NotFoundException('재고 예약을 찾을 수 없습니다.');
-        reservation.orderItem.order = order;
-
-        return reservation;
-    }
-
     private async findReservationAndItemForUpdate(
         id: bigint
     ): Promise<{ reservation: InventoryReservationEntity; item: ItemEntity }> {
@@ -647,11 +607,8 @@ export class InventoryService {
         if (!matches) throw new ConflictException('재고 멱등성 키가 다른 요청에 사용되었습니다.');
     }
 
-    private assertOwnerOrAdmin(jwtPayload: JwtPayload, reservation: InventoryReservationEntity): void {
-        if (jwtPayload.role === MemberRole.ADMIN) return;
-        if (reservation.orderItem.order.member.id !== jwtPayload.memberId) {
-            throw new ForbiddenException('다른 회원의 재고 예약을 변경할 수 없습니다.');
-        }
+    private assertTransaction(): void {
+        if (!this.em.isInTransaction()) throw new Error('Inventory transitions require the caller transaction');
     }
 
     private assertConsumable(reservation: InventoryReservationEntity, now: Date): boolean {

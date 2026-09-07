@@ -15,8 +15,8 @@ import {
 import { IsEnum, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
 import { Request } from 'express';
 import { createHash } from 'node:crypto';
+import { PaymentWebhookService } from '~/api/payment/application/payment-webhook.service';
 import { PaymentWebhookOutcome } from '~/api/payment/application/payment.command';
-import { PaymentService } from '~/api/payment/application/payment.service';
 import {
     PAYMENT_WEBHOOK_SIGNATURE_VERIFIER,
     PaymentWebhookSignatureVerifier,
@@ -54,7 +54,7 @@ class PaymentWebhookHttpBody {
 @Controller('webhooks/payments')
 export class PaymentWebhookController {
     constructor(
-        private readonly paymentService: PaymentService,
+        private readonly webhookService: PaymentWebhookService,
         @Inject(PAYMENT_WEBHOOK_SIGNATURE_VERIFIER)
         private readonly signatureVerifier: PaymentWebhookSignatureVerifier
     ) {}
@@ -90,22 +90,22 @@ export class PaymentWebhookController {
         if (!verified) throw new UnauthorizedException('Webhook 서명이 올바르지 않습니다.');
 
         const payloadHash = createHash('sha256').update(request.rawBody).digest('hex');
-        await this.paymentService.receiveVerifiedWebhook({
+        await this.webhookService.receiveVerifiedWebhook({
             ...body,
             provider,
             providerEventId,
             payloadHash,
         });
 
-        const recovery = await this.paymentService.recoverStoredWebhook(provider, providerEventId);
+        const recovery = await this.webhookService.recoverStoredWebhook(provider, providerEventId);
         if (recovery.disposition === 'FAILED') {
-            await this.paymentService.failWebhook(
+            await this.webhookService.failWebhook(
                 provider,
                 providerEventId,
                 recovery.errorMessage ?? 'Webhook 복구를 완료할 수 없습니다.'
             );
         }
-        const { event } = await this.paymentService.receiveWebhook({
+        const { event } = await this.webhookService.receiveWebhook({
             provider,
             providerEventId,
             providerPaymentId: body.providerPaymentId,
