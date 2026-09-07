@@ -76,14 +76,13 @@ type Mutation {
     cancelOrder(input: CancelOrderInput!): PlaceOrderPayload!
     createProduct(input: CreateProductInput!): ProductMutationPayload!
     replaceProductCatalog(input: ReplaceProductCatalogInput!): ProductMutationPayload!
-    createProductItem(input: WriteProductItemInput!): ProductMutationPayload!
-    updateProductItem(input: WriteProductItemInput!): ProductMutationPayload!
+    createProductItem(input: CreateProductItemInput!): ProductMutationPayload!
+    updateProductItem(input: UpdateProductItemInput!): ProductMutationPayload!
     deleteProductItem(input: DeleteProductItemInput!): ProductMutationPayload!
     updateProduct(input: UpdateProductInput!): ProductMutationPayload!
     deleteProduct(input: DeleteProductInput!): ProductMutationPayload!
     restoreProduct(input: RestoreProductInput!): ProductMutationPayload!
     adjustInventory(input: AdjustInventoryInput!): InventoryAdjustmentPayload!
-    consumeInventoryReservation(input: InventoryReservationInput!): InventoryTransitionPayload!
     releaseInventoryReservation(input: RestoreInventoryReservationInput!): InventoryTransitionPayload!
     expireInventoryReservation(input: RestoreInventoryReservationInput!): InventoryTransitionPayload!
     createPaymentAttempt(input: CreatePaymentAttemptInput!): PaymentPayload!
@@ -112,13 +111,21 @@ type Mutation {
 | `cancelOrder`                      | 소유자/Admin JWT        | 예약 해제, 결제/배송 상태 검사와 주문 이력                   |
 | Catalog command/`productSnapshots` | Seller/Admin JWT        | 소유권, revision, Snapshot과 Outbox                          |
 | `adjustInventory`                  | Seller/Admin JWT        | 판매자 소유권을 검사하는 재고 조정과 원장                    |
-| Inventory reservation command      | Admin JWT               | 예약 소비/해제/주문 단위 만료와 복구 원장                    |
+| Inventory reservation command      | Admin JWT               | 예약 해제/주문 단위 만료와 복구 원장                         |
 | Payment command                    | 동작별 소유자/Admin JWT | 시도, 매입, 실패, 환불, 관리용 Webhook 재처리와 거래 원장    |
 | Fulfillment command                | Admin JWT               | 멱등 생성, 분할 수량과 포장/발송/배송완료/취소 전이          |
 | `searchProducts`                   | 불필요                  | OpenSearch read Alias의 검색 문서 조회                       |
 
 주문 공개 계약은 멱등 `placeOrder`와 멱등 `cancelOrder`입니다. 결제/재고/배송은 별도 Resolver가 주문
 aggregate와 협력합니다.
+
+`createProductItem`은 `CreateProductItemInput.item`에 `CreateProductItemDataInput`을 받고 Item ID를
+허용하지 않습니다. `updateProductItem`은 `UpdateProductItemInput.item`에
+`UpdateProductItemDataInput`을 받고 Item ID를 필수로 요구합니다. Catalog 전체 교체의
+`ReplaceProductItemInput.id`만 선택 입력으로 유지합니다.
+
+재고 예약 소비는 공개 Mutation이 아닙니다. `capturePayment`가 매입, 주문 확정과 같은 transaction에서
+유효한 예약을 소비합니다.
 
 `createFulfillment`의 `CreateFulfillmentInput`에는 `orderId`, 필수 `idempotencyKey`, 하나 이상의
 `items`가 필요합니다. 멱등성 범위는 주문이며 같은 키와 같은 품목/수량 배정은 기존 배송을 반환하고,

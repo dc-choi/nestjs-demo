@@ -65,7 +65,7 @@ pnpm prod:build
 한 파일만 실행하려면 `pnpm unit test/unit/database/product-command.service.unit.test.ts`처럼 경로를 전달합니다.
 SWC는 타입 검사를 하지 않으므로 CI에서도 `pnpm typecheck`를 별도로 실행합니다.
 
-도메인 규칙과 로깅은 실제 Entity, 순수 함수와 실제 로그 출력으로 검증합니다.
+도메인 규칙, GraphQL 입력 계약과 로깅은 실제 Entity, 순수 함수와 실제 로그 출력으로 검증합니다.
 일부 application 테스트의 ORM/서비스 대역과 외부 시스템의 실패/호출 순서 검증에는 Mock/Spy가 남아 있습니다.
 실제 DB transaction과 검색 동작은 아래 통합 테스트로 검증합니다.
 
@@ -121,9 +121,10 @@ pnpm e2e
 - Catalog GraphQL command는 Product/Item/옵션/분류/태그 변경, soft delete와 복원을 지원합니다.
   expected revision을 검사하고 live graph, revision, append-only `ProductSnapshot`, 검색 Outbox를 같은
   MySQL transaction에 저장합니다.
-- 재고 조정/예약/소비/해제, 주문 단위 예약 만료와 bounded 만료 CLI, 주문 취소,
+- 재고 조정/예약/해제, 주문 단위 예약 만료와 bounded 만료 CLI, 주문 취소,
   결제 시도/매입/실패/환불/Webhook, 멱등 분할 배송의 포장/발송/완료/취소 lifecycle을 GraphQL과 HTTP
-  경계에서 제공합니다. 전액 환불된 주문은 배송을 더 진행할 수 없습니다.
+  경계에서 제공합니다. 예약 소비는 공개 재고 Mutation이 아니라 결제 매입 transaction에서 처리합니다.
+  전액 환불된 주문은 배송을 더 진행할 수 없습니다.
 - `Query.searchProducts`는 OpenSearch의 strict Mapping, nested Item filter, PIT와 `search_after` 기반
   서명 cursor를 사용합니다. 애플리케이션 실행 중 Outbox worker가 증분 변경을 계속 전달하고,
   전체 rebuild, 수동 drain, reconciliation과 관련도 비교는 CLI로 실행합니다. 활성 rebuild는 Catalog
