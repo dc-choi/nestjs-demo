@@ -1,15 +1,13 @@
-import { BadRequestException } from '@nestjs/common';
 import { Field, ID, InputType } from '@nestjs/graphql';
 
 import { IsNotEmpty, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
-
-const DECIMAL_ORDER_ID_PATTERN = /^[1-9]\d*$/;
+import { GRAPHQL_ID_MAX_LENGTH, GRAPHQL_ID_PATTERN } from '~/global/graphql/graphql-id.parser';
 
 @InputType()
 export class CancelOrderInput {
     @Field(() => ID)
-    @Matches(DECIMAL_ORDER_ID_PATTERN)
-    @MaxLength(19)
+    @Matches(GRAPHQL_ID_PATTERN)
+    @MaxLength(GRAPHQL_ID_MAX_LENGTH)
     orderId!: string;
 
     @Field()
@@ -24,13 +22,4 @@ export class CancelOrderInput {
     @IsNotEmpty()
     @MaxLength(255)
     reason?: string | null;
-}
-
-export function parseOrderId(value: string): bigint {
-    if (value.length > 19 || !DECIMAL_ORDER_ID_PATTERN.test(value)) {
-        throw new BadRequestException('유효하지 않은 주문 ID입니다.');
-    }
-    const id = BigInt(value);
-    if (id > 9_223_372_036_854_775_807n) throw new BadRequestException('유효하지 않은 주문 ID입니다.');
-    return id;
 }

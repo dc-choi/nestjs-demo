@@ -1,4 +1,3 @@
-import { BadRequestException } from '@nestjs/common';
 import { Field, ID, InputType, Int } from '@nestjs/graphql';
 
 import { Type } from 'class-transformer';
@@ -14,14 +13,13 @@ import {
     ValidateNested,
 } from 'class-validator';
 import { MYSQL_SIGNED_INT_MAX } from '~/global/common/utils/mysql-number';
-
-const DECIMAL_ID_PATTERN = /^[1-9]\d*$/;
+import { GRAPHQL_ID_MAX_LENGTH, GRAPHQL_ID_PATTERN } from '~/global/graphql/graphql-id.parser';
 
 @InputType()
 export class FulfillmentAllocationInput {
     @Field(() => ID)
-    @Matches(DECIMAL_ID_PATTERN)
-    @MaxLength(19)
+    @Matches(GRAPHQL_ID_PATTERN)
+    @MaxLength(GRAPHQL_ID_MAX_LENGTH)
     orderItemId!: string;
 
     @Field(() => Int)
@@ -34,8 +32,8 @@ export class FulfillmentAllocationInput {
 @InputType()
 export class CreateFulfillmentInput {
     @Field(() => ID)
-    @Matches(DECIMAL_ID_PATTERN)
-    @MaxLength(19)
+    @Matches(GRAPHQL_ID_PATTERN)
+    @MaxLength(GRAPHQL_ID_MAX_LENGTH)
     orderId!: string;
 
     @Field()
@@ -54,8 +52,8 @@ export class CreateFulfillmentInput {
 @InputType()
 export class FulfillmentIdInput {
     @Field(() => ID)
-    @Matches(DECIMAL_ID_PATTERN)
-    @MaxLength(19)
+    @Matches(GRAPHQL_ID_PATTERN)
+    @MaxLength(GRAPHQL_ID_MAX_LENGTH)
     fulfillmentId!: string;
 }
 
@@ -72,13 +70,4 @@ export class ShipFulfillmentInput extends FulfillmentIdInput {
     @IsNotEmpty()
     @MaxLength(255)
     trackingNumber!: string;
-}
-
-export function parseFulfillmentId(value: string): bigint {
-    if (value.length > 19 || !DECIMAL_ID_PATTERN.test(value)) {
-        throw new BadRequestException('유효하지 않은 ID입니다.');
-    }
-    const id = BigInt(value);
-    if (id > 9_223_372_036_854_775_807n) throw new BadRequestException('유효하지 않은 ID입니다.');
-    return id;
 }

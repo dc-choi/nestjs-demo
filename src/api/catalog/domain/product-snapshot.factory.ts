@@ -2,6 +2,8 @@ import { CategoryEntity } from './entity/category.entity';
 import type { ProductSnapshotPayload } from './entity/product-snapshot-payload';
 import { ProductEntity } from './entity/product.entity';
 
+import { compareBigInt } from '~/global/common/utils/bigint';
+
 export const PRODUCT_SNAPSHOT_SCHEMA_VERSION = 1;
 
 export function createProductSnapshotPayload(product: ProductEntity): ProductSnapshotPayload {
@@ -117,9 +119,4 @@ function createCategoryPath(category: CategoryEntity): Array<{ id: string; name:
 
 function compareSequenceAndId(left: { sequence: number; id: bigint }, right: { sequence: number; id: bigint }): number {
     return left.sequence - right.sequence || compareBigInt(left.id, right.id);
-}
-
-function compareBigInt(left: bigint, right: bigint): number {
-    if (left === right) return 0;
-    return left < right ? -1 : 1;
 }

@@ -2,16 +2,13 @@ import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Resolver } from '@nestjs/graphql';
 
 import { InventoryService } from '~/api/inventory/application/inventory.service';
-import {
-    AdjustInventoryInput,
-    RestoreInventoryReservationInput,
-    parseReservationId,
-} from '~/api/inventory/presentation/inventory.input';
+import { AdjustInventoryInput, RestoreInventoryReservationInput } from '~/api/inventory/presentation/inventory.input';
 import {
     toInventoryAdjustmentPayload,
     toInventoryTransitionPayload,
 } from '~/api/inventory/presentation/inventory.mapper';
 import { InventoryAdjustmentPayload, InventoryTransitionPayload } from '~/api/inventory/presentation/inventory.type';
+import { parseGraphqlId } from '~/global/graphql/graphql-id.parser';
 import { Jwt } from '~/global/jwt/decorator/jwt.decorator';
 import { AdminGuard } from '~/global/jwt/guard/admin.guard';
 import { SellerGuard } from '~/global/jwt/guard/seller.guard';
@@ -29,7 +26,7 @@ export class InventoryResolver {
     ): Promise<InventoryAdjustmentPayload> {
         const movement = await this.inventoryService.adjust(jwtPayload, {
             ...input,
-            itemId: parseReservationId(input.itemId),
+            itemId: parseGraphqlId(input.itemId, '품목 ID'),
         });
         return toInventoryAdjustmentPayload(movement);
     }
@@ -42,7 +39,7 @@ export class InventoryResolver {
     ): Promise<InventoryTransitionPayload> {
         const result = await this.inventoryService.release(
             jwtPayload,
-            parseReservationId(input.reservationId),
+            parseGraphqlId(input.reservationId, '재고 예약 ID'),
             input.idempotencyKey
         );
         return toInventoryTransitionPayload(result);

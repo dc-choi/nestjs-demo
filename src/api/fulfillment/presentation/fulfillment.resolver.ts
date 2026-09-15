@@ -6,10 +6,10 @@ import {
     CreateFulfillmentInput,
     FulfillmentIdInput,
     ShipFulfillmentInput,
-    parseFulfillmentId,
 } from '~/api/fulfillment/presentation/fulfillment.input';
 import { toFulfillmentPayload } from '~/api/fulfillment/presentation/fulfillment.mapper';
 import { FulfillmentPayload } from '~/api/fulfillment/presentation/fulfillment.type';
+import { parseGraphqlId } from '~/global/graphql/graphql-id.parser';
 import { Jwt } from '~/global/jwt/decorator/jwt.decorator';
 import { AdminGuard } from '~/global/jwt/guard/admin.guard';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
@@ -25,10 +25,10 @@ export class FulfillmentResolver {
         @Args('input') input: CreateFulfillmentInput
     ): Promise<FulfillmentPayload> {
         const fulfillment = await this.fulfillmentService.create(jwtPayload, {
-            orderId: parseFulfillmentId(input.orderId),
+            orderId: parseGraphqlId(input.orderId, '주문 ID'),
             idempotencyKey: input.idempotencyKey,
             items: input.items.map(({ orderItemId, quantity }) => ({
-                orderItemId: parseFulfillmentId(orderItemId),
+                orderItemId: parseGraphqlId(orderItemId, '주문 품목 ID'),
                 quantity,
             })),
         });
@@ -42,7 +42,7 @@ export class FulfillmentResolver {
         @Args('input') input: FulfillmentIdInput
     ): Promise<FulfillmentPayload> {
         return toFulfillmentPayload(
-            await this.fulfillmentService.pack(jwtPayload, parseFulfillmentId(input.fulfillmentId))
+            await this.fulfillmentService.pack(jwtPayload, parseGraphqlId(input.fulfillmentId, '배송 ID'))
         );
     }
 
@@ -54,7 +54,7 @@ export class FulfillmentResolver {
     ): Promise<FulfillmentPayload> {
         return toFulfillmentPayload(
             await this.fulfillmentService.ship(jwtPayload, {
-                fulfillmentId: parseFulfillmentId(input.fulfillmentId),
+                fulfillmentId: parseGraphqlId(input.fulfillmentId, '배송 ID'),
                 carrier: input.carrier,
                 trackingNumber: input.trackingNumber,
             })
@@ -68,7 +68,7 @@ export class FulfillmentResolver {
         @Args('input') input: FulfillmentIdInput
     ): Promise<FulfillmentPayload> {
         return toFulfillmentPayload(
-            await this.fulfillmentService.deliver(jwtPayload, parseFulfillmentId(input.fulfillmentId))
+            await this.fulfillmentService.deliver(jwtPayload, parseGraphqlId(input.fulfillmentId, '배송 ID'))
         );
     }
 
@@ -79,7 +79,7 @@ export class FulfillmentResolver {
         @Args('input') input: FulfillmentIdInput
     ): Promise<FulfillmentPayload> {
         return toFulfillmentPayload(
-            await this.fulfillmentService.cancel(jwtPayload, parseFulfillmentId(input.fulfillmentId))
+            await this.fulfillmentService.cancel(jwtPayload, parseGraphqlId(input.fulfillmentId, '배송 ID'))
         );
     }
 }

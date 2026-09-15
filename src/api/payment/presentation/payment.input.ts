@@ -1,10 +1,9 @@
-import { BadRequestException } from '@nestjs/common';
 import { Field, ID, InputType } from '@nestjs/graphql';
 
 import { IsEnum, IsNotEmpty, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
 import { PaymentWebhookOutcome } from '~/api/payment/presentation/payment.enum';
+import { GRAPHQL_ID_MAX_LENGTH, GRAPHQL_ID_PATTERN } from '~/global/graphql/graphql-id.parser';
 
-const DECIMAL_ID_PATTERN = /^[1-9]\d*$/;
 const MONEY_PATTERN = /^\d+(?:\.\d{1,3})?$/;
 const SHA256_PATTERN = /^[a-f\d]{64}$/i;
 
@@ -20,8 +19,8 @@ class IdempotentPaymentInput {
 @InputType()
 export class CreatePaymentAttemptInput extends IdempotentPaymentInput {
     @Field(() => ID)
-    @Matches(DECIMAL_ID_PATTERN)
-    @MaxLength(19)
+    @Matches(GRAPHQL_ID_PATTERN)
+    @MaxLength(GRAPHQL_ID_MAX_LENGTH)
     orderId!: string;
 
     @Field()
@@ -46,8 +45,8 @@ export class CreatePaymentAttemptInput extends IdempotentPaymentInput {
 @InputType()
 export class CapturePaymentInput extends IdempotentPaymentInput {
     @Field(() => ID)
-    @Matches(DECIMAL_ID_PATTERN)
-    @MaxLength(19)
+    @Matches(GRAPHQL_ID_PATTERN)
+    @MaxLength(GRAPHQL_ID_MAX_LENGTH)
     paymentAttemptId!: string;
 
     @Field()
@@ -60,8 +59,8 @@ export class CapturePaymentInput extends IdempotentPaymentInput {
 @InputType()
 export class FailPaymentInput extends IdempotentPaymentInput {
     @Field(() => ID)
-    @Matches(DECIMAL_ID_PATTERN)
-    @MaxLength(19)
+    @Matches(GRAPHQL_ID_PATTERN)
+    @MaxLength(GRAPHQL_ID_MAX_LENGTH)
     paymentAttemptId!: string;
 
     @Field()
@@ -155,13 +154,4 @@ export class FailPaymentWebhookInput {
     @IsString()
     @IsNotEmpty()
     errorMessage!: string;
-}
-
-export function parsePaymentId(value: string): bigint {
-    if (value.length > 19 || !DECIMAL_ID_PATTERN.test(value)) {
-        throw new BadRequestException('유효하지 않은 ID입니다.');
-    }
-    const id = BigInt(value);
-    if (id > 9_223_372_036_854_775_807n) throw new BadRequestException('유효하지 않은 ID입니다.');
-    return id;
 }

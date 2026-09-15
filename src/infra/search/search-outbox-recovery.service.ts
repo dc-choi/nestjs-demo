@@ -1,6 +1,8 @@
 import { EntityManager, MikroORM } from '@mikro-orm/mysql';
 import { Injectable } from '@nestjs/common';
 
+import { toBigInt, toNonNegativeInteger, toNullableString } from '~/global/common/utils/mysql-row';
+
 const MAX_INSPECTION_LIMIT = 100;
 const MAX_RETRY_IDS = 100;
 const MAX_REASON_LENGTH = 500;
@@ -147,8 +149,8 @@ async function insertRetryAudit(tx: EntityManager, rows: readonly DeadLetterRow[
     const params = rows.flatMap((row) => [
         toBigInt(row.id, 'outbox id').toString(),
         toBigInt(row.product_id, 'outbox product id').toString(),
-        toInteger(row.attempts, 'outbox attempts'),
-        toNullableString(row.last_error),
+        toNonNegativeInteger(row.attempts, 'outbox attempts'),
+        toNullableString(row.last_error, 'outbox last error'),
         'REQUEUED',
         reason,
     ]);
@@ -167,9 +169,9 @@ function toDeadLetter(row: DeadLetterRow): SearchOutboxDeadLetter {
     return {
         id: toBigInt(row.id, 'outbox id').toString(),
         productId: toBigInt(row.product_id, 'outbox product id').toString(),
-        productRevision: toInteger(row.product_revision, 'outbox product revision'),
-        attempts: toInteger(row.attempts, 'outbox attempts'),
-        lastError: toNullableString(row.last_error),
+        productRevision: toNonNegativeInteger(row.product_revision, 'outbox product revision'),
+        attempts: toNonNegativeInteger(row.attempts, 'outbox attempts'),
+        lastError: toNullableString(row.last_error, 'outbox last error'),
         createdAt,
     };
 }
@@ -192,23 +194,5 @@ function validateReason(value: string): string {
 
 function validateId(value: bigint, field: string): bigint {
     if (typeof value !== 'bigint' || value < 1n) throw new Error(`Invalid ${field}`);
-    return value;
-}
-
-function toBigInt(value: unknown, field: string): bigint {
-    const normalized = typeof value === 'bigint' ? value.toString() : String(value);
-    if (!/^\d+$/.test(normalized)) throw new Error(`Invalid ${field}`);
-    return BigInt(normalized);
-}
-
-function toInteger(value: unknown, field: string): number {
-    const normalized = typeof value === 'number' ? value : Number(value);
-    if (!Number.isSafeInteger(normalized) || normalized < 0) throw new Error(`Invalid ${field}`);
-    return normalized;
-}
-
-function toNullableString(value: unknown): string | null {
-    if (value === null || value === undefined) return null;
-    if (typeof value !== 'string') throw new Error('Invalid outbox last error');
     return value;
 }
