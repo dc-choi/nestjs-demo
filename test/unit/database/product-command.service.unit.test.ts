@@ -159,6 +159,68 @@ describe('ProductCommandService', () => {
         expect(harness.persisted).toHaveLength(0);
     });
 
+    it('정규화 후 변경이 없는 update는 BadRequest로 거절하고 revision과 Snapshot을 남기지 않는다', async () => {
+        const product = createProduct();
+        const harness = createHarness({ product });
+        const service = new ProductCommandService(harness.em, catalogSearchWriteEffects);
+
+        await expect(
+            service.update(seller, { productId: product.id, expectedRevision: 1, name: '  기본 셔츠  ' })
+        ).rejects.toThrow('변경할 상품 정보가 없습니다.');
+
+        expect(harness.rolledBack()).toBe(true);
+        expect(product.revision).toBe(1);
+        expect(harness.persisted).toHaveLength(0);
+    });
+
+    it('Entity의 scalar 규칙 위반은 BadRequest로 번역되고 transaction을 rollback한다', async () => {
+        const harness = createHarness({ assignCreatedProductId: 101n });
+        const service = new ProductCommandService(harness.em, catalogSearchWriteEffects);
+        const create = () => service.create(seller, { slug: 'Bad Slug', name: '기본 셔츠' });
+
+        await expect(create()).rejects.toBeInstanceOf(BadRequestException);
+        await expect(create()).rejects.toThrow('상품 slug가 올바르지 않습니다.');
+        expect(harness.rolledBack()).toBe(true);
+        expect(harness.persisted).toHaveLength(0);
+    });
+
+    it('Snapshot의 상품 식별 정보가 다르면 복원을 BadRequest로 거절한다', async () => {
+        const product = createProduct({
+            revision: 3,
+            status: ProductStatus.CLOSED,
+            deletedAt: new Date('2026-09-04T00:00:00.000Z'),
+        });
+        const captured = createProductSnapshotPayload(product);
+        const source = createSnapshot(product, 1, { ...captured, product: { ...captured.product, sellerId: '999' } });
+        const harness = createHarness({ product, source });
+        const service = new ProductCommandService(harness.em, catalogSearchWriteEffects);
+
+        await expect(
+            service.restore(seller, { productId: product.id, expectedRevision: 3, sourceRevision: 1 })
+        ).rejects.toThrow('Snapshot의 상품 식별 정보가 일치하지 않습니다.');
+
+        expect(harness.rolledBack()).toBe(true);
+        expect(product).toMatchObject({ status: ProductStatus.CLOSED, revision: 3 });
+        expect(product.deletedAt).toBeInstanceOf(Date);
+        expect(harness.persisted).toHaveLength(0);
+    });
+
+    it('지원하지 않는 Snapshot schema version은 복원하지 않는다', async () => {
+        const product = createProduct({ revision: 3 });
+        const source = Object.assign(createSnapshot(product, 1, createProductSnapshotPayload(product)), {
+            schemaVersion: 2,
+        });
+        const harness = createHarness({ product, source });
+        const service = new ProductCommandService(harness.em, catalogSearchWriteEffects);
+
+        await expect(
+            service.restore(seller, { productId: product.id, expectedRevision: 3, sourceRevision: 1 })
+        ).rejects.toThrow('지원하지 않는 Snapshot schema version입니다.');
+
+        expect(product.revision).toBe(3);
+        expect(harness.persisted).toHaveLength(0);
+    });
+
     it('soft delete 상태와 DELETE Snapshot, 검색 outbox를 같은 revision으로 저장한다', async () => {
         const product = createProduct({ revision: 2, status: ProductStatus.PAUSED });
         const harness = createHarness({ product });

@@ -9,6 +9,7 @@ import {
     PRODUCT_OPTION_CODE_PATTERN,
     PRODUCT_PRICE_PATTERN,
     PRODUCT_TAG_MAX_LENGTH,
+    normalizeRequiredText as normalizeText,
 } from './product.rules';
 
 import { createHash } from 'node:crypto';
@@ -358,10 +359,7 @@ function normalizeCode(value: string, field: string): string {
 }
 
 function normalizeRequiredText(value: string, field: string, maxLength: number): string {
-    if (typeof value !== 'string') throw invalidGraph(`${field}이(가) 문자열이어야 합니다.`);
-    const normalized = value.trim();
-    if (!normalized || normalized.length > maxLength) throw invalidGraph(`${field}의 길이가 올바르지 않습니다.`);
-    return normalized;
+    return normalizeText(value, field, maxLength, invalidGraph);
 }
 
 function normalizeOptionalSku(value?: string | null): string | undefined {

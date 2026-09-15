@@ -265,11 +265,12 @@ DB만으로는 Snapshot append-only, payload와 live graph의 일치, revision�
 | 규칙                                                 | 책임                              |
 | ---------------------------------------------------- | --------------------------------- |
 | Product 변경과 revision/Snapshot 삽입의 원자성       | `ProductCommandService`           |
+| Product scalar 정규화, 상태 값 검증, ACTIVE 판매 가능 Item 불변식, 복원 Snapshot의 Product/seller 식별 일치 | `ProductEntity` |
 | Snapshot append-only와 schemaVersion 해석            | Catalog command/이력 Service      |
 | 복원 시 현재 media 연결 보존                         | Catalog command/writer            |
 | payload에 stock 제외                                 | Snapshot projector/factory        |
-| 가격 합계, 면세, required 옵션, optionSignature 검증 | Catalog writer/명령               |
-| Item/옵션/값의 Product와 옵션 소속 일치              | Catalog writer/명령               |
+| 가격 합계, 면세, required 옵션, optionSignature 검증 | `CatalogGraph`/Catalog writer     |
+| Item/옵션/값의 Product와 옵션 소속 일치              | `CatalogGraph`/Catalog writer     |
 | soft delete 행을 일반 조회에서 제외                  | Query/Command Service             |
 | 주문 가능 Product/Item을 writer에서 조회             | `OrderService`                    |
 | Product/Item 고정 순서 잠금, Item별 합산 검사와 차감 | `OrderService`/`InventoryService` |

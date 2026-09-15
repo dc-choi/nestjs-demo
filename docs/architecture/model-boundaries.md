@@ -97,6 +97,12 @@ OrderItemSnapshotEntity.capture(...)
 InventoryReservationEntity.reserve(...)
 PaymentAttemptEntity.create(...)
 FulfillmentEntity.create(...)
+ProductEntity.create(...)
+ProductEntity.applyChanges(...)
+ProductEntity.restoreFrom(...)
+ProductEntity.close(...)
+ProductEntity.advanceRevision()
+ProductEntity.assertSaleableWhenActive()
 ```
 
 Aggregate 내부의 합법적 상태 전이와 계산은 Entity 행동으로 두고, 여러 aggregate와 외부 저장소를
@@ -208,6 +214,13 @@ append-only 감사 이력입니다. 이 경계는 다음과 같이 고정합니�
 `ProductSnapshotEntity`와 검색 Outbox 삽입을 함께 완료합니다. Seller는 자기 상품만 변경할 수 있고
 Admin은 전체 상품을 관리할 수 있습니다.
 
+Catalog 규칙은 세 곳에 역할별로 둡니다. `ProductEntity`는 생성 factory, slug/이름/설명 정규화, 상태 값
+검증, `ACTIVE` 상품의 판매 가능 Item 불변식, Snapshot 복원 적용과 soft delete 전이를 소유합니다.
+`CatalogGraph`는 옵션, Item, 카테고리, 태그 graph 규칙을 검증하고, command Service는 transaction,
+row lock, 권한, `expectedRevision`, Snapshot schema version과 Outbox 조율을 담당합니다. 변경 사유 길이와
+입력 revision 값처럼 command 입력 자체에 대한 검증도 Service에 둡니다.
+도메인 규칙 위반은 `ProductRuleError`와 `CatalogGraphError`로 던지고 Service가 HTTP 400으로 번역합니다.
+
 ### Member/Auth
 
 `MemberType`은 `hashedPassword`, soft delete와 내부 relation을 공개하지 않기 위해 분리합니다.
@@ -255,7 +268,8 @@ object의 중복을 줄일 때만 검토합니다.
 
 1. 이 문서와 [애플리케이션 레이어 원칙](layering.md)을 설계 정본으로 사용합니다.
 2. Order를 rich MikroORM aggregate로 전환하고 중복 `Order`/`OrderLine`을 제거했습니다.
-3. Catalog 작성/변경/복원에 필요한 규칙은 command Service와 Entity에 역할별로 배치했습니다.
+3. Catalog 규칙은 `ProductEntity`(scalar 규칙과 ACTIVE 불변식), `CatalogGraph`(graph 규칙), command
+   Service(transaction, 권한, revision 조율)에 역할별로 배치했습니다.
 4. OpenSearch document와 검색 GraphQL 타입은 별도 read model로 구현했습니다.
 
 새 계층이나 타입을 추가할 때는 먼저 다음을 확인합니다.
