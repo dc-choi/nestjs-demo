@@ -4,6 +4,7 @@ import {
     RequestContext,
     UniqueConstraintViolationException,
 } from '@mikro-orm/core';
+import { NotFoundException } from '@nestjs/common';
 
 import { describe, expect, it, vi } from 'vitest';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity';
@@ -169,6 +170,130 @@ describe('payment webhook recovery', () => {
         expect(process).toHaveBeenCalledOnce();
     });
 
+    it('서명 검증된 배달은 저장, 복구, 실패 처리를 한 진입점에서 독립 transaction으로 수행한다', async () => {
+        const event = PaymentWebhookEventEntity.receive(verifiedCommand);
+        event.id = 100n;
+        const persistence = createPaymentService({ findWebhook: async () => event, inTransaction: false });
+        const recover = vi.spyOn(persistence.webhook, 'recoverStoredWebhook').mockResolvedValueOnce({
+            disposition: 'FAILED',
+            errorMessage: 'Webhook 대상 결제 시도를 찾을 수 없습니다.',
+        });
+
+        const result = await inRequestContext(persistence.requestContextSource, () =>
+            persistence.webhook.receiveSignedDelivery(verifiedCommand, NOW)
+        );
+
+        expect(result).toEqual({ event, transaction: null });
+        expect(recover).toHaveBeenCalledWith(verifiedCommand.provider, verifiedCommand.providerEventId, NOW);
+        expect(event).toMatchObject({
+            status: PaymentWebhookEventStatus.FAILED,
+            errorMessage: 'Webhook 대상 결제 시도를 찾을 수 없습니다.',
+            processedAt: NOW,
+        });
+        expect(event.verifiedCommand()).toMatchObject({ outcome: PaymentWebhookOutcome.CAPTURED });
+        // storeWebhook and failWebhook each commit on their own; the entry point must not wrap them in an outer transaction.
+        expect(persistence.entityManager.transactional).toHaveBeenCalledTimes(2);
+        // The final read uses a fresh fork so it neither depends on a request context nor on the transaction forks.
+        expect(persistence.forkFindOne).toHaveBeenCalledWith(
+            PaymentWebhookEventEntity,
+            { provider: verifiedCommand.provider, providerEventId: verifiedCommand.providerEventId },
+            { populate: ['paymentAttempt'], connectionType: 'write' }
+        );
+    });
+
+    it('서명 검증된 배달이 복구되면 실패 처리 없이 저장된 이벤트를 반환한다', async () => {
+        const event = PaymentWebhookEventEntity.receive(verifiedCommand);
+        event.id = 100n;
+        const persistence = createPaymentService({ findWebhook: async () => event, inTransaction: false });
+        vi.spyOn(persistence.webhook, 'recoverStoredWebhook').mockResolvedValueOnce({
+            disposition: 'PROCESSED',
+            errorMessage: null,
+        });
+        const fail = vi.spyOn(persistence.webhook, 'failWebhook');
+
+        const result = await inRequestContext(persistence.requestContextSource, () =>
+            persistence.webhook.receiveSignedDelivery(verifiedCommand, NOW)
+        );
+
+        expect(result.event).toBe(event);
+        expect(fail).not.toHaveBeenCalled();
+        expect(event.status).toBe(PaymentWebhookEventStatus.RECEIVED);
+        expect(persistence.entityManager.transactional).toHaveBeenCalledTimes(1);
+    });
+
+    it('복구가 RETRY를 돌려주면 실패 처리하지 않고 RECEIVED 이벤트를 worker에 남긴다', async () => {
+        const event = PaymentWebhookEventEntity.receive(verifiedCommand);
+        event.id = 100n;
+        const persistence = createPaymentService({ findWebhook: async () => event, inTransaction: false });
+        vi.spyOn(persistence.webhook, 'recoverStoredWebhook').mockResolvedValueOnce({
+            disposition: 'RETRY',
+            errorMessage: 'Webhook 대상 결제 시도를 찾을 수 없습니다.',
+        });
+        const fail = vi.spyOn(persistence.webhook, 'failWebhook');
+
+        const result = await inRequestContext(persistence.requestContextSource, () =>
+            persistence.webhook.receiveSignedDelivery(verifiedCommand, NOW)
+        );
+
+        expect(result.event).toBe(event);
+        expect(fail).not.toHaveBeenCalled();
+        expect(event).toMatchObject({ status: PaymentWebhookEventStatus.RECEIVED, errorMessage: null });
+        expect(persistence.entityManager.transactional).toHaveBeenCalledTimes(1);
+    });
+
+    it('복구 실패에 메시지가 없으면 기본 메시지로 실패 처리한다', async () => {
+        const event = PaymentWebhookEventEntity.receive(verifiedCommand);
+        event.id = 100n;
+        const persistence = createPaymentService({ findWebhook: async () => event, inTransaction: false });
+        vi.spyOn(persistence.webhook, 'recoverStoredWebhook').mockResolvedValueOnce({
+            disposition: 'FAILED',
+            errorMessage: null,
+        });
+
+        await inRequestContext(persistence.requestContextSource, () =>
+            persistence.webhook.receiveSignedDelivery(verifiedCommand, NOW)
+        );
+
+        expect(event).toMatchObject({
+            status: PaymentWebhookEventStatus.FAILED,
+            errorMessage: 'Webhook 복구를 완료할 수 없습니다.',
+        });
+    });
+
+    it('저장 뒤 이벤트를 다시 읽지 못하면 NotFound로 끝난다', async () => {
+        const event = PaymentWebhookEventEntity.receive(verifiedCommand);
+        event.id = 100n;
+        const persistence = createPaymentService({
+            findWebhook: async () => event,
+            findStoredEvent: async () => null,
+            inTransaction: false,
+        });
+        vi.spyOn(persistence.webhook, 'recoverStoredWebhook').mockResolvedValueOnce({
+            disposition: 'PROCESSED',
+            errorMessage: null,
+        });
+
+        await expect(
+            inRequestContext(persistence.requestContextSource, () =>
+                persistence.webhook.receiveSignedDelivery(verifiedCommand, NOW)
+            )
+        ).rejects.toThrow(NotFoundException);
+    });
+
+    it('서명 검증된 배달 처리는 호출자 transaction 안에서 실행되는 것을 거부한다', async () => {
+        const event = PaymentWebhookEventEntity.receive(verifiedCommand);
+        event.id = 100n;
+        const persistence = createPaymentService({ findWebhook: async () => event, inTransaction: true });
+
+        await expect(
+            inRequestContext(persistence.requestContextSource, () =>
+                persistence.webhook.receiveSignedDelivery(verifiedCommand, NOW)
+            )
+        ).rejects.toThrow('outside a caller transaction');
+        expect(persistence.entityManager.transactional).not.toHaveBeenCalled();
+        expect(event.verifiedCommand()).toBeNull();
+    });
+
     it.each([
         { status: PaymentWebhookEventStatus.FAILED, storedCommand: verifiedCommand },
         { status: PaymentWebhookEventStatus.PROCESSED, storedCommand: null },
@@ -293,14 +418,20 @@ describe('payment webhook recovery', () => {
 function createPaymentService(
     overrides: {
         readonly findWebhook?: (where: Record<string, unknown>) => Promise<PaymentWebhookEventEntity | null>;
+        readonly findStoredEvent?: () => Promise<PaymentWebhookEventEntity | null>;
         readonly findAttempt?: (where: Record<string, unknown>) => Promise<PaymentAttemptEntity | null>;
         readonly persist?: (entity: object) => void;
+        readonly inTransaction?: boolean;
     } = {}
 ) {
     const persist = vi.fn(overrides.persist ?? (() => undefined));
     const entityManager = Object.assign(Object.create(EntityManager.prototype), { persist }) as EntityManager;
-    entityManager.isInTransaction = vi.fn(() => true);
+    entityManager.isInTransaction = vi.fn(() => overrides.inTransaction ?? true);
     entityManager.lock = vi.fn(async () => undefined) as unknown as EntityManager['lock'];
+    const forkFindOne = vi.fn(async (_entity: unknown, where: Record<string, unknown>) =>
+        overrides.findStoredEvent ? overrides.findStoredEvent() : (overrides.findWebhook ?? (async () => null))(where)
+    );
+    entityManager.fork = vi.fn(() => ({ findOne: forkFindOne })) as unknown as EntityManager['fork'];
     entityManager.transactional = vi.fn(async (work: (em: EntityManager) => Promise<unknown>) =>
         work(entityManager)
     ) as unknown as EntityManager['transactional'];
@@ -328,7 +459,7 @@ function createPaymentService(
         webhookRepository,
         service
     );
-    return { service, webhook, persist, requestContextSource };
+    return { service, webhook, persist, requestContextSource, entityManager, forkFindOne };
 }
 
 function inRequestContext<T>(entityManager: EntityManager, work: () => Promise<T>): Promise<T> {
