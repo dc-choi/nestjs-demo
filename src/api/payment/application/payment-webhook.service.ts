@@ -63,6 +63,45 @@ export class PaymentWebhookService {
         }
     }
 
+    /**
+     * Handles one signature-verified provider delivery end to end: store the verified command,
+     * attempt recovery, mark an unrecoverable delivery as FAILED, and return the stored event.
+     *
+     * Deliberately not @Transactional, and it refuses to run inside a caller transaction: each step
+     * must commit on its own so the inbox row exists before recovery runs and a rolled-back recovery
+     * never discards the stored delivery. A RETRY disposition is left to the recovery worker.
+     * The final read uses its own fork so the method does not depend on a request context.
+     */
+    async receiveSignedDelivery(
+        command: VerifiedPaymentWebhookCommand,
+        now = new Date()
+    ): Promise<PaymentWebhookResult> {
+        if (this.em.isInTransaction()) {
+            throw new Error('Payment webhook delivery must run outside a caller transaction');
+        }
+        await this.receiveVerifiedWebhook(command, now);
+
+        const recovery = await this.recoverStoredWebhook(command.provider, command.providerEventId, now);
+        if (recovery.disposition === 'FAILED') {
+            await this.failWebhook(
+                command.provider,
+                command.providerEventId,
+                recovery.errorMessage ?? 'Webhook 복구를 완료할 수 없습니다.',
+                now
+            );
+        }
+
+        const event = await this.em
+            .fork()
+            .findOne(
+                PaymentWebhookEventEntity,
+                { provider: command.provider, providerEventId: command.providerEventId },
+                { populate: ['paymentAttempt'], connectionType: 'write' }
+            );
+        if (!event) throw new NotFoundException('Webhook 이벤트를 찾을 수 없습니다.');
+        return { event, transaction: null };
+    }
+
     /** Replays only the normalized command stored after signature verification. */
     @Transactional()
     async recoverStoredWebhook(

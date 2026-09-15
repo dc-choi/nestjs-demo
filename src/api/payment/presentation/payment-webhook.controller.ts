@@ -90,25 +90,10 @@ export class PaymentWebhookController {
         if (!verified) throw new UnauthorizedException('Webhook 서명이 올바르지 않습니다.');
 
         const payloadHash = createHash('sha256').update(request.rawBody).digest('hex');
-        await this.webhookService.receiveVerifiedWebhook({
+        const { event } = await this.webhookService.receiveSignedDelivery({
             ...body,
             provider,
             providerEventId,
-            payloadHash,
-        });
-
-        const recovery = await this.webhookService.recoverStoredWebhook(provider, providerEventId);
-        if (recovery.disposition === 'FAILED') {
-            await this.webhookService.failWebhook(
-                provider,
-                providerEventId,
-                recovery.errorMessage ?? 'Webhook 복구를 완료할 수 없습니다.'
-            );
-        }
-        const { event } = await this.webhookService.receiveWebhook({
-            provider,
-            providerEventId,
-            providerPaymentId: body.providerPaymentId,
             payloadHash,
         });
         return { eventId: event.providerEventId, status: event.status };
