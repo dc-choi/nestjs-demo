@@ -9,23 +9,17 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 
-import { createHash } from 'node:crypto';
 import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
 import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
+import type { InventoryTransitionResult } from '~/api/inventory/application/inventory-transition.result';
 import { InventoryMovementEntity } from '~/api/inventory/domain/inventory-movement.entity';
 import { InventoryReservationEntity } from '~/api/inventory/domain/inventory-reservation.entity';
 import { InventoryMovementType, InventoryReservationStatus } from '~/api/inventory/domain/inventory.enum';
 import { MemberRole } from '~/api/member/domain/member-role';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
-import { OrderCancellationConflict, OrderEntity } from '~/api/order/domain/entity/order.entity';
-import { OrderActorType, OrderStatus } from '~/api/order/domain/entity/order.enum';
+import { OrderStatus } from '~/api/order/domain/entity/order.enum';
 import { isMysqlSignedInt, isNonNegativeMysqlSignedInt } from '~/global/common/utils/mysql-number';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
-
-export interface InventoryTransitionResult {
-    readonly reservation: InventoryReservationEntity;
-    readonly movement: InventoryMovementEntity | null;
-}
 
 export interface PlacementReservationLine {
     readonly orderItem: OrderItemEntity;
@@ -43,16 +37,6 @@ export interface AdjustInventoryCommand {
     readonly idempotencyKey: string;
 }
 
-export interface InventoryExpirationBatchResult {
-    readonly selectedOrders: number;
-    readonly expiredOrders: number;
-    readonly failures: readonly {
-        readonly orderId: string;
-        readonly reservationId: string;
-        readonly message: string;
-    }[];
-}
-
 const ADJUSTMENT_TYPES: readonly InventoryMovementType[] = [
     InventoryMovementType.RECEIPT,
     InventoryMovementType.ADJUSTMENT,
@@ -63,7 +47,6 @@ const POSITIVE_ADJUSTMENT_TYPES: readonly InventoryMovementType[] = [
     InventoryMovementType.RETURN,
 ];
 const INVENTORY_OPERATOR_ROLES: readonly MemberRole[] = [MemberRole.ADMIN, MemberRole.SELLER];
-const MAX_EXPIRATION_BATCH_SIZE = 500;
 
 @Injectable()
 export class InventoryService {
@@ -268,6 +251,32 @@ export class InventoryService {
         return this.restore(reservation, item, InventoryReservationStatus.RELEASED, idempotencyKey, now);
     }
 
+    async findExpirationReplay(
+        reservation: InventoryReservationEntity,
+        idempotencyKey: string
+    ): Promise<InventoryMovementEntity | null> {
+        this.assertTransaction();
+        const duplicate = await this.movementRepository.findOne(
+            { item: reservation.orderItem.item.id, idempotencyKey },
+            { connectionType: 'write' }
+        );
+        if (duplicate) this.assertSameRestore(duplicate, reservation, InventoryReservationStatus.EXPIRED);
+        return duplicate;
+    }
+
+    async restoreForExpiration(
+        reservation: InventoryReservationEntity,
+        idempotencyKey: string,
+        now = new Date()
+    ): Promise<InventoryTransitionResult> {
+        this.assertTransaction();
+        this.assertIdempotencyKey(idempotencyKey);
+        const item = reservation.orderItem.item;
+        await this.em.lock(item, LockMode.PESSIMISTIC_WRITE);
+        await this.em.lock(reservation, LockMode.PESSIMISTIC_WRITE);
+        return this.restore(reservation, item, InventoryReservationStatus.EXPIRED, idempotencyKey, now);
+    }
+
     @Transactional()
     async release(
         jwtPayload: JwtPayload,
@@ -280,176 +289,11 @@ export class InventoryService {
         }
         this.assertIdempotencyKey(idempotencyKey);
         const locked = await this.findReservationAndItemForUpdate(reservationId);
-        if (locked.reservation.orderItem.order.status !== 'CANCELLED') {
+        if (locked.reservation.orderItem.order.status !== OrderStatus.CANCELLED) {
             throw new ConflictException('주문 취소 전에 재고 예약만 개별 해제할 수 없습니다.');
         }
 
         return this.restore(locked.reservation, locked.item, InventoryReservationStatus.RELEASED, idempotencyKey, now);
-    }
-
-    async expire(
-        jwtPayload: JwtPayload,
-        reservationId: bigint,
-        idempotencyKey: string,
-        now = new Date()
-    ): Promise<InventoryTransitionResult> {
-        if (jwtPayload.role !== MemberRole.ADMIN) throw new ForbiddenException('재고 예약 만료 권한이 없습니다.');
-        this.assertIdempotencyKey(idempotencyKey);
-
-        return this.expireOrderByReservation(
-            reservationId,
-            idempotencyKey,
-            { type: OrderActorType.MEMBER, id: jwtPayload.memberId.toString() },
-            now
-        );
-    }
-
-    async expireDueBatch(limit = 100, now = new Date()): Promise<InventoryExpirationBatchResult> {
-        if (!Number.isInteger(limit) || limit < 1 || limit > MAX_EXPIRATION_BATCH_SIZE) {
-            throw new BadRequestException(`재고 만료 배치 크기는 1 이상 ${MAX_EXPIRATION_BATCH_SIZE} 이하여야 합니다.`);
-        }
-
-        const candidates = await this.em.fork({ useContext: false }).find(
-            InventoryReservationEntity,
-            {
-                status: InventoryReservationStatus.RESERVED,
-                expiresAt: { $lte: now },
-                orderItem: { order: { status: OrderStatus.PENDING, deletedAt: null } },
-            },
-            {
-                populate: ['orderItem.order'],
-                orderBy: { expiresAt: 'asc', id: 'asc' },
-                limit,
-                connectionType: 'write',
-            }
-        );
-        const firstReservationByOrder = new Map<bigint, InventoryReservationEntity>();
-        for (const reservation of candidates) {
-            const { order } = reservation.orderItem;
-            if (!firstReservationByOrder.has(order.id)) firstReservationByOrder.set(order.id, reservation);
-        }
-
-        let expiredOrders = 0;
-        const failures: { orderId: string; reservationId: string; message: string }[] = [];
-        for (const [orderId, reservation] of firstReservationByOrder) {
-            try {
-                await this.expireOrderByReservation(
-                    reservation.id,
-                    this.expirationBatchKey(orderId),
-                    { type: OrderActorType.SYSTEM, id: null },
-                    now
-                );
-                expiredOrders += 1;
-            } catch (error: unknown) {
-                if (!(error instanceof ConflictException) && !(error instanceof NotFoundException)) throw error;
-                failures.push({
-                    orderId: orderId.toString(),
-                    reservationId: reservation.id.toString(),
-                    message: error.message,
-                });
-            }
-        }
-
-        return { selectedOrders: firstReservationByOrder.size, expiredOrders, failures };
-    }
-
-    @Transactional()
-    private async expireOrderByReservation(
-        reservationId: bigint,
-        idempotencyKey: string,
-        actor: { readonly type: OrderActorType; readonly id: string | null },
-        now: Date
-    ): Promise<InventoryTransitionResult> {
-        const discovered = await this.reservationRepository.findOne(
-            { id: reservationId },
-            { populate: ['orderItem.order'], connectionType: 'write' }
-        );
-        if (!discovered) throw new NotFoundException('재고 예약을 찾을 수 없습니다.');
-
-        const order = await this.em.findOne(
-            OrderEntity,
-            { id: discovered.orderItem.order.id, deletedAt: null },
-            {
-                populate: ['items.item', 'items.inventoryReservation', 'paymentAttempts', 'statusHistories'],
-                connectionType: 'write',
-                lockMode: LockMode.PESSIMISTIC_WRITE,
-                refresh: true,
-            }
-        );
-        if (!order) throw new NotFoundException('주문을 찾을 수 없습니다.');
-
-        const attempts = order.paymentAttempts.getItems().toSorted((left, right) => compareBigInt(left.id, right.id));
-        for (const attempt of attempts) await this.em.lock(attempt, LockMode.PESSIMISTIC_WRITE);
-
-        const items = [
-            ...new Map(order.items.getItems().map(({ item }) => [item.id, item] as const)).values(),
-        ].toSorted((left, right) => compareBigInt(left.id, right.id));
-        for (const item of items) {
-            await this.em.refresh(item, { connectionType: 'write', lockMode: LockMode.PESSIMISTIC_WRITE });
-        }
-        const itemsById = new Map(items.map((item) => [item.id, item] as const));
-
-        const reservations = order.items
-            .getItems()
-            .flatMap(({ inventoryReservation }) => (inventoryReservation ? [inventoryReservation] : []))
-            .toSorted((left, right) => compareBigInt(left.id, right.id));
-        for (const reservation of reservations) {
-            await this.em.lock(reservation, LockMode.PESSIMISTIC_WRITE);
-            reservation.orderItem.item = itemsById.get(reservation.orderItem.item.id)!;
-        }
-
-        const requested = reservations.find(({ id }) => id === reservationId);
-        if (!requested) throw new NotFoundException('재고 예약을 찾을 수 없습니다.');
-        const duplicate = await this.movementRepository.findOne(
-            { item: requested.orderItem.item.id, idempotencyKey },
-            { connectionType: 'write' }
-        );
-        if (duplicate) {
-            this.assertSameRestore(duplicate, requested, InventoryReservationStatus.EXPIRED);
-            const replay = order.statusHistories
-                .getItems()
-                .some(
-                    ({ toStatus, requestId, reason }) =>
-                        toStatus === OrderStatus.CANCELLED &&
-                        requestId === idempotencyKey &&
-                        reason === 'INVENTORY_RESERVATION_EXPIRED'
-                );
-            if (order.status === OrderStatus.CANCELLED && replay)
-                return { reservation: requested, movement: duplicate };
-            throw new ConflictException('재고 만료 멱등성 키가 완료되지 않은 요청에 사용되었습니다.');
-        }
-        let expiration;
-        try {
-            expiration = order.expireReservations({
-                actorType: actor.type,
-                actorId: actor.id,
-                requestId: idempotencyKey,
-                occurredAt: now,
-            });
-        } catch (error: unknown) {
-            if (error instanceof OrderCancellationConflict) throw new ConflictException(error.message);
-            throw error;
-        }
-
-        let requestedMovement: InventoryMovementEntity | null = null;
-        for (const reservation of expiration.reservations) {
-            const movementKey =
-                reservation.id === reservationId
-                    ? idempotencyKey
-                    : this.expirationMovementKey(order.id, reservation.id, idempotencyKey);
-            const result = await this.restore(
-                reservation,
-                reservation.orderItem.item,
-                InventoryReservationStatus.EXPIRED,
-                movementKey,
-                now
-            );
-            if (reservation.id === reservationId) requestedMovement = result.movement;
-        }
-
-        if (expiration.history) this.em.persist(expiration.history);
-
-        return { reservation: requested, movement: requestedMovement };
     }
 
     private async findReservationAndItemForUpdate(
@@ -620,16 +464,6 @@ export class InventoryService {
             throw new ConflictException('만료된 재고 예약은 소비할 수 없습니다.');
         }
         return true;
-    }
-
-    private expirationMovementKey(orderId: bigint, reservationId: bigint, idempotencyKey: string): string {
-        const digest = createHash('sha256').update(`${orderId}:${reservationId}:${idempotencyKey}`).digest('hex');
-        return `expire:${digest}`;
-    }
-
-    private expirationBatchKey(orderId: bigint): string {
-        const digest = createHash('sha256').update(orderId.toString()).digest('hex');
-        return `expire:${digest}`;
     }
 
     private assertIdempotencyKey(value: string): void {

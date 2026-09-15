@@ -18,6 +18,7 @@ import { InventoryMovementEntity } from '~/api/inventory/domain/inventory-moveme
 import { InventoryReservationEntity } from '~/api/inventory/domain/inventory-reservation.entity';
 import { InventoryMovementType, InventoryReservationStatus } from '~/api/inventory/domain/inventory.enum';
 import { MemberEntity } from '~/api/member/domain/member.entity';
+import { OrderExpirationService } from '~/api/order/application/order-expiration.service';
 import { OrderService } from '~/api/order/application/order.service';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
 import { OrderStatusHistoryEntity } from '~/api/order/domain/entity/order-status-history.entity';
@@ -299,7 +300,7 @@ describeCommerceMySql('Commerce lifecycle MySQL integration', () => {
         });
         const expiresAt = new Date(placed.placedAt!.getTime() + 15 * 60 * 1000);
 
-        const result = await services.inventory.expireDueBatch(10, expiresAt);
+        const result = await services.orderExpiration.expireDueBatch(10, expiresAt);
 
         expect(result).toEqual({ selectedOrders: 1, expiredOrders: 1, failures: [] });
         const state = await readOrderState(orm!.em.fork(), placed.id);
@@ -605,6 +606,7 @@ function createServices(em: EntityManager, distributedLock: DistributedLockServi
             inventory,
             distributedLock
         ),
+        orderExpiration: new OrderExpirationService(em, em.getRepository(InventoryReservationEntity), inventory),
         payment,
         webhook: new PaymentWebhookService(
             em,

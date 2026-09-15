@@ -1,4 +1,4 @@
-import type { InventoryTransitionResult } from '~/api/inventory/application/inventory.service';
+import type { InventoryTransitionResult } from '~/api/inventory/application/inventory-transition.result';
 import type { InventoryMovementEntity } from '~/api/inventory/domain/inventory-movement.entity';
 import type {
     InventoryAdjustmentPayload,

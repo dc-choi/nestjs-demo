@@ -18,6 +18,7 @@ import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
 import { MemberRole } from '~/api/member/domain/member-role';
 import { MemberEntity } from '~/api/member/domain/member.entity';
 import type { CancelOrderCommand } from '~/api/order/application/cancel-order.command';
+import { lockOrderDependents } from '~/api/order/application/order-dependents.lock';
 import { ORDER_INVENTORY_PORT, type OrderInventoryPort } from '~/api/order/application/order-inventory.port';
 import type { PlaceOrderCommand } from '~/api/order/application/place-order.command';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
@@ -108,7 +109,7 @@ export class OrderService {
         );
         if (!order) throw new NotFoundException('주문을 찾을 수 없습니다.');
         this.assertOrderOwnerOrAdmin(jwtPayload, order);
-        await this.lockCancellationDependents(order);
+        await lockOrderDependents(this.em, order);
 
         const reason = command.reason ?? 'CUSTOMER_REQUEST';
         let cancellation;
@@ -134,30 +135,6 @@ export class OrderService {
         }
         if (cancellation.history) this.em.persist(cancellation.history);
         return order;
-    }
-
-    private async lockCancellationDependents(order: OrderEntity): Promise<void> {
-        const attempts = order.paymentAttempts.getItems().toSorted((left, right) => compareBigInt(left.id, right.id));
-        for (const attempt of attempts) await this.em.lock(attempt, LockMode.PESSIMISTIC_WRITE);
-
-        const items = [
-            ...new Map(order.items.getItems().map(({ item }) => [item.id, item] as const)).values(),
-        ].toSorted((left, right) => compareBigInt(left.id, right.id));
-        for (const item of items) {
-            await this.em.refresh(item, {
-                connectionType: 'write',
-                lockMode: LockMode.PESSIMISTIC_WRITE,
-            });
-        }
-
-        const reservations = order.items
-            .getItems()
-            .flatMap(({ inventoryReservation }) => (inventoryReservation ? [inventoryReservation] : []))
-            .toSorted((left, right) => compareBigInt(left.id, right.id));
-        for (const reservation of reservations) await this.em.lock(reservation, LockMode.PESSIMISTIC_WRITE);
-
-        const fulfillments = order.fulfillments.getItems().toSorted((left, right) => compareBigInt(left.id, right.id));
-        for (const fulfillment of fulfillments) await this.em.lock(fulfillment, LockMode.PESSIMISTIC_WRITE);
     }
 
     @Transactional()

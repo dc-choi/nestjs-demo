@@ -90,6 +90,8 @@ GraphQL Args
 ```ts
 OrderEntity.place(...)
 OrderEntity.transition(...)
+OrderEntity.cancelByMember(...)
+OrderEntity.expireReservations(...)
 OrderItemEntity.create(...)
 OrderItemSnapshotEntity.capture(...)
 InventoryReservationEntity.reserve(...)
@@ -173,8 +175,15 @@ OrderItemSnapshotEntity      # 주문 시점 증거 복사
 - 결제 매입 시 예약 소비, 취소/만료 시 재고 복구
 
 GraphQL `OrderType`과 presentation mapper는 유지합니다. Entity의 `Collection`, relation과 `bigint`를 외부
-계약으로 직접 노출하지 않기 위해서입니다. 주문 상태 전이는 `OrderEntity.transition()`이 보호하고,
-취소/결제/배송 Service가 이력과 함께 호출합니다.
+계약으로 직접 노출하지 않기 위해서입니다. 주문 상태 전이는 `OrderEntity.transition()`이 보호합니다.
+회원 취소와 예약 만료는 `OrderEntity.cancelByMember()`와 `OrderEntity.expireReservations()`가 전제 조건
+검사와 함께 `CANCELLED` 전이를 수행하고, 결제 확정과 배송 완료 Service는 `transition()`을 직접 호출합니다.
+
+취소와 만료가 잠그는 주문 종속 행의 고정 순서(결제 시도, Item, 재고 예약, 배송을 각각 ID 순으로)는
+`lockOrderDependents` 공용 helper 한 곳이 소유하고 `OrderService.cancel`과 `OrderExpirationService`가
+함께 사용합니다. 이 helper는 호출자 transaction 안에서 `EntityManager`로 행 잠금과 Item refresh를
+수행하므로 잠금 없이 호출하는 순수 함수가 아닙니다. 예약 만료로 인한 주문 취소는 Order 모듈의 `OrderExpirationService`가 담당하며,
+`InventoryService`는 `ORDER_INVENTORY_PORT`를 통해 예약별 재고 복구만 수행합니다.
 
 ### Catalog
 
