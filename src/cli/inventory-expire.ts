@@ -1,13 +1,13 @@
 import { NestFactory } from '@nestjs/core';
 
-import { InventoryService } from '~/api/inventory/application/inventory.service';
+import { OrderExpirationService } from '~/api/order/application/order-expiration.service';
 import { MaintenanceAppModule } from '~/maintenance-app.module';
 
 async function main(): Promise<void> {
     const limit = parseLimit(process.argv.slice(2));
     const app = await NestFactory.createApplicationContext(MaintenanceAppModule, { logger: ['error', 'warn'] });
     try {
-        const result = await app.get(InventoryService).expireDueBatch(limit);
+        const result = await app.get(OrderExpirationService).expireDueBatch(limit);
         process.stdout.write(`${JSON.stringify(result)}\n`);
         if (result.failures.length > 0) process.exitCode = 1;
     } finally {

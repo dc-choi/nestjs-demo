@@ -111,7 +111,7 @@ type Mutation {
 | `cancelOrder`                      | 소유자/Admin JWT        | 예약 해제, 결제/배송 상태 검사와 주문 이력                   |
 | Catalog command/`productSnapshots` | Seller/Admin JWT        | 소유권, revision, Snapshot과 Outbox                          |
 | `adjustInventory`                  | Seller/Admin JWT        | 판매자 소유권을 검사하는 재고 조정과 원장                    |
-| Inventory reservation command      | Admin JWT               | 예약 해제/주문 단위 만료와 복구 원장                         |
+| Inventory reservation command      | Admin JWT               | 예약 해제는 `InventoryService`, 주문 단위 만료는 `OrderExpirationService`와 복구 원장 |
 | Payment command                    | 동작별 소유자/Admin JWT | 시도, 매입, 실패, 환불, 관리용 Webhook 재처리와 거래 원장    |
 | Fulfillment command                | Admin JWT               | 멱등 생성, 분할 수량과 포장/발송/배송완료/취소 전이          |
 | `searchProducts`                   | 불필요                  | OpenSearch read Alias의 검색 문서 조회                       |
@@ -544,8 +544,10 @@ src/api/
     member.module.ts
   order/
     application/order.service.ts       # 접수/취소와 transaction 조율
+    application/order-expiration.service.ts  # 예약 만료로 인한 주문 취소와 CLI 배치
+    application/order-dependents.lock.ts     # 취소/만료가 공유하는 종속 행 잠금 순서
     domain/entity/                     # 주문 aggregate와 상태 이력
-    presentation/                      # placeOrder/cancelOrder 계약
+    presentation/                      # placeOrder/cancelOrder/expireInventoryReservation 계약
   catalog/
     application/product-command.service.ts
     application/product-snapshot.service.ts

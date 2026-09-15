@@ -501,6 +501,8 @@ function createService(
     const inventoryService = {
         reserveForPlacementBatch,
         releaseForCancellation,
+        findExpirationReplay: vi.fn<OrderInventoryPort['findExpirationReplay']>(),
+        restoreForExpiration: vi.fn<OrderInventoryPort['restoreForExpiration']>(),
     } satisfies OrderInventoryPort;
     const orderRepository = {
         findOne: vi.fn(async () => cancellation.order ?? null),

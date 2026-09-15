@@ -19,8 +19,6 @@ import { MemberEntity } from '~/api/member/domain/member.entity';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity';
 import { OrderStatus } from '~/api/order/domain/entity/order.enum';
-import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity';
-import { PaymentAttemptStatus } from '~/api/payment/domain/payment.enum';
 
 const NOW = new Date('2026-09-04T00:00:00.000Z');
 const EXPIRES_AT = new Date('2026-09-04T00:15:00.000Z');
@@ -172,53 +170,81 @@ describe('inventory lifecycle', () => {
         expect(persistence.persist).toHaveBeenCalledTimes(1);
     });
 
-    it('관리자 만료 처리는 주문 전체를 취소하고 모든 예약 재고를 원자적으로 복구한다', async () => {
+    it('만료 복구는 아직 유효한 예약을 거절하고 만료된 예약만 EXPIRED 원장으로 한 번 복구한다', async () => {
         const { item, reservation } = createReservation();
-        const order = reservation.orderItem.order;
-        const secondOrderItem = createOrderItem(item, 1);
-        secondOrderItem.id = 11n;
-        secondOrderItem.order = order;
-        order.items = new Collection(order, [...order.items.getItems(), secondOrderItem]);
-        const secondReservation = InventoryReservationEntity.reserve(secondOrderItem, EXPIRES_AT, NOW);
-        secondReservation.id = 21n;
-        item.stock = 2;
-        const attempt = PaymentAttemptEntity.create({
-            order,
-            provider: 'fixture-pay',
-            idempotencyKey: 'pending-attempt',
-        });
-        attempt.id = 30n;
-        const persistence = createReservationService([reservation, secondReservation], () => null);
+        let storedMovement: InventoryMovementEntity | null = null;
+        const persistence = createReservationService(
+            reservation,
+            () => storedMovement,
+            (entity) => {
+                if (entity instanceof InventoryMovementEntity) {
+                    entity.id = 80n;
+                    storedMovement = entity;
+                }
+            }
+        );
 
         await expect(
-            RequestContext.create(persistence.requestContextSource, () =>
-                persistence.service.expire(
-                    { memberId: 1n, role: 'ADMIN' },
-                    reservation.id,
-                    'expire-early',
-                    new Date('2026-09-04T00:14:59.999Z')
-                )
-            )
+            persistence.service.restoreForExpiration(reservation, 'expire-early', new Date('2026-09-04T00:14:59.999Z'))
         ).rejects.toThrow('아직 만료되지 않은 재고 예약');
-        expect(item.stock).toBe(2);
+        expect(item.stock).toBe(3);
+        expect(reservation.status).toBe(InventoryReservationStatus.RESERVED);
 
-        await RequestContext.create(persistence.requestContextSource, () =>
-            persistence.service.expire({ memberId: 1n, role: 'ADMIN' }, reservation.id, 'expire-due', EXPIRES_AT)
-        );
+        const first = await persistence.service.restoreForExpiration(reservation, 'expire-due', EXPIRES_AT);
+        const replay = await persistence.service.restoreForExpiration(reservation, 'expire-due', EXPIRES_AT);
+
+        expect(replay.movement).toBe(first.movement);
         expect(item.stock).toBe(5);
         expect(reservation.status).toBe(InventoryReservationStatus.EXPIRED);
-        expect(secondReservation.status).toBe(InventoryReservationStatus.EXPIRED);
-        expect(attempt.status).toBe(PaymentAttemptStatus.CANCELLED);
-        expect(order.status).toBe(OrderStatus.CANCELLED);
-        expect(order.statusHistories.getItems().at(-1)).toMatchObject({
-            fromStatus: OrderStatus.PENDING,
-            toStatus: OrderStatus.CANCELLED,
-            reason: 'INVENTORY_RESERVATION_EXPIRED',
-            requestId: 'expire-due',
+        expect(first.movement).toMatchObject({
+            type: InventoryMovementType.RELEASE,
+            quantityDelta: 2,
+            stockAfter: 5,
+            reason: InventoryReservationStatus.EXPIRED,
         });
-        expect(
-            persistence.persist.mock.calls.filter(([entity]) => entity instanceof InventoryMovementEntity)
-        ).toHaveLength(2);
+        expect(persistence.persist).toHaveBeenCalledTimes(1);
+    });
+
+    it('만료 복구는 소비되거나 해제된 예약을 거절한다', async () => {
+        const { item, reservation } = createReservation();
+        const persistence = createReservationService(reservation, () => null);
+        reservation.release(NOW);
+
+        await expect(
+            persistence.service.restoreForExpiration(reservation, 'expire-released', EXPIRES_AT)
+        ).rejects.toThrow('RELEASED 재고 예약은 복구할 수 없습니다.');
+        expect(item.stock).toBe(3);
+        expect(persistence.persist).not.toHaveBeenCalled();
+    });
+
+    it('만료 replay 조회는 같은 복구 원장만 돌려주고 다른 요청의 키는 거절한다', async () => {
+        const { item, reservation } = createReservation();
+        let storedMovement: InventoryMovementEntity | null = null;
+        const persistence = createReservationService(
+            reservation,
+            () => storedMovement,
+            (entity) => {
+                if (entity instanceof InventoryMovementEntity) {
+                    entity.id = 80n;
+                    storedMovement = entity;
+                }
+            }
+        );
+
+        await expect(persistence.service.findExpirationReplay(reservation, 'expire-due')).resolves.toBeNull();
+        const { movement } = await persistence.service.restoreForExpiration(reservation, 'expire-due', EXPIRES_AT);
+        await expect(persistence.service.findExpirationReplay(reservation, 'expire-due')).resolves.toBe(movement);
+
+        storedMovement = InventoryMovementEntity.record({
+            item,
+            type: InventoryMovementType.RECEIPT,
+            quantityDelta: 1,
+            stockAfter: 6,
+            idempotencyKey: 'expire-due',
+        });
+        await expect(persistence.service.findExpirationReplay(reservation, 'expire-due')).rejects.toThrow(
+            '다른 요청에 사용'
+        );
     });
 
     it('결제에서 만료된 예약을 소비하면 상태를 바꾸지 않고 Conflict로 번역한다', () => {
@@ -229,7 +255,7 @@ describe('inventory lifecycle', () => {
         expect(reservation.status).toBe(InventoryReservationStatus.RESERVED);
     });
 
-    it('호출자 트랜잭션이 없으면 예약 생성, 결제 소비, 취소 복구를 모두 거부한다', async () => {
+    it('호출자 트랜잭션이 없으면 예약 생성, 결제 소비, 취소 복구, 만료 복구를 모두 거부한다', async () => {
         const { item, reservation } = createReservation();
         const service = new InventoryService(
             { isInTransaction: () => false } as EntityManager,
@@ -243,6 +269,9 @@ describe('inventory lifecycle', () => {
         ).rejects.toThrow('caller transaction');
         expect(() => service.consumeForPayment(reservation, NOW)).toThrow('caller transaction');
         await expect(service.releaseForCancellation(reservation, 'without-transaction', NOW)).rejects.toThrow(
+            'caller transaction'
+        );
+        await expect(service.restoreForExpiration(reservation, 'without-transaction', EXPIRES_AT)).rejects.toThrow(
             'caller transaction'
         );
         expect(item.stock).toBe(3);
@@ -536,9 +565,6 @@ function createReservationService(
         persist,
         isInTransaction: () => true,
     }) as EntityManager;
-    entityManager.findOne = vi.fn(async (entity) =>
-        entity === OrderEntity ? reservation.orderItem.order : null
-    ) as unknown as EntityManager['findOne'];
     entityManager.lock = vi.fn(async () => undefined) as unknown as EntityManager['lock'];
     entityManager.refresh = vi.fn(async (entity) => entity) as unknown as EntityManager['refresh'];
     const transactional = vi.fn<

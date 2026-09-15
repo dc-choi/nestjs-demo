@@ -55,6 +55,8 @@ export interface OrderCancellationResult {
 
 export class OrderCancellationConflict extends Error {}
 
+const RESERVATION_EXPIRED_REASON = 'INVENTORY_RESERVATION_EXPIRED';
+
 const ALLOWED_TRANSITIONS: Readonly<Record<OrderStatus, readonly OrderStatus[]>> = {
     [OrderStatus.PENDING]: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
     [OrderStatus.CONFIRMED]: [OrderStatus.CANCELLED, OrderStatus.COMPLETED],
@@ -316,11 +318,23 @@ export class OrderEntity {
             to: OrderStatus.CANCELLED,
             actorType,
             actorId,
-            reason: 'INVENTORY_RESERVATION_EXPIRED',
+            reason: RESERVATION_EXPIRED_REASON,
             requestId,
             occurredAt,
         });
         return { isReplay: false, history, reservations: activeReservations };
+    }
+
+    /** True when this order was already cancelled by the same reservation-expiration request. */
+    hasExpirationReplay(requestId: string): boolean {
+        return this.hasCancellationReplay(requestId, RESERVATION_EXPIRED_REASON);
+    }
+
+    /** Reservations of every order item that has one, in item order. Callers lock before mutating them. */
+    inventoryReservations(): InventoryReservationEntity[] {
+        return this.items
+            .getItems()
+            .flatMap(({ inventoryReservation }) => (inventoryReservation ? [inventoryReservation] : []));
     }
 
     private hasCancellationReplay(requestId: string, reason: string): boolean {
@@ -339,12 +353,6 @@ export class OrderEntity {
             ({ status }) =>
                 status === InventoryReservationStatus.RESERVED || status === InventoryReservationStatus.CONSUMED
         );
-    }
-
-    private inventoryReservations(): InventoryReservationEntity[] {
-        return this.items
-            .getItems()
-            .flatMap(({ inventoryReservation }) => (inventoryReservation ? [inventoryReservation] : []));
     }
 
     private cancelCancellablePaymentAttempts(now: Date): void {

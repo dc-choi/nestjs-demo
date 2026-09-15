@@ -8,6 +8,7 @@ import { DecimalScalar } from '~/api/catalog/search/presentation/decimal.scalar'
 import { ProductSearchResolver } from '~/api/catalog/search/presentation/product-search.resolver';
 import { FulfillmentResolver } from '~/api/fulfillment/presentation/fulfillment.resolver';
 import { InventoryResolver } from '~/api/inventory/presentation/inventory.resolver';
+import { OrderExpirationResolver } from '~/api/order/presentation/order-expiration.resolver';
 import { OrderResolver } from '~/api/order/presentation/place-order.resolver';
 import { PaymentResolver } from '~/api/payment/presentation/payment.resolver';
 
@@ -22,6 +23,7 @@ describe('commerce GraphQL schema', () => {
                     ProductResolver,
                     ProductSearchResolver,
                     OrderResolver,
+                    OrderExpirationResolver,
                     InventoryResolver,
                     PaymentResolver,
                     FulfillmentResolver,

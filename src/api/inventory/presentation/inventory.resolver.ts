@@ -47,18 +47,4 @@ export class InventoryResolver {
         );
         return toInventoryTransitionPayload(result);
     }
-
-    @Mutation(() => InventoryTransitionPayload)
-    @UseGuards(AdminGuard)
-    async expireInventoryReservation(
-        @Jwt() jwtPayload: JwtPayload,
-        @Args('input') input: RestoreInventoryReservationInput
-    ): Promise<InventoryTransitionPayload> {
-        const result = await this.inventoryService.expire(
-            jwtPayload,
-            parseReservationId(input.reservationId),
-            input.idempotencyKey
-        );
-        return toInventoryTransitionPayload(result);
-    }
 }
