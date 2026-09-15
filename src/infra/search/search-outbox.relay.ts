@@ -6,6 +6,7 @@ import { CatalogSearchWorker } from './catalog-search.worker';
 import { SearchConfig } from './search.config';
 
 import { randomUUID } from 'node:crypto';
+import { toBigInt, toNonNegativeInteger } from '~/global/common/utils/mysql-row';
 
 interface ClaimedOutboxRow {
     id: bigint;
@@ -142,8 +143,8 @@ export class SearchOutboxRelay {
             return {
                 id,
                 productId: toBigInt(row.product_id, 'outbox product id'),
-                productRevision: toInteger(row.product_revision, 'outbox product revision'),
-                attempts: toInteger(row.attempts, 'outbox attempts'),
+                productRevision: toNonNegativeInteger(row.product_revision, 'outbox product revision'),
+                attempts: toNonNegativeInteger(row.attempts, 'outbox attempts'),
                 leaseToken,
             };
         });
@@ -262,16 +263,4 @@ function emptyDrainResult(): SearchOutboxDrainResult {
 function describeError(error: unknown): string {
     if (error instanceof Error) return `${error.name}: ${error.message}`.slice(0, 1_000);
     return 'Unknown search projection error';
-}
-
-function toBigInt(value: unknown, field: string): bigint {
-    const normalized = typeof value === 'bigint' ? value.toString() : String(value);
-    if (!/^\d+$/.test(normalized)) throw new Error(`Invalid ${field}`);
-    return BigInt(normalized);
-}
-
-function toInteger(value: unknown, field: string): number {
-    const normalized = typeof value === 'number' ? value : Number(value);
-    if (!Number.isSafeInteger(normalized) || normalized < 0) throw new Error(`Invalid ${field}`);
-    return normalized;
 }

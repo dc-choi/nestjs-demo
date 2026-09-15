@@ -12,6 +12,7 @@ import {
 } from './product.rules';
 
 import { createHash } from 'node:crypto';
+import { compareBigInt } from '~/global/common/utils/bigint';
 
 const HEX_64_PATTERN = /^[0-9a-f]{64}$/;
 const itemSaleStatuses = new Set<ItemSaleStatus>(Object.values(ItemSaleStatus));
@@ -403,11 +404,6 @@ function existingIds(values: readonly { id?: bigint }[]): string[] {
 
 function compareSequenceAndId(left: { sequence: number; id: bigint }, right: { sequence: number; id: bigint }): number {
     return left.sequence - right.sequence || compareBigInt(left.id, right.id);
-}
-
-function compareBigInt(left: bigint, right: bigint): number {
-    if (left === right) return 0;
-    return left < right ? -1 : 1;
 }
 
 function assertMaxSize(values: readonly unknown[], max: number, field: string): void {

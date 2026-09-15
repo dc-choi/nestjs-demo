@@ -11,10 +11,10 @@ import {
     ProcessPaymentWebhookInput,
     ReceivePaymentWebhookInput,
     RefundPaymentInput,
-    parsePaymentId,
 } from '~/api/payment/presentation/payment.input';
 import { toPaymentPayload, toPaymentWebhookPayload } from '~/api/payment/presentation/payment.mapper';
 import { PaymentPayload, PaymentWebhookPayload } from '~/api/payment/presentation/payment.type';
+import { parseGraphqlId } from '~/global/graphql/graphql-id.parser';
 import { Jwt } from '~/global/jwt/decorator/jwt.decorator';
 import { AdminGuard } from '~/global/jwt/guard/admin.guard';
 import { CommonGuard } from '~/global/jwt/guard/common.guard';
@@ -35,7 +35,7 @@ export class PaymentResolver {
     ): Promise<PaymentPayload> {
         const result = await this.paymentService.createAttempt(jwtPayload, {
             ...input,
-            orderId: parsePaymentId(input.orderId),
+            orderId: parseGraphqlId(input.orderId, '주문 ID'),
         });
         return toPaymentPayload(result);
     }
@@ -48,7 +48,7 @@ export class PaymentResolver {
     ): Promise<PaymentPayload> {
         const result = await this.paymentService.capture(jwtPayload, {
             ...input,
-            paymentAttemptId: parsePaymentId(input.paymentAttemptId),
+            paymentAttemptId: parseGraphqlId(input.paymentAttemptId, '결제 시도 ID'),
         });
         return toPaymentPayload(result);
     }
@@ -58,7 +58,7 @@ export class PaymentResolver {
     async failPayment(@Jwt() jwtPayload: JwtPayload, @Args('input') input: FailPaymentInput): Promise<PaymentPayload> {
         const result = await this.paymentService.fail(jwtPayload, {
             ...input,
-            paymentAttemptId: parsePaymentId(input.paymentAttemptId),
+            paymentAttemptId: parseGraphqlId(input.paymentAttemptId, '결제 시도 ID'),
         });
         return toPaymentPayload(result);
     }
@@ -71,7 +71,7 @@ export class PaymentResolver {
     ): Promise<PaymentPayload> {
         const result = await this.paymentService.refund(jwtPayload, {
             ...input,
-            paymentAttemptId: parsePaymentId(input.paymentAttemptId),
+            paymentAttemptId: parseGraphqlId(input.paymentAttemptId, '결제 시도 ID'),
         });
         return toPaymentPayload(result);
     }

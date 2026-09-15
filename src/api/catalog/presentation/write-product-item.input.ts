@@ -3,15 +3,15 @@ import { Field, ID, InputType, Int, OmitType } from '@nestjs/graphql';
 import { Type } from 'class-transformer';
 import { IsInt, IsOptional, IsString, Matches, MaxLength, Min, ValidateNested } from 'class-validator';
 import { PRODUCT_REASON_MAX_LENGTH } from '~/api/catalog/domain/product.rules';
-import { DECIMAL_PRODUCT_ID_PATTERN, PRODUCT_ID_MAX_LENGTH } from '~/api/catalog/presentation/product-id.parser';
 import { ReplaceProductItemInput } from '~/api/catalog/presentation/replace-product-catalog.input';
 import { invalidMax, invalidMin, invalidValue } from '~/global/common/message/error.message';
+import { GRAPHQL_ID_MAX_LENGTH, GRAPHQL_ID_PATTERN } from '~/global/graphql/graphql-id.parser';
 
 @InputType({ isAbstract: true })
 abstract class ProductItemWriteInput {
     @Field(() => ID)
-    @Matches(DECIMAL_PRODUCT_ID_PATTERN, { message: invalidValue('상품 ID') })
-    @MaxLength(PRODUCT_ID_MAX_LENGTH, { message: invalidValue('상품 ID') })
+    @Matches(GRAPHQL_ID_PATTERN, { message: invalidValue('상품 ID') })
+    @MaxLength(GRAPHQL_ID_MAX_LENGTH, { message: invalidValue('상품 ID') })
     productId!: string;
 
     @Field(() => Int)
@@ -32,8 +32,8 @@ export class CreateProductItemDataInput extends OmitType(ReplaceProductItemInput
 @InputType()
 export class UpdateProductItemDataInput extends CreateProductItemDataInput {
     @Field(() => ID)
-    @Matches(DECIMAL_PRODUCT_ID_PATTERN, { message: invalidValue('Item ID') })
-    @MaxLength(PRODUCT_ID_MAX_LENGTH, { message: invalidValue('Item ID') })
+    @Matches(GRAPHQL_ID_PATTERN, { message: invalidValue('Item ID') })
+    @MaxLength(GRAPHQL_ID_MAX_LENGTH, { message: invalidValue('Item ID') })
     id!: string;
 }
 

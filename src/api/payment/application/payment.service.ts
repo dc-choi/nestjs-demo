@@ -33,6 +33,7 @@ import {
     PaymentTransactionStatus,
     PaymentTransactionType,
 } from '~/api/payment/domain/payment.enum';
+import { compareBigInt } from '~/global/common/utils/bigint';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
 
 const BLOCKING_FULL_REFUND_FULFILLMENT_STATUSES: readonly FulfillmentStatus[] = [
@@ -553,8 +554,4 @@ export class PaymentService {
     private assertAdmin(jwtPayload: JwtPayload): void {
         if (jwtPayload.role !== MemberRole.ADMIN) throw new ForbiddenException('결제 처리 권한이 없습니다.');
     }
-}
-
-function compareBigInt(left: bigint, right: bigint): number {
-    return left < right ? -1 : left > right ? 1 : 0;
 }

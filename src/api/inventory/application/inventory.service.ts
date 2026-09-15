@@ -18,6 +18,7 @@ import { InventoryMovementType, InventoryReservationStatus } from '~/api/invento
 import { MemberRole } from '~/api/member/domain/member-role';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
 import { OrderStatus } from '~/api/order/domain/entity/order.enum';
+import { compareBigInt } from '~/global/common/utils/bigint';
 import { isMysqlSignedInt, isNonNegativeMysqlSignedInt } from '~/global/common/utils/mysql-number';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
 
@@ -471,8 +472,4 @@ export class InventoryService {
             throw new BadRequestException('재고 멱등성 키는 1자 이상 128자 이하여야 합니다.');
         }
     }
-}
-
-function compareBigInt(left: bigint, right: bigint): number {
-    return left < right ? -1 : left > right ? 1 : 0;
 }

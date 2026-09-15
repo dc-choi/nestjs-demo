@@ -27,8 +27,8 @@ import {
     PRODUCT_TAG_MAX_LENGTH,
 } from '~/api/catalog/domain/product.rules';
 import { ItemSaleStatus } from '~/api/catalog/presentation/item-sale-status.enum';
-import { DECIMAL_PRODUCT_ID_PATTERN, PRODUCT_ID_MAX_LENGTH } from '~/api/catalog/presentation/product-id.parser';
 import { emptyValue, invalidMax, invalidMin, invalidValue } from '~/global/common/message/error.message';
+import { GRAPHQL_ID_MAX_LENGTH, GRAPHQL_ID_PATTERN } from '~/global/graphql/graphql-id.parser';
 
 @InputType()
 export class ReplaceProductOptionValueInput {
@@ -94,8 +94,8 @@ export class ReplaceProductItemOptionInput {
 export class ReplaceProductItemInput {
     @Field(() => ID, { nullable: true })
     @IsOptional()
-    @Matches(DECIMAL_PRODUCT_ID_PATTERN, { message: invalidValue('Item ID') })
-    @MaxLength(PRODUCT_ID_MAX_LENGTH, { message: invalidValue('Item ID') })
+    @Matches(GRAPHQL_ID_PATTERN, { message: invalidValue('Item ID') })
+    @MaxLength(GRAPHQL_ID_MAX_LENGTH, { message: invalidValue('Item ID') })
     id?: string | null;
 
     @Field(() => String, { nullable: true })
@@ -140,8 +140,8 @@ export class ReplaceProductItemInput {
 @InputType()
 export class ReplaceProductCatalogInput {
     @Field(() => ID)
-    @Matches(DECIMAL_PRODUCT_ID_PATTERN, { message: invalidValue('상품 ID') })
-    @MaxLength(PRODUCT_ID_MAX_LENGTH, { message: invalidValue('상품 ID') })
+    @Matches(GRAPHQL_ID_PATTERN, { message: invalidValue('상품 ID') })
+    @MaxLength(GRAPHQL_ID_MAX_LENGTH, { message: invalidValue('상품 ID') })
     productId!: string;
 
     @Field(() => Int)
@@ -171,8 +171,8 @@ export class ReplaceProductCatalogInput {
         message: invalidMax('카테고리 수', PRODUCT_CATALOG_LIMITS.categories),
     })
     @ArrayUnique({ message: invalidValue('카테고리 ID') })
-    @Matches(DECIMAL_PRODUCT_ID_PATTERN, { each: true, message: invalidValue('카테고리 ID') })
-    @MaxLength(PRODUCT_ID_MAX_LENGTH, { each: true, message: invalidValue('카테고리 ID') })
+    @Matches(GRAPHQL_ID_PATTERN, { each: true, message: invalidValue('카테고리 ID') })
+    @MaxLength(GRAPHQL_ID_MAX_LENGTH, { each: true, message: invalidValue('카테고리 ID') })
     categoryIds!: string[];
 
     @Field(() => [String])

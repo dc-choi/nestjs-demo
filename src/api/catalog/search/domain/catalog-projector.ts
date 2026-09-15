@@ -8,6 +8,8 @@ import {
     ProductSearchItemDocument,
 } from './product-search.document';
 
+import { compareBigInt } from '~/global/common/utils/bigint';
+
 const CODE_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 const DECIMAL_PATTERN = /^(?:0|[1-9]\d{0,6})(?:\.\d{1,3})?$/;
 const MAX_SIGNED_BIGINT = 9_223_372_036_854_775_807n;
@@ -125,9 +127,4 @@ function collectAncestorSlugs(categories: CatalogCategoryProjectionSource[]): st
 function toId(value: bigint, field: string): string {
     if (value < 1n || value > MAX_SIGNED_BIGINT) throw new CatalogProjectionError(`${field} is outside signed BIGINT`);
     return value.toString();
-}
-
-function compareBigInt(left: bigint, right: bigint): number {
-    if (left === right) return 0;
-    return left < right ? -1 : 1;
 }

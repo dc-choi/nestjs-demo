@@ -6,8 +6,8 @@ import {
     ProductSnapshotHistoryResult,
     ProductSnapshotService,
 } from '~/api/catalog/application/product-snapshot.service';
-import { parseProductId } from '~/api/catalog/presentation/product-id.parser';
 import { ProductSnapshotType } from '~/api/catalog/presentation/product-snapshot.type';
+import { parseGraphqlId } from '~/global/graphql/graphql-id.parser';
 import { Jwt } from '~/global/jwt/decorator/jwt.decorator';
 import { SellerGuard } from '~/global/jwt/guard/seller.guard';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
@@ -23,7 +23,11 @@ export class ProductSnapshotResolver {
         @Args('productId', { type: () => ID }) productId: string,
         @Args('limit', { type: () => Int, defaultValue: DEFAULT_PRODUCT_SNAPSHOT_LIMIT }) limit: number
     ): Promise<ProductSnapshotType[]> {
-        const history = await this.productSnapshotService.findHistory(actor, parseProductId(productId), limit);
+        const history = await this.productSnapshotService.findHistory(
+            actor,
+            parseGraphqlId(productId, '상품 ID'),
+            limit
+        );
         return history.map(toProductSnapshotType);
     }
 }

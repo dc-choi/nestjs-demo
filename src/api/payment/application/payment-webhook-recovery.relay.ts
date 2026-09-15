@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 
 import { randomUUID } from 'node:crypto';
 import { PaymentWebhookService } from '~/api/payment/application/payment-webhook.service';
+import { toBigInt, toNonNegativeInteger, toRequiredString } from '~/global/common/utils/mysql-row';
 
 const MAX_RECOVERY_ATTEMPTS = 10;
 const LEASE_MILLISECONDS = 30_000;
@@ -99,9 +100,9 @@ export class PaymentWebhookRecoveryRelay {
             );
             return rows.map((row) => ({
                 id: toBigInt(row.id, 'webhook id'),
-                provider: toString(row.provider, 'webhook provider'),
-                providerEventId: toString(row.provider_event_id, 'webhook event id'),
-                retryCount: toInteger(row.retry_count, 'webhook retry count'),
+                provider: toRequiredString(row.provider, 'webhook provider'),
+                providerEventId: toRequiredString(row.provider_event_id, 'webhook event id'),
+                retryCount: toNonNegativeInteger(row.retry_count, 'webhook retry count'),
                 leaseToken,
             }));
         });
@@ -178,21 +179,4 @@ function retryDelayMilliseconds(retryCount: number): number {
 
 function describeError(error: unknown): string {
     return error instanceof Error ? `${error.name}: ${error.message}`.slice(0, 1_000) : 'Webhook recovery failed';
-}
-
-function toBigInt(value: unknown, field: string): bigint {
-    const normalized = typeof value === 'bigint' ? value.toString() : String(value);
-    if (!/^\d+$/.test(normalized)) throw new Error(`Invalid ${field}`);
-    return BigInt(normalized);
-}
-
-function toString(value: unknown, field: string): string {
-    if (typeof value !== 'string' || value.length === 0) throw new Error(`Invalid ${field}`);
-    return value;
-}
-
-function toInteger(value: unknown, field: string): number {
-    const normalized = typeof value === 'number' ? value : Number(value);
-    if (!Number.isSafeInteger(normalized) || normalized < 0) throw new Error(`Invalid ${field}`);
-    return normalized;
 }

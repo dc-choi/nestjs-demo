@@ -7,6 +7,8 @@ import { ProductStatus } from '../domain/entity/product-status';
 import { ProductEntity } from '../domain/entity/product.entity';
 import { ProductReadResult } from './product-read.result';
 
+import { compareBigInt } from '~/global/common/utils/bigint';
+
 const currentProductPopulate = [
     'items',
     'items.optionValues',
@@ -123,11 +125,6 @@ function toProductReadResult(product: CurrentProductRecord): ProductReadResult {
         })),
         tags: tags.map(({ value }) => value),
     };
-}
-
-function compareBigInt(left: bigint, right: bigint): number {
-    if (left === right) return 0;
-    return left < right ? -1 : 1;
 }
 
 function normalizeDecimal(value: string): string {

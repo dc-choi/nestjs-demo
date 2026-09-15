@@ -6,12 +6,12 @@ import type { ProductWriteResult } from '~/api/catalog/application/product-write
 import { CreateProductInput } from '~/api/catalog/presentation/create-product.input';
 import { DeleteProductItemInput } from '~/api/catalog/presentation/delete-product-item.input';
 import { DeleteProductInput } from '~/api/catalog/presentation/delete-product.input';
-import { parseCatalogId, parseProductId } from '~/api/catalog/presentation/product-id.parser';
 import { ProductMutationPayload } from '~/api/catalog/presentation/product-mutation.payload';
 import { ReplaceProductCatalogInput } from '~/api/catalog/presentation/replace-product-catalog.input';
 import { RestoreProductInput } from '~/api/catalog/presentation/restore-product.input';
 import { UpdateProductInput } from '~/api/catalog/presentation/update-product.input';
 import { CreateProductItemInput, UpdateProductItemInput } from '~/api/catalog/presentation/write-product-item.input';
+import { parseGraphqlId } from '~/global/graphql/graphql-id.parser';
 import { Jwt } from '~/global/jwt/decorator/jwt.decorator';
 import { SellerGuard } from '~/global/jwt/guard/seller.guard';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
@@ -38,11 +38,11 @@ export class ProductCommandResolver {
         return toPayload(
             await this.productCommandService.replaceCatalog(actor, {
                 ...input,
-                productId: parseProductId(input.productId),
-                categoryIds: input.categoryIds.map((id) => parseCatalogId(id, '카테고리 ID')),
+                productId: parseGraphqlId(input.productId, '상품 ID'),
+                categoryIds: input.categoryIds.map((id) => parseGraphqlId(id, '카테고리 ID')),
                 items: input.items.map((item) => ({
                     ...item,
-                    id: item.id ? parseCatalogId(item.id, 'Item ID') : undefined,
+                    id: item.id ? parseGraphqlId(item.id, 'Item ID') : undefined,
                 })),
             })
         );
@@ -57,7 +57,7 @@ export class ProductCommandResolver {
         return toPayload(
             await this.productCommandService.createItem(actor, {
                 ...input,
-                productId: parseProductId(input.productId),
+                productId: parseGraphqlId(input.productId, '상품 ID'),
                 item: input.item,
             })
         );
@@ -72,10 +72,10 @@ export class ProductCommandResolver {
         return toPayload(
             await this.productCommandService.updateItem(actor, {
                 ...input,
-                productId: parseProductId(input.productId),
+                productId: parseGraphqlId(input.productId, '상품 ID'),
                 item: {
                     ...input.item,
-                    id: parseCatalogId(input.item.id, 'Item ID'),
+                    id: parseGraphqlId(input.item.id, 'Item ID'),
                 },
             })
         );
@@ -90,8 +90,8 @@ export class ProductCommandResolver {
         return toPayload(
             await this.productCommandService.deleteItem(actor, {
                 ...input,
-                productId: parseProductId(input.productId),
-                itemId: parseCatalogId(input.itemId, 'Item ID'),
+                productId: parseGraphqlId(input.productId, '상품 ID'),
+                itemId: parseGraphqlId(input.itemId, 'Item ID'),
             })
         );
     }
@@ -105,7 +105,7 @@ export class ProductCommandResolver {
         return toPayload(
             await this.productCommandService.update(actor, {
                 ...input,
-                productId: parseProductId(input.productId),
+                productId: parseGraphqlId(input.productId, '상품 ID'),
             })
         );
     }
@@ -119,7 +119,7 @@ export class ProductCommandResolver {
         return toPayload(
             await this.productCommandService.delete(actor, {
                 ...input,
-                productId: parseProductId(input.productId),
+                productId: parseGraphqlId(input.productId, '상품 ID'),
             })
         );
     }
@@ -133,7 +133,7 @@ export class ProductCommandResolver {
         return toPayload(
             await this.productCommandService.restore(actor, {
                 ...input,
-                productId: parseProductId(input.productId),
+                productId: parseGraphqlId(input.productId, '상품 ID'),
             })
         );
     }

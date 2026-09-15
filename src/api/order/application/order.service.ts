@@ -25,6 +25,7 @@ import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
 import { OrderCancellationConflict, OrderEntity } from '~/api/order/domain/entity/order.entity';
 import { NotExistingItem } from '~/global/common/error/item.error';
 import { DistributedLockOptions, DistributedLockService } from '~/global/common/lock/distributed-lock.service';
+import { compareBigInt } from '~/global/common/utils/bigint';
 import { isPositiveMysqlSignedInt } from '~/global/common/utils/mysql-number';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
 
@@ -289,8 +290,4 @@ export class OrderService {
         if (jwtPayload.role === MemberRole.ADMIN || order.member.id === jwtPayload.memberId) return;
         throw new ForbiddenException('다른 회원의 주문을 취소할 수 없습니다.');
     }
-}
-
-function compareBigInt(left: bigint, right: bigint): number {
-    return left < right ? -1 : left > right ? 1 : 0;
 }
