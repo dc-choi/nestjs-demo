@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { CatalogGraph } from '~/api/catalog/domain/catalog-graph';
+import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status';
 import { ProductSearchContractError } from '~/api/catalog/search/domain/product-search-contract.error';
 import { ProductSearchSort } from '~/api/catalog/search/domain/product-search-sort';
 import {
@@ -48,6 +50,32 @@ describe('Product search query contract', () => {
                 ],
             })
         ).toThrow('Duplicate optionCode');
+    });
+
+    it.each(['SKU/BLACK', '한글-001', 'SKU BLACK'])('searches SKU %s accepted by catalog writes', (sku) => {
+        const graph = CatalogGraph.fromInput({
+            options: [],
+            items: [
+                {
+                    sku,
+                    name: 'Item',
+                    supplyPrice: '1000',
+                    vat: '0',
+                    isTaxFree: true,
+                    saleStatus: ItemSaleStatus.ALLOW,
+                    selectedOptions: [],
+                },
+            ],
+            categoryIds: [],
+            tags: [],
+        });
+        expect(canonicalizeProductSearchInput({ sku: ` ${sku} ` }).sku).toBe(graph.items[0].sku);
+    });
+
+    it('rejects blank, oversized and non-string SKU search input', () => {
+        for (const sku of [' ', 'x'.repeat(256), 1 as unknown as string]) {
+            expect(() => canonicalizeProductSearchInput({ sku })).toThrow(ProductSearchContractError);
+        }
     });
 
     it('keeps price and option constraints inside one nested item query and sort', () => {

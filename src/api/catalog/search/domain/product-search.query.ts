@@ -2,6 +2,7 @@ import { ProductSearchContractError } from './product-search-contract.error';
 import { ProductSearchSort } from './product-search-sort';
 
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
+import { PRODUCT_ITEM_SKU_MAX_LENGTH } from '~/api/catalog/domain/product.rules';
 
 export interface ProductOptionFilter {
     optionCode: string;
@@ -41,7 +42,6 @@ export interface DecodedSearchCursor {
 
 const OPTION_CODE_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 const CATEGORY_SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,253}[a-z0-9])?$/;
-const SKU_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,254}$/;
 const PRICE_PATTERN = /^(?:0|[1-9]\d{0,6})(?:\.\d{1,3})?$/;
 const VALID_SORTS = new Set<ProductSearchSort>(Object.values(ProductSearchSort));
 const CURSOR_VERSION = 1;
@@ -60,7 +60,7 @@ interface SearchCursorPayload {
 export function canonicalizeProductSearchInput(input: ProductSearchInput): CanonicalProductSearchInput {
     const query = normalizeQuery(input.query);
     const categorySlug = normalizeKeyword(input.categorySlug, CATEGORY_SLUG_PATTERN, 'categorySlug');
-    const sku = normalizeKeyword(input.sku, SKU_PATTERN, 'sku');
+    const sku = normalizeSku(input.sku);
     const minPrice = normalizePrice(input.minPrice, 'minPrice');
     const maxPrice = normalizePrice(input.maxPrice, 'maxPrice');
     if (minPrice !== null && maxPrice !== null && toScaledPrice(minPrice) > toScaledPrice(maxPrice)) {
@@ -158,6 +158,14 @@ function normalizeKeyword(value: string | null | undefined, pattern: RegExp, fie
     if (value === null || value === undefined) return null;
     const normalized = value.trim();
     if (!pattern.test(normalized)) invalidInput(`${field} has an invalid format`);
+    return normalized;
+}
+
+function normalizeSku(value: string | null | undefined): string | null {
+    if (value === null || value === undefined) return null;
+    if (typeof value !== 'string') invalidInput('sku has an invalid format');
+    const normalized = value.trim();
+    if (!normalized || normalized.length > PRODUCT_ITEM_SKU_MAX_LENGTH) invalidInput('sku has an invalid format');
     return normalized;
 }
 
