@@ -74,6 +74,23 @@ export class MemberService {
 저장소를 사용하는 기능은 해당 검색 Service와 client를 별도로 구성하며, 기존 MySQL 조회를 미리 port로
 감싸지 않습니다.
 
+## 파일 구성
+
+- 한 파일에는 export하는 런타임 객체를 하나만 둡니다. 런타임 객체는 class(에러 class 포함), DI 토큰
+  `Symbol`, `as const` enum 객체와 같은 이름의 type입니다.
+- 파일 이름은 담은 객체를 알 수 있게 kebab-case로 쓰고 역할 suffix를 붙입니다. 예: `*.service.ts`,
+  `*.entity.ts`, `*.error.ts`, `*.symbol.ts`, `*.input.ts`, `*.type.ts`, `*.payload.ts`. Domain enum과
+  `catalog-graph.ts` 같은 domain model class는 suffix 없이 씁니다. DI 토큰을 만드는 factory 함수가 있으면 토큰을
+  그 파일에 함께 둡니다(예: `product-search-cursor-secret.ts`).
+- 같은 파일에 함께 둘 수 있는 것은 그 파일에서만 쓰는 비공개 helper/타입/class, 주 객체의 입출력 interface,
+  런타임 객체가 없는 순수 interface/type 묶음(command, result, payload), 값 상수와 함수입니다.
+- Port interface와 그 DI 토큰은 `*.port.ts`에 함께 둡니다. 토큰이 계약의 일부이고 파일의 런타임 객체는 토큰
+  하나뿐이기 때문입니다.
+- 나눈 파일을 다시 묶는 barrel(`index.ts`)이나 재수출은 만들지 않고, 사용하는 쪽이 정의 파일을 직접 import합니다.
+  예외는 presentation의 `*.enum.ts`입니다. 이 파일은 모듈의 GraphQL enum 여러 개를 `registerEnumType`으로 등록한
+  뒤 함께 export하고, GraphQL 전용 enum도 여기에 정의할 수 있습니다. GraphQL 타입은 등록이 보장되도록 이 파일에서
+  enum을 import합니다.
+
 ## 현재 적용 형태
 
 ```text
