@@ -6,9 +6,10 @@ import { JwtClaims } from './payload/jwt.payload';
 import Redis from 'ioredis';
 import { createHash, randomUUIDv7 } from 'node:crypto';
 import type { MemberRole } from '~/api/member/domain/member-role';
-import { InvalidRefreshToken, NotExpiredAccessToken } from '~/global/common/error/auth.error';
+import { InvalidRefreshToken } from '~/global/common/error/invalid-refresh-token.error';
+import { NotExpiredAccessToken } from '~/global/common/error/not-expired-access-token.error';
 import { WEEK } from '~/global/common/utils/time';
-import { REDIS_CLIENT } from '~/infra/redis/redis-client.module';
+import { REDIS_CLIENT } from '~/infra/redis/redis-client.symbol';
 
 const REFRESH_TOKEN_TTL_SECONDS = WEEK * 2;
 const REFRESH_TOKEN_PREFIX = 'token:';

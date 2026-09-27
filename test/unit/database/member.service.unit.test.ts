@@ -5,7 +5,7 @@ import { EventBus } from '@nestjs/cqrs';
 import { describe, expect, it, vi } from 'vitest';
 import { SignupEvent } from '~/api/member/application/event/signup.event';
 import { MemberService } from '~/api/member/application/member.service';
-import { PasswordKdfSaturatedError } from '~/api/member/application/password-kdf.admission';
+import { PasswordKdfSaturatedError } from '~/api/member/application/password-kdf-saturated.error';
 import { PasswordService } from '~/api/member/application/password.service';
 import { MemberRole } from '~/api/member/domain/member-role';
 import { MemberEntity } from '~/api/member/domain/member.entity';

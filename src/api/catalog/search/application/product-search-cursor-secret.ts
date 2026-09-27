@@ -1,3 +1,5 @@
+export const PRODUCT_SEARCH_CURSOR_SECRET = Symbol('PRODUCT_SEARCH_CURSOR_SECRET');
+
 interface SearchCursorSecretConfig {
     get<T = unknown>(propertyPath: string): T | undefined;
 }

@@ -2,13 +2,11 @@ import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Resolver } from '@nestjs/graphql';
 
 import { FulfillmentService } from '~/api/fulfillment/application/fulfillment.service';
-import {
-    CreateFulfillmentInput,
-    FulfillmentIdInput,
-    ShipFulfillmentInput,
-} from '~/api/fulfillment/presentation/fulfillment.input';
+import { CreateFulfillmentInput } from '~/api/fulfillment/presentation/create-fulfillment.input';
+import { FulfillmentIdInput } from '~/api/fulfillment/presentation/fulfillment-id.input';
 import { toFulfillmentPayload } from '~/api/fulfillment/presentation/fulfillment.mapper';
-import { FulfillmentPayload } from '~/api/fulfillment/presentation/fulfillment.type';
+import { FulfillmentPayload } from '~/api/fulfillment/presentation/fulfillment.payload';
+import { ShipFulfillmentInput } from '~/api/fulfillment/presentation/ship-fulfillment.input';
 import { parseGraphqlId } from '~/global/graphql/graphql-id.parser';
 import { Jwt } from '~/global/jwt/decorator/jwt.decorator';
 import { AdminGuard } from '~/global/jwt/guard/admin.guard';

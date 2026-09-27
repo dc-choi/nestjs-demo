@@ -12,13 +12,14 @@ import { describe, expect, it, vi } from 'vitest';
 import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
 import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
 import { InventoryService } from '~/api/inventory/application/inventory.service';
+import { InventoryMovementType } from '~/api/inventory/domain/inventory-movement-type';
 import { InventoryMovementEntity } from '~/api/inventory/domain/inventory-movement.entity';
+import { InventoryReservationStatus } from '~/api/inventory/domain/inventory-reservation-status';
 import { InventoryReservationEntity } from '~/api/inventory/domain/inventory-reservation.entity';
-import { InventoryMovementType, InventoryReservationStatus } from '~/api/inventory/domain/inventory.enum';
 import { MemberEntity } from '~/api/member/domain/member.entity';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
+import { OrderStatus } from '~/api/order/domain/entity/order-status';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity';
-import { OrderStatus } from '~/api/order/domain/entity/order.enum';
 
 const NOW = new Date('2026-09-04T00:00:00.000Z');
 const EXPIRES_AT = new Date('2026-09-04T00:15:00.000Z');

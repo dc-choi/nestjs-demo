@@ -4,7 +4,9 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { ProductSnapshotChangeType } from '~/api/catalog/domain/entity/product-snapshot-change-type';
 import { ProductSnapshotEntity } from '~/api/catalog/domain/entity/product-snapshot.entity';
 import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
-import { InvalidProductChange, NotExistingProduct, ProductAccessDenied } from '~/api/catalog/domain/product.error';
+import { InvalidProductChange } from '~/api/catalog/domain/invalid-product-change.error';
+import { NotExistingProduct } from '~/api/catalog/domain/not-existing-product.error';
+import { ProductAccessDenied } from '~/api/catalog/domain/product-access-denied.error';
 import { MemberRole } from '~/api/member/domain/member-role';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
 

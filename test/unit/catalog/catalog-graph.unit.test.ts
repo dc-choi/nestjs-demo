@@ -1,7 +1,9 @@
 import { Collection } from '@mikro-orm/core';
 
 import { describe, expect, it } from 'vitest';
-import { CatalogGraph, CatalogGraphChange, CatalogGraphError } from '~/api/catalog/domain/catalog-graph';
+import { CatalogGraph } from '~/api/catalog/domain/catalog-graph';
+import { CatalogGraphChange } from '~/api/catalog/domain/catalog-graph-change';
+import { CatalogGraphError } from '~/api/catalog/domain/catalog-graph.error';
 import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status';
 import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
 import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';

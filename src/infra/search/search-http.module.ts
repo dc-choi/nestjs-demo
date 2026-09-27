@@ -5,11 +5,11 @@ import { SearchHealthController } from './search-health.controller';
 import { SearchOutboxWorker } from './search-outbox.worker';
 import { SearchModule } from './search.module';
 
-import { resolveProductSearchCursorSecret } from '~/api/catalog/search/application/product-search-cursor-secret';
 import {
     PRODUCT_SEARCH_CURSOR_SECRET,
-    PRODUCT_SEARCH_PORT,
-} from '~/api/catalog/search/application/product-search.port';
+    resolveProductSearchCursorSecret,
+} from '~/api/catalog/search/application/product-search-cursor-secret';
+import { PRODUCT_SEARCH_PORT } from '~/api/catalog/search/application/product-search.port';
 import { ProductSearchService } from '~/api/catalog/search/application/product-search.service';
 import { DecimalScalar } from '~/api/catalog/search/presentation/decimal.scalar';
 import { ProductSearchResolver } from '~/api/catalog/search/presentation/product-search.resolver';

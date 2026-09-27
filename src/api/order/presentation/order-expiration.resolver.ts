@@ -1,9 +1,9 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Resolver } from '@nestjs/graphql';
 
-import { RestoreInventoryReservationInput } from '~/api/inventory/presentation/inventory.input';
+import { InventoryTransitionPayload } from '~/api/inventory/presentation/inventory-transition.payload';
 import { toInventoryTransitionPayload } from '~/api/inventory/presentation/inventory.mapper';
-import { InventoryTransitionPayload } from '~/api/inventory/presentation/inventory.type';
+import { RestoreInventoryReservationInput } from '~/api/inventory/presentation/restore-inventory-reservation.input';
 import { OrderExpirationService } from '~/api/order/application/order-expiration.service';
 import { parseGraphqlId } from '~/global/graphql/graphql-id.parser';
 import { Jwt } from '~/global/jwt/decorator/jwt.decorator';

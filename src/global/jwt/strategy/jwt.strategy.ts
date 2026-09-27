@@ -5,7 +5,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { JwtClaims, JwtPayload } from '../payload/jwt.payload';
 
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { Unauthorized } from '~/global/common/error/auth.error';
+import { Unauthorized } from '~/global/common/error/unauthorized.error';
 import { EnvConfig } from '~/global/config/env/env.config';
 
 @Injectable()

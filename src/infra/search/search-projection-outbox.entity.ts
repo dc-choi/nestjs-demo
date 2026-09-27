@@ -1,18 +1,10 @@
 import { type EntityManager, type Opt, type Rel } from '@mikro-orm/core';
 import { Entity, Enum, Index, ManyToOne, PrimaryKey, Property, Unique } from '@mikro-orm/decorators/legacy';
 
+import { SearchProjectionOutboxStatus } from './search-projection-outbox-status';
+
 import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
 import { MAX_PRODUCT_REVISION } from '~/api/catalog/search/domain/product-search.document';
-
-export const SearchProjectionOutboxStatus = {
-    PENDING: 'PENDING',
-    PROCESSING: 'PROCESSING',
-    PROCESSED: 'PROCESSED',
-    DEAD_LETTER: 'DEAD_LETTER',
-} as const;
-
-export type SearchProjectionOutboxStatus =
-    (typeof SearchProjectionOutboxStatus)[keyof typeof SearchProjectionOutboxStatus];
 
 @Entity({ tableName: 'search_projection_outbox' })
 @Unique({ name: 'search_projection_outbox_product_revision_key', properties: ['product', 'productRevision'] })

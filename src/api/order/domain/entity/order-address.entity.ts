@@ -1,8 +1,8 @@
 import type { Opt, Rel } from '@mikro-orm/core';
 import { Entity, Enum, ManyToOne, PrimaryKey, Property, Unique } from '@mikro-orm/decorators/legacy';
 
+import { OrderAddressType } from '~/api/order/domain/entity/order-address-type';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity';
-import { OrderAddressType } from '~/api/order/domain/entity/order.enum';
 
 /**
  * 회원 주소록과 분리해 주문 시점의 청구지 또는 배송지를 고정한다.

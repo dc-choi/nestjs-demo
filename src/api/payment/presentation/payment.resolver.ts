@@ -3,17 +3,16 @@ import { Args, Mutation, Resolver } from '@nestjs/graphql';
 
 import { PaymentWebhookService } from '~/api/payment/application/payment-webhook.service';
 import { PaymentService } from '~/api/payment/application/payment.service';
-import {
-    CapturePaymentInput,
-    CreatePaymentAttemptInput,
-    FailPaymentInput,
-    FailPaymentWebhookInput,
-    ProcessPaymentWebhookInput,
-    ReceivePaymentWebhookInput,
-    RefundPaymentInput,
-} from '~/api/payment/presentation/payment.input';
+import { CapturePaymentInput } from '~/api/payment/presentation/capture-payment.input';
+import { CreatePaymentAttemptInput } from '~/api/payment/presentation/create-payment-attempt.input';
+import { FailPaymentWebhookInput } from '~/api/payment/presentation/fail-payment-webhook.input';
+import { FailPaymentInput } from '~/api/payment/presentation/fail-payment.input';
+import { PaymentWebhookPayload } from '~/api/payment/presentation/payment-webhook.payload';
 import { toPaymentPayload, toPaymentWebhookPayload } from '~/api/payment/presentation/payment.mapper';
-import { PaymentPayload, PaymentWebhookPayload } from '~/api/payment/presentation/payment.type';
+import { PaymentPayload } from '~/api/payment/presentation/payment.payload';
+import { ProcessPaymentWebhookInput } from '~/api/payment/presentation/process-payment-webhook.input';
+import { ReceivePaymentWebhookInput } from '~/api/payment/presentation/receive-payment-webhook.input';
+import { RefundPaymentInput } from '~/api/payment/presentation/refund-payment.input';
 import { parseGraphqlId } from '~/global/graphql/graphql-id.parser';
 import { Jwt } from '~/global/jwt/decorator/jwt.decorator';
 import { AdminGuard } from '~/global/jwt/guard/admin.guard';

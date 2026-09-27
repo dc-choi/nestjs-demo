@@ -1,6 +1,4 @@
-import { PaymentWebhookOutcome } from '~/api/payment/domain/payment.enum';
-
-export { PaymentWebhookOutcome } from '~/api/payment/domain/payment.enum';
+import { PaymentWebhookOutcome } from '~/api/payment/domain/payment-webhook-outcome';
 
 export interface CreatePaymentAttemptCommand {
     readonly orderId: bigint;

@@ -4,7 +4,8 @@ import { ConfigService } from '@nestjs/config';
 import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
 
 import { SignupEvent } from '~/api/member/application/event/signup.event';
-import { type TypedLogger, VERBOSE_LOGGER, type VerbosePayload } from '~/global/common/logger/channel.logger';
+import { type TypedLogger, type VerbosePayload } from '~/global/common/logger/channel.logger';
+import { VERBOSE_LOGGER } from '~/global/common/logger/verbose-logger.symbol';
 import { EnvConfig } from '~/global/config/env/env.config';
 
 @EventsHandler(SignupEvent)

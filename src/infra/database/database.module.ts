@@ -6,7 +6,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { createMikroOrmOptions } from './mikro-orm.config';
 
-import { SQL_LOGGER } from '~/global/common/logger/channel.logger';
+import { SQL_LOGGER } from '~/global/common/logger/sql-logger.symbol';
 import { LoggingModule } from '~/global/config/logger/logging.module';
 
 @Injectable()

@@ -2,11 +2,6 @@ export interface TypedLogger<T> {
     log(entry: T): void;
 }
 
-export const APPLICATION_LOGGER = Symbol('APPLICATION_LOGGER');
-export const SQL_LOGGER = Symbol('SQL_LOGGER');
-export const GRAPHQL_LOGGER = Symbol('GRAPHQL_LOGGER');
-export const VERBOSE_LOGGER = Symbol('VERBOSE_LOGGER');
-
 export interface MikroOrmQueryLog {
     type: 'MIKROORM QUERY' | 'MIKROORM SLOW QUERY';
     env: string;

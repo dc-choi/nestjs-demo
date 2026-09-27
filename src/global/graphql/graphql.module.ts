@@ -7,12 +7,9 @@ import { GraphqlHttpContext } from './graphql-context';
 import { createGraphqlErrorLoggingPlugin, formatGraphqlError } from './graphql-error.formatter';
 import { createGraphqlRequestLoggingPlugin } from './graphql-request-logging.plugin';
 
-import {
-    APPLICATION_LOGGER,
-    GRAPHQL_LOGGER,
-    type GraphqlOperationLog,
-    type TypedLogger,
-} from '~/global/common/logger/channel.logger';
+import { APPLICATION_LOGGER } from '~/global/common/logger/application-logger.symbol';
+import { type GraphqlOperationLog, type TypedLogger } from '~/global/common/logger/channel.logger';
+import { GRAPHQL_LOGGER } from '~/global/common/logger/graphql-logger.symbol';
 import { EnvConfig } from '~/global/config/env/env.config';
 import { LoggingModule } from '~/global/config/logger/logging.module';
 

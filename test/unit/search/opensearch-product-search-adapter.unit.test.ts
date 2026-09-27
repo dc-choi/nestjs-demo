@@ -1,8 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import {
-    ProductSearchBackendRequest,
-    ProductSearchUnavailableError,
-} from '~/api/catalog/search/application/product-search.port';
+import { ProductSearchUnavailableError } from '~/api/catalog/search/application/product-search-unavailable.error';
+import { ProductSearchBackendRequest } from '~/api/catalog/search/application/product-search.port';
 import { canonicalizeProductSearchInput } from '~/api/catalog/search/domain/product-search.query';
 import { OpenSearchProductSearchAdapter } from '~/infra/search/opensearch-product-search.adapter';
 import { OpenSearchHttpClient } from '~/infra/search/opensearch.client';

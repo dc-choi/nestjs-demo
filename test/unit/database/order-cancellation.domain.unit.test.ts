@@ -1,15 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
 import { FulfillmentEntity } from '~/api/fulfillment/domain/fulfillment.entity';
+import { InventoryReservationStatus } from '~/api/inventory/domain/inventory-reservation-status';
 import { InventoryReservationEntity } from '~/api/inventory/domain/inventory-reservation.entity';
-import { InventoryReservationStatus } from '~/api/inventory/domain/inventory.enum';
 import { MemberEntity } from '~/api/member/domain/member.entity';
+import { OrderActorType } from '~/api/order/domain/entity/order-actor-type';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
-import { OrderCancellationConflict, OrderEntity } from '~/api/order/domain/entity/order.entity';
-import { OrderActorType, OrderStatus } from '~/api/order/domain/entity/order.enum';
+import { OrderStatus } from '~/api/order/domain/entity/order-status';
+import { OrderEntity } from '~/api/order/domain/entity/order.entity';
+import { OrderCancellationConflict } from '~/api/order/domain/order-cancellation-conflict.error';
+import { PaymentAttemptStatus } from '~/api/payment/domain/payment-attempt-status';
 import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity';
+import { PaymentTransactionType } from '~/api/payment/domain/payment-transaction-type';
 import { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity';
-import { PaymentAttemptStatus, PaymentTransactionType } from '~/api/payment/domain/payment.enum';
 
 const NOW = new Date('2026-09-05T00:00:00.000Z');
 const BEFORE_NOW = new Date('2026-09-04T23:45:00.000Z');

@@ -2,11 +2,12 @@ import type { EntityRepository } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 
-import { PasswordKdfSaturatedError } from '~/api/member/application/password-kdf.admission';
+import { PasswordKdfSaturatedError } from '~/api/member/application/password-kdf-saturated.error';
 import { PasswordService } from '~/api/member/application/password.service';
 import { MemberEntity } from '~/api/member/domain/member.entity';
-import { InvalidIdOrPassword, PasswordKdfBusy } from '~/global/common/error/auth.error';
-import { NotExistingMember } from '~/global/common/error/member.error';
+import { InvalidIdOrPassword } from '~/global/common/error/invalid-id-or-password.error';
+import { NotExistingMember } from '~/global/common/error/not-existing-member.error';
+import { PasswordKdfBusy } from '~/global/common/error/password-kdf-busy.error';
 import { TokenProvider } from '~/global/jwt/token.provider';
 
 @Injectable()

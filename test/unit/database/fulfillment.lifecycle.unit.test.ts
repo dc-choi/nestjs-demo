@@ -11,12 +11,12 @@ import { describe, expect, it, vi } from 'vitest';
 import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
 import { FulfillmentService } from '~/api/fulfillment/application/fulfillment.service';
 import { FulfillmentItemEntity } from '~/api/fulfillment/domain/fulfillment-item.entity';
+import { FulfillmentStatus } from '~/api/fulfillment/domain/fulfillment-status';
 import { FulfillmentEntity } from '~/api/fulfillment/domain/fulfillment.entity';
-import { FulfillmentStatus } from '~/api/fulfillment/domain/fulfillment.enum';
 import { MemberEntity } from '~/api/member/domain/member.entity';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
+import { OrderStatus } from '~/api/order/domain/entity/order-status';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity';
-import { OrderStatus } from '~/api/order/domain/entity/order.enum';
 import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity';
 
 const NOW = new Date('2026-09-04T00:00:00.000Z');

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { REDIS_QUIT_TIMEOUT_MS, RedisConnectionLifecycle } from '~/infra/redis/redis-client.module';
+import { REDIS_QUIT_TIMEOUT_MS, RedisConnectionLifecycle } from '~/infra/redis/redis-connection.lifecycle';
 
 describe('RedisConnectionLifecycle', () => {
     afterEach(() => {

@@ -1,12 +1,7 @@
+import { ProductSearchContractError } from './product-search-contract.error';
+import { ProductSearchSort } from './product-search-sort';
+
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
-
-export const ProductSearchSort = {
-    RELEVANCE: 'RELEVANCE',
-    PRICE_ASC: 'PRICE_ASC',
-    PRICE_DESC: 'PRICE_DESC',
-} as const;
-
-export type ProductSearchSort = (typeof ProductSearchSort)[keyof typeof ProductSearchSort];
 
 export interface ProductOptionFilter {
     optionCode: string;
@@ -42,20 +37,6 @@ export interface DecodedSearchCursor {
     pitId: string;
     sortValues: SearchSortValue[];
     fingerprint: string;
-}
-
-export class ProductSearchContractError extends Error {
-    constructor(
-        readonly code:
-            | 'INVALID_SEARCH_INPUT'
-            | 'INVALID_SEARCH_CURSOR'
-            | 'SEARCH_CURSOR_EXPIRED'
-            | 'SEARCH_CURSOR_MISMATCH',
-        message: string
-    ) {
-        super(message);
-        this.name = ProductSearchContractError.name;
-    }
 }
 
 const OPTION_CODE_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/;

@@ -612,7 +612,10 @@ src/api/catalog/search/
   domain/product-search.query.ts
   presentation/product-search.resolver.ts
   presentation/product-search.input.ts
-  presentation/product-search.type.ts
+  presentation/product-search-connection.type.ts
+  presentation/product-search-node.type.ts
+  presentation/product-search-page-info.type.ts
+  presentation/product-search-thumbnail.type.ts
 
 src/cli/
   search-rebuild.ts

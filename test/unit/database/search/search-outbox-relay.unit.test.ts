@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { CatalogMaintenanceError } from '~/infra/search/catalog-maintenance.service';
+import { CatalogMaintenanceError } from '~/infra/search/catalog-maintenance.error';
 import { SEARCH_OUTBOX_HEARTBEAT_MILLISECONDS, SearchOutboxRelay } from '~/infra/search/search-outbox.relay';
 
 describe('Search outbox relay', () => {

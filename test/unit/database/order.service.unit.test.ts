@@ -21,11 +21,12 @@ import type { OrderInventoryPort } from '~/api/order/application/order-inventory
 import { OrderService } from '~/api/order/application/order.service';
 import { OrderItemSnapshotEntity } from '~/api/order/domain/entity/order-item-snapshot.entity';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
+import { OrderStatus } from '~/api/order/domain/entity/order-status';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity';
-import { OrderStatus } from '~/api/order/domain/entity/order.enum';
+import { PaymentAttemptStatus } from '~/api/payment/domain/payment-attempt-status';
 import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity';
+import { PaymentTransactionType } from '~/api/payment/domain/payment-transaction-type';
 import { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity';
-import { PaymentAttemptStatus, PaymentTransactionType } from '~/api/payment/domain/payment.enum';
 import type { DistributedLockService } from '~/global/common/lock/distributed-lock.service';
 
 const ITEM_ID = 9_007_199_254_740_993n;

@@ -2,8 +2,8 @@ import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 
 import type Redis from 'ioredis';
 import { createHash } from 'node:crypto';
-import { LoginRateLimited } from '~/global/common/error/auth.error';
-import { REDIS_CLIENT } from '~/infra/redis/redis-client.module';
+import { LoginRateLimited } from '~/global/common/error/login-rate-limited.error';
+import { REDIS_CLIENT } from '~/infra/redis/redis-client.symbol';
 
 const LOGIN_RATE_LIMIT_WINDOW_SECONDS = 60;
 const LOGIN_RATE_LIMIT_PER_ACCOUNT = 5;

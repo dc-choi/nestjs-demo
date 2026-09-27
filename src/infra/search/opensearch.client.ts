@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
+import { OpenSearchHttpError } from './opensearch-http.error';
 import { SearchConfig } from './search.config';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
@@ -11,22 +12,6 @@ export interface OpenSearchRequestOptions {
     ndjson?: string;
     acceptedStatuses?: readonly number[];
     timeoutMs?: number;
-}
-
-export class OpenSearchHttpError extends Error {
-    constructor(
-        readonly status: number | null,
-        readonly responseBody: unknown,
-        message: string,
-        options?: ErrorOptions
-    ) {
-        super(message, options);
-        this.name = OpenSearchHttpError.name;
-    }
-
-    get isNotFound(): boolean {
-        return this.status === 404;
-    }
 }
 
 @Injectable()

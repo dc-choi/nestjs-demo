@@ -1,6 +1,6 @@
 import { registerEnumType } from '@nestjs/graphql';
 
-import { OrderStatus } from '~/api/order/domain/entity/order.enum';
+import { OrderStatus } from '~/api/order/domain/entity/order-status';
 
 registerEnumType(OrderStatus, {
     name: 'OrderStatus',

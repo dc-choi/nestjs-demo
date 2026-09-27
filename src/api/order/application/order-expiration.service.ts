@@ -13,13 +13,15 @@ import {
 import { createHash } from 'node:crypto';
 import type { InventoryTransitionResult } from '~/api/inventory/application/inventory-transition.result';
 import type { InventoryMovementEntity } from '~/api/inventory/domain/inventory-movement.entity';
+import { InventoryReservationStatus } from '~/api/inventory/domain/inventory-reservation-status';
 import { InventoryReservationEntity } from '~/api/inventory/domain/inventory-reservation.entity';
-import { InventoryReservationStatus } from '~/api/inventory/domain/inventory.enum';
 import { MemberRole } from '~/api/member/domain/member-role';
 import { lockOrderDependents } from '~/api/order/application/order-dependents.lock';
 import { ORDER_INVENTORY_PORT, type OrderInventoryPort } from '~/api/order/application/order-inventory.port';
-import { OrderCancellationConflict, OrderEntity } from '~/api/order/domain/entity/order.entity';
-import { OrderActorType, OrderStatus } from '~/api/order/domain/entity/order.enum';
+import { OrderActorType } from '~/api/order/domain/entity/order-actor-type';
+import { OrderStatus } from '~/api/order/domain/entity/order-status';
+import { OrderEntity } from '~/api/order/domain/entity/order.entity';
+import { OrderCancellationConflict } from '~/api/order/domain/order-cancellation-conflict.error';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
 
 export interface OrderExpirationBatchResult {

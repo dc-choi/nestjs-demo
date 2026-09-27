@@ -5,7 +5,7 @@ import { JwtPayload } from '../payload/jwt.payload';
 
 import { Request, Response } from 'express';
 import type { MemberRole } from '~/api/member/domain/member-role';
-import { Unauthorized } from '~/global/common/error/auth.error';
+import { Unauthorized } from '~/global/common/error/unauthorized.error';
 import { getRequestFromContext, getResponseFromContext } from '~/global/graphql/graphql-context';
 
 @Injectable()

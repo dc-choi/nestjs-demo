@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
 
+import { CatalogBulkError, CatalogBulkFailure } from './catalog-bulk.error';
 import { CatalogAnalyzer, catalogIndexDefinition, catalogNoriIndexDefinition } from './catalog-index.definition';
-import { OpenSearchHttpClient, OpenSearchHttpError, escapeOpenSearchPathSegment } from './opensearch.client';
+import { OpenSearchHttpError } from './opensearch-http.error';
+import { OpenSearchHttpClient, escapeOpenSearchPathSegment } from './opensearch.client';
 import { SearchConfig } from './search.config';
 
 import { createHash } from 'node:crypto';
@@ -65,19 +67,6 @@ export interface CatalogAliasTargets {
 export interface CatalogWriteTarget {
     readonly indexName: string;
     readonly writeAlias: string;
-}
-
-export interface CatalogBulkFailure {
-    documentId: string;
-    status: number;
-    error: unknown;
-}
-
-export class CatalogBulkError extends Error {
-    constructor(readonly failures: CatalogBulkFailure[]) {
-        super(`OpenSearch Bulk failed for ${failures.length} catalog document(s)`);
-        this.name = CatalogBulkError.name;
-    }
 }
 
 @Injectable()

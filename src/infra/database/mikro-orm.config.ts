@@ -10,8 +10,6 @@ import { MIKRO_ORM_SLOW_QUERY_THRESHOLD_MS, createMikroOrmLogger } from './mikro
 import type { MikroOrmQueryLog, TypedLogger } from '~/global/common/logger/channel.logger';
 import { EnvConfig } from '~/global/config/env/env.config';
 
-export type { MikroOrmEnvironment } from './database-environment';
-
 export const createMikroOrmCoreOptions = (
     env: MikroOrmEnvironment,
     sqlLog?: TypedLogger<MikroOrmQueryLog>

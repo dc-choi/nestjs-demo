@@ -1,0 +1,1 @@
+export const APPLICATION_LOGGER = Symbol('APPLICATION_LOGGER');

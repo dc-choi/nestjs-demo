@@ -1,7 +1,9 @@
 import { type Mock, describe, expect, it, vi } from 'vitest';
+import { CatalogBulkError } from '~/infra/search/catalog-bulk.error';
 import { catalogIndexDefinition, catalogNoriIndexDefinition } from '~/infra/search/catalog-index.definition';
-import { CatalogBulkError, CatalogIndexManager } from '~/infra/search/catalog-index.manager';
-import { OpenSearchHttpClient, OpenSearchHttpError } from '~/infra/search/opensearch.client';
+import { CatalogIndexManager } from '~/infra/search/catalog-index.manager';
+import { OpenSearchHttpError } from '~/infra/search/opensearch-http.error';
+import { OpenSearchHttpClient } from '~/infra/search/opensearch.client';
 import { SearchConfig } from '~/infra/search/search.config';
 
 describe('Catalog index manager', () => {

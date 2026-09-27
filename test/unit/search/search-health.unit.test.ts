@@ -1,7 +1,8 @@
 import { ConfigService } from '@nestjs/config';
 
 import { describe, expect, it, vi } from 'vitest';
-import { OpenSearchHttpClient, OpenSearchHttpError } from '~/infra/search/opensearch.client';
+import { OpenSearchHttpError } from '~/infra/search/opensearch-http.error';
+import { OpenSearchHttpClient } from '~/infra/search/opensearch.client';
 import { SearchHealthController } from '~/infra/search/search-health.controller';
 import { SearchHealthService } from '~/infra/search/search-health.service';
 import { SearchConfig } from '~/infra/search/search.config';

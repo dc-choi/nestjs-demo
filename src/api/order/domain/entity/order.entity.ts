@@ -1,16 +1,18 @@
 import { Cascade, Collection, type Opt, type Rel } from '@mikro-orm/core';
 import { Entity, Enum, Index, ManyToOne, OneToMany, PrimaryKey, Property, Unique } from '@mikro-orm/decorators/legacy';
 
+import { FulfillmentStatus } from '~/api/fulfillment/domain/fulfillment-status';
 import { FulfillmentEntity } from '~/api/fulfillment/domain/fulfillment.entity';
-import { FulfillmentStatus } from '~/api/fulfillment/domain/fulfillment.enum';
+import { InventoryReservationStatus } from '~/api/inventory/domain/inventory-reservation-status';
 import type { InventoryReservationEntity } from '~/api/inventory/domain/inventory-reservation.entity';
-import { InventoryReservationStatus } from '~/api/inventory/domain/inventory.enum';
 import { MemberEntity } from '~/api/member/domain/member.entity';
 import { assertOrderMoneyFits, sumDecimals } from '~/api/order/domain/decimal';
+import { OrderActorType } from '~/api/order/domain/entity/order-actor-type';
 import { OrderAddressEntity } from '~/api/order/domain/entity/order-address.entity';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
+import { OrderStatus } from '~/api/order/domain/entity/order-status';
 import { OrderStatusHistoryEntity } from '~/api/order/domain/entity/order-status-history.entity';
-import { OrderActorType, OrderStatus } from '~/api/order/domain/entity/order.enum';
+import { OrderCancellationConflict } from '~/api/order/domain/order-cancellation-conflict.error';
 import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity';
 
 interface PlaceOrder {
@@ -52,8 +54,6 @@ export interface OrderCancellationResult {
     readonly history: OrderStatusHistoryEntity | null;
     readonly reservations: readonly InventoryReservationEntity[];
 }
-
-export class OrderCancellationConflict extends Error {}
 
 const RESERVATION_EXPIRED_REASON = 'INVENTORY_RESERVATION_EXPIRED';
 

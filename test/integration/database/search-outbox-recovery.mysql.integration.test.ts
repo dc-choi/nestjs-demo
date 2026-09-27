@@ -14,10 +14,8 @@ import { MemberEntity } from '~/api/member/domain/member.entity';
 import { databaseEntities } from '~/infra/database/entities';
 import { SearchOutboxRecoveryService } from '~/infra/search/search-outbox-recovery.service';
 import { SearchOutboxRelay } from '~/infra/search/search-outbox.relay';
-import {
-    SearchProjectionOutboxEntity,
-    SearchProjectionOutboxStatus,
-} from '~/infra/search/search-projection-outbox.entity';
+import { SearchProjectionOutboxStatus } from '~/infra/search/search-projection-outbox-status';
+import { SearchProjectionOutboxEntity } from '~/infra/search/search-projection-outbox.entity';
 import { SearchConfig } from '~/infra/search/search.config';
 
 const describeMySql = process.env.MYSQL_INTEGRATION === '1' ? describe : describe.skip;

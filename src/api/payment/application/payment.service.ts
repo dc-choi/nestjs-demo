@@ -10,13 +10,15 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 
-import { FulfillmentStatus } from '~/api/fulfillment/domain/fulfillment.enum';
-import { InventoryReservationStatus } from '~/api/inventory/domain/inventory.enum';
+import { FulfillmentStatus } from '~/api/fulfillment/domain/fulfillment-status';
+import { InventoryReservationStatus } from '~/api/inventory/domain/inventory-reservation-status';
 import { MemberRole } from '~/api/member/domain/member-role';
+import { OrderActorType } from '~/api/order/domain/entity/order-actor-type';
+import { OrderStatus } from '~/api/order/domain/entity/order-status';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity';
-import { OrderActorType, OrderStatus } from '~/api/order/domain/entity/order.enum';
 import { PAYMENT_INVENTORY_PORT, type PaymentInventoryPort } from '~/api/payment/application/payment-inventory.port';
 import type { PaymentResult } from '~/api/payment/application/payment-result';
+import { PaymentWebhookPrerequisitePending } from '~/api/payment/application/payment-webhook-prerequisite-pending.error';
 import type {
     CapturePaymentCommand,
     CreatePaymentAttemptCommand,
@@ -24,15 +26,13 @@ import type {
     ProcessPaymentWebhookCommand,
     RefundPaymentCommand,
 } from '~/api/payment/application/payment.command';
-import { PaymentWebhookOutcome } from '~/api/payment/application/payment.command';
+import { PaymentAttemptStatus } from '~/api/payment/domain/payment-attempt-status';
 import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity';
 import { assertPositiveMoney, compareMoney, sumMoney } from '~/api/payment/domain/payment-money';
+import { PaymentTransactionStatus } from '~/api/payment/domain/payment-transaction-status';
+import { PaymentTransactionType } from '~/api/payment/domain/payment-transaction-type';
 import { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity';
-import {
-    PaymentAttemptStatus,
-    PaymentTransactionStatus,
-    PaymentTransactionType,
-} from '~/api/payment/domain/payment.enum';
+import { PaymentWebhookOutcome } from '~/api/payment/domain/payment-webhook-outcome';
 import { compareBigInt } from '~/global/common/utils/bigint';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
 
@@ -41,8 +41,6 @@ const BLOCKING_FULL_REFUND_FULFILLMENT_STATUSES: readonly FulfillmentStatus[] = 
     FulfillmentStatus.PACKED,
     FulfillmentStatus.SHIPPED,
 ];
-
-export class PaymentWebhookPrerequisitePending extends ConflictException {}
 
 @Injectable()
 export class PaymentService {

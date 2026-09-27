@@ -11,10 +11,8 @@ import { PaymentService } from '~/api/payment/application/payment.service';
 import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity';
 import { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity';
 import { PaymentWebhookEventEntity } from '~/api/payment/domain/payment-webhook-event.entity';
-import {
-    HmacPaymentWebhookSignatureVerifier,
-    PAYMENT_WEBHOOK_SIGNATURE_VERIFIER,
-} from '~/api/payment/infrastructure/payment-webhook-signature.verifier';
+import { PAYMENT_WEBHOOK_SIGNATURE_VERIFIER } from '~/api/payment/infrastructure/payment-webhook-signature-verifier.symbol';
+import { HmacPaymentWebhookSignatureVerifier } from '~/api/payment/infrastructure/payment-webhook-signature.verifier';
 import { PaymentWebhookController } from '~/api/payment/presentation/payment-webhook.controller';
 import { PaymentResolver } from '~/api/payment/presentation/payment.resolver';
 

@@ -1,18 +1,7 @@
-import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
+import { Field, ID, ObjectType } from '@nestjs/graphql';
 
+import { FulfillmentItemType } from '~/api/fulfillment/presentation/fulfillment-item.type';
 import { FulfillmentStatus } from '~/api/fulfillment/presentation/fulfillment-status.enum';
-
-@ObjectType('FulfillmentItem')
-export class FulfillmentItemType {
-    @Field(() => ID)
-    id!: string;
-
-    @Field(() => ID)
-    orderItemId!: string;
-
-    @Field(() => Int)
-    quantity!: number;
-}
 
 @ObjectType('Fulfillment')
 export class FulfillmentType {
@@ -45,10 +34,4 @@ export class FulfillmentType {
 
     @Field(() => [FulfillmentItemType])
     items!: FulfillmentItemType[];
-}
-
-@ObjectType()
-export class FulfillmentPayload {
-    @Field(() => FulfillmentType)
-    fulfillment!: FulfillmentType;
 }

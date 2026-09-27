@@ -3,14 +3,15 @@ import { Args, Mutation, Resolver } from '@nestjs/graphql';
 
 import { ProductCommandService } from '~/api/catalog/application/product-command.service';
 import type { ProductWriteResult } from '~/api/catalog/application/product-write.command';
+import { CreateProductItemInput } from '~/api/catalog/presentation/create-product-item.input';
 import { CreateProductInput } from '~/api/catalog/presentation/create-product.input';
 import { DeleteProductItemInput } from '~/api/catalog/presentation/delete-product-item.input';
 import { DeleteProductInput } from '~/api/catalog/presentation/delete-product.input';
 import { ProductMutationPayload } from '~/api/catalog/presentation/product-mutation.payload';
 import { ReplaceProductCatalogInput } from '~/api/catalog/presentation/replace-product-catalog.input';
 import { RestoreProductInput } from '~/api/catalog/presentation/restore-product.input';
+import { UpdateProductItemInput } from '~/api/catalog/presentation/update-product-item.input';
 import { UpdateProductInput } from '~/api/catalog/presentation/update-product.input';
-import { CreateProductItemInput, UpdateProductItemInput } from '~/api/catalog/presentation/write-product-item.input';
 import { parseGraphqlId } from '~/global/graphql/graphql-id.parser';
 import { Jwt } from '~/global/jwt/decorator/jwt.decorator';
 import { SellerGuard } from '~/global/jwt/guard/seller.guard';

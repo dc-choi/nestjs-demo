@@ -2,7 +2,8 @@ import { ConfigService } from '@nestjs/config';
 
 import { createHmac, randomBytes, scrypt } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { PasswordKdfAdmission, PasswordKdfSaturatedError } from '~/api/member/application/password-kdf.admission';
+import { PasswordKdfSaturatedError } from '~/api/member/application/password-kdf-saturated.error';
+import { PasswordKdfAdmission } from '~/api/member/application/password-kdf.admission';
 import { PasswordService } from '~/api/member/application/password.service';
 import { EnvConfig } from '~/global/config/env/env.config';
 

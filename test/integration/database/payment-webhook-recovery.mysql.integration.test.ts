@@ -18,16 +18,14 @@ import { OrderService } from '~/api/order/application/order.service';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity';
 import { PaymentWebhookRecoveryRelay } from '~/api/payment/application/payment-webhook-recovery.relay';
 import { PaymentWebhookService } from '~/api/payment/application/payment-webhook.service';
-import { PaymentWebhookOutcome } from '~/api/payment/application/payment.command';
 import { PaymentService } from '~/api/payment/application/payment.service';
+import { PaymentAttemptStatus } from '~/api/payment/domain/payment-attempt-status';
 import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity';
+import { PaymentTransactionType } from '~/api/payment/domain/payment-transaction-type';
 import { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity';
+import { PaymentWebhookEventStatus } from '~/api/payment/domain/payment-webhook-event-status';
 import { PaymentWebhookEventEntity } from '~/api/payment/domain/payment-webhook-event.entity';
-import {
-    PaymentAttemptStatus,
-    PaymentTransactionType,
-    PaymentWebhookEventStatus,
-} from '~/api/payment/domain/payment.enum';
+import { PaymentWebhookOutcome } from '~/api/payment/domain/payment-webhook-outcome';
 import { HmacPaymentWebhookSignatureVerifier } from '~/api/payment/infrastructure/payment-webhook-signature.verifier';
 import { PaymentWebhookController } from '~/api/payment/presentation/payment-webhook.controller';
 import type { DistributedLockService } from '~/global/common/lock/distributed-lock.service';

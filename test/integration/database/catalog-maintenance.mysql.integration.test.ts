@@ -8,7 +8,8 @@ import { ProductCommandService } from '~/api/catalog/application/product-command
 import { MemberRole } from '~/api/member/domain/member-role';
 import { databaseEntities } from '~/infra/database/entities';
 import { CatalogMaintenanceEntity } from '~/infra/search/catalog-maintenance.entity';
-import { CatalogMaintenanceError, CatalogMaintenanceService } from '~/infra/search/catalog-maintenance.service';
+import { CatalogMaintenanceError } from '~/infra/search/catalog-maintenance.error';
+import { CatalogMaintenanceService } from '~/infra/search/catalog-maintenance.service';
 import { catalogSearchWriteEffects } from '~/infra/search/catalog-write-effects';
 
 const describeMySql = process.env.MYSQL_INTEGRATION === '1' ? describe : describe.skip;

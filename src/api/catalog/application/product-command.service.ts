@@ -29,22 +29,20 @@ import type {
     UpdateProductItemCommand,
 } from './product-write.command';
 
-import { CatalogGraphError } from '~/api/catalog/domain/catalog-graph';
+import { CatalogGraphError } from '~/api/catalog/domain/catalog-graph.error';
 import { ProductSnapshotChangeType } from '~/api/catalog/domain/entity/product-snapshot-change-type';
 import { ProductSnapshotEntity } from '~/api/catalog/domain/entity/product-snapshot.entity';
 import { ProductStatus } from '~/api/catalog/domain/entity/product-status';
 import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
+import { InvalidProductChange } from '~/api/catalog/domain/invalid-product-change.error';
+import { NotExistingProduct } from '~/api/catalog/domain/not-existing-product.error';
+import { ProductAccessDenied } from '~/api/catalog/domain/product-access-denied.error';
+import { ProductRevisionConflict } from '~/api/catalog/domain/product-revision-conflict.error';
 import {
     PRODUCT_SNAPSHOT_SCHEMA_VERSION,
     createProductSnapshotPayload,
 } from '~/api/catalog/domain/product-snapshot.factory';
-import {
-    InvalidProductChange,
-    NotExistingProduct,
-    ProductAccessDenied,
-    ProductRevisionConflict,
-    ProductWriteConflict,
-} from '~/api/catalog/domain/product.error';
+import { ProductWriteConflict } from '~/api/catalog/domain/product-write-conflict.error';
 import { PRODUCT_REASON_MAX_LENGTH, ProductRuleError } from '~/api/catalog/domain/product.rules';
 import { MemberRole } from '~/api/member/domain/member-role';
 import { MemberEntity } from '~/api/member/domain/member.entity';

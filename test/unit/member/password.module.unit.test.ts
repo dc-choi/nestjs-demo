@@ -3,7 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 
 import { describe, expect, it } from 'vitest';
-import { PasswordKdfSaturatedError } from '~/api/member/application/password-kdf.admission';
+import { PasswordKdfSaturatedError } from '~/api/member/application/password-kdf-saturated.error';
 import { PasswordService } from '~/api/member/application/password.service';
 import { PasswordModule } from '~/api/member/password.module';
 

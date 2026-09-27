@@ -1,10 +1,8 @@
 import type { InventoryTransitionResult } from '~/api/inventory/application/inventory-transition.result';
 import type { InventoryMovementEntity } from '~/api/inventory/domain/inventory-movement.entity';
-import type {
-    InventoryAdjustmentPayload,
-    InventoryMovementType,
-    InventoryTransitionPayload,
-} from '~/api/inventory/presentation/inventory.type';
+import type { InventoryAdjustmentPayload } from '~/api/inventory/presentation/inventory-adjustment.payload';
+import type { InventoryMovementType } from '~/api/inventory/presentation/inventory-movement.type';
+import type { InventoryTransitionPayload } from '~/api/inventory/presentation/inventory-transition.payload';
 
 export function toInventoryTransitionPayload(result: InventoryTransitionResult): InventoryTransitionPayload {
     const { reservation, movement } = result;

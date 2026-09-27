@@ -1,16 +1,11 @@
 import { EntityManager, LockMode } from '@mikro-orm/core';
 import { MikroORM } from '@mikro-orm/mysql';
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 import { CatalogMaintenanceEntity } from './catalog-maintenance.entity';
+import { CatalogMaintenanceError } from './catalog-maintenance.error';
 
 import { randomUUID } from 'node:crypto';
-
-export class CatalogMaintenanceError extends ServiceUnavailableException {
-    constructor() {
-        super('상품 검색 인덱스를 재구축하고 있습니다. 잠시 후 다시 시도해 주세요.');
-    }
-}
 
 /** Hold a shared admission lock until the catalog transaction or projection finishes. */
 export async function assertCatalogWritable(em: EntityManager): Promise<void> {

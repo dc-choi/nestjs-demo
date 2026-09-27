@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
-import { OpenSearchHttpClient, OpenSearchHttpError } from './opensearch.client';
+import { OpenSearchHttpError } from './opensearch-http.error';
+import { OpenSearchHttpClient } from './opensearch.client';
 import { SearchConfig } from './search.config';
 
 interface InfoResponse {

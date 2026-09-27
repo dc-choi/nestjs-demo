@@ -22,8 +22,9 @@ import { lockOrderDependents } from '~/api/order/application/order-dependents.lo
 import { ORDER_INVENTORY_PORT, type OrderInventoryPort } from '~/api/order/application/order-inventory.port';
 import type { PlaceOrderCommand } from '~/api/order/application/place-order.command';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
-import { OrderCancellationConflict, OrderEntity } from '~/api/order/domain/entity/order.entity';
-import { NotExistingItem } from '~/global/common/error/item.error';
+import { OrderEntity } from '~/api/order/domain/entity/order.entity';
+import { OrderCancellationConflict } from '~/api/order/domain/order-cancellation-conflict.error';
+import { NotExistingItem } from '~/global/common/error/not-existing-item.error';
 import { DistributedLockOptions, DistributedLockService } from '~/global/common/lock/distributed-lock.service';
 import { compareBigInt } from '~/global/common/utils/bigint';
 import { isPositiveMysqlSignedInt } from '~/global/common/utils/mysql-number';

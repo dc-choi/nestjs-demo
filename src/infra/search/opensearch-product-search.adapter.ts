@@ -2,21 +2,18 @@ import { Injectable, Logger } from '@nestjs/common';
 
 import { buildOpenSearchProductRequest } from './product-search-query.compiler';
 
+import { ProductSearchCursorExpiredError } from '~/api/catalog/search/application/product-search-cursor-expired.error';
+import { ProductSearchUnavailableError } from '~/api/catalog/search/application/product-search-unavailable.error';
 import {
     ProductSearchBackendRequest,
-    ProductSearchCursorExpiredError,
     ProductSearchPage,
     ProductSearchPort,
-    ProductSearchUnavailableError,
 } from '~/api/catalog/search/application/product-search.port';
 import { ProductSearchItemDocument } from '~/api/catalog/search/domain/product-search.document';
 import { SearchSortValue } from '~/api/catalog/search/domain/product-search.query';
 import { getCurrentRequestId } from '~/global/common/context/request-context';
-import {
-    OpenSearchHttpClient,
-    OpenSearchHttpError,
-    escapeOpenSearchPathSegment,
-} from '~/infra/search/opensearch.client';
+import { OpenSearchHttpError } from '~/infra/search/opensearch-http.error';
+import { OpenSearchHttpClient, escapeOpenSearchPathSegment } from '~/infra/search/opensearch.client';
 import { SearchConfig } from '~/infra/search/search.config';
 
 interface OpenSearchProductHit {

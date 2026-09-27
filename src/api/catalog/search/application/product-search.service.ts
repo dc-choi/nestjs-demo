@@ -1,15 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
 
+import { ProductSearchCursorExpiredError } from '~/api/catalog/search/application/product-search-cursor-expired.error';
+import { PRODUCT_SEARCH_CURSOR_SECRET } from '~/api/catalog/search/application/product-search-cursor-secret';
+import { ProductSearchUnavailableError } from '~/api/catalog/search/application/product-search-unavailable.error';
 import {
-    PRODUCT_SEARCH_CURSOR_SECRET,
     PRODUCT_SEARCH_PORT,
     ProductSearchConnection,
-    ProductSearchCursorExpiredError,
     ProductSearchPort,
-    ProductSearchUnavailableError,
 } from '~/api/catalog/search/application/product-search.port';
+import { ProductSearchContractError } from '~/api/catalog/search/domain/product-search-contract.error';
 import {
-    ProductSearchContractError,
     ProductSearchInput,
     assertSearchCursorFingerprint,
     canonicalizeProductSearchInput,

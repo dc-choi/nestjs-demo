@@ -1,5 +1,5 @@
 import type { FulfillmentEntity } from '~/api/fulfillment/domain/fulfillment.entity';
-import type { FulfillmentPayload } from '~/api/fulfillment/presentation/fulfillment.type';
+import type { FulfillmentPayload } from '~/api/fulfillment/presentation/fulfillment.payload';
 
 export function toFulfillmentPayload(fulfillment: FulfillmentEntity): FulfillmentPayload {
     if (fulfillment.id == null) throw new Error('저장되지 않은 배송입니다.');

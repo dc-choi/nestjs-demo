@@ -2,7 +2,7 @@ import { Collection, type Opt, type Rel } from '@mikro-orm/core';
 import { Entity, Enum, Index, ManyToOne, OneToMany, PrimaryKey, Property, Unique } from '@mikro-orm/decorators/legacy';
 
 import { FulfillmentItemEntity } from '~/api/fulfillment/domain/fulfillment-item.entity';
-import { FulfillmentStatus } from '~/api/fulfillment/domain/fulfillment.enum';
+import { FulfillmentStatus } from '~/api/fulfillment/domain/fulfillment-status';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity';
 import { isPositiveMysqlSignedInt } from '~/global/common/utils/mysql-number';

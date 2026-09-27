@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
-import { CatalogBulkError, CatalogIndexManager, CatalogWriteTarget } from './catalog-index.manager';
+import { CatalogBulkError } from './catalog-bulk.error';
+import { CatalogIndexManager, CatalogWriteTarget } from './catalog-index.manager';
 import { CatalogMaintenanceService } from './catalog-maintenance.service';
 import { CatalogProjectionReader } from './catalog-projection.reader';
 

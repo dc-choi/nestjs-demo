@@ -2,7 +2,7 @@ import type { Opt, Rel } from '@mikro-orm/core';
 import { Entity, Enum, Index, ManyToOne, PrimaryKey, Property, Unique } from '@mikro-orm/decorators/legacy';
 
 import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
-import { InventoryMovementType } from '~/api/inventory/domain/inventory.enum';
+import { InventoryMovementType } from '~/api/inventory/domain/inventory-movement-type';
 import { isMysqlSignedInt, isNonNegativeMysqlSignedInt } from '~/global/common/utils/mysql-number';
 
 /**

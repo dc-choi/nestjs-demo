@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { ProductSearchContractError } from '~/api/catalog/search/domain/product-search-contract.error';
+import { ProductSearchSort } from '~/api/catalog/search/domain/product-search-sort';
 import {
-    ProductSearchContractError,
-    ProductSearchSort,
     assertSearchCursorFingerprint,
     canonicalizeProductSearchInput,
     decodeSearchCursor,

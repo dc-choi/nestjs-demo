@@ -4,7 +4,7 @@ import Redis from 'ioredis';
 import Redlock from 'redlock';
 import { DistributedLockService } from '~/global/common/lock/distributed-lock.service';
 import { RED_LOCK } from '~/global/common/lock/distributed-lock.symbol';
-import { REDIS_CLIENT } from '~/infra/redis/redis-client.module';
+import { REDIS_CLIENT } from '~/infra/redis/redis-client.symbol';
 
 @Global()
 @Module({

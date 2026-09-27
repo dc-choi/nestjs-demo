@@ -2,14 +2,12 @@ import { Collection, type Opt, type Rel } from '@mikro-orm/core';
 import { Entity, Enum, Index, ManyToOne, OneToMany, PrimaryKey, Property, Unique } from '@mikro-orm/decorators/legacy';
 
 import { OrderEntity } from '~/api/order/domain/entity/order.entity';
+import { PaymentAttemptStatus } from '~/api/payment/domain/payment-attempt-status';
 import { compareMoney, sumMoney } from '~/api/payment/domain/payment-money';
+import { PaymentTransactionStatus } from '~/api/payment/domain/payment-transaction-status';
+import { PaymentTransactionType } from '~/api/payment/domain/payment-transaction-type';
 import { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity';
 import { PaymentWebhookEventEntity } from '~/api/payment/domain/payment-webhook-event.entity';
-import {
-    PaymentAttemptStatus,
-    PaymentTransactionStatus,
-    PaymentTransactionType,
-} from '~/api/payment/domain/payment.enum';
 
 const CAPTURABLE_STATUSES: readonly PaymentAttemptStatus[] = [
     PaymentAttemptStatus.PENDING,

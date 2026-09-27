@@ -3,7 +3,7 @@ import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
 
-import { APPLICATION_LOGGER } from '~/global/common/logger/channel.logger';
+import { APPLICATION_LOGGER } from '~/global/common/logger/application-logger.symbol';
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule, { rawBody: true, bufferLogs: true });

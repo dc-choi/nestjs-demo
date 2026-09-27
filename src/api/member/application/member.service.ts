@@ -5,13 +5,14 @@ import { EventBus } from '@nestjs/cqrs';
 
 import { SignupEvent } from './event/signup.event';
 
-import { PasswordKdfSaturatedError } from '~/api/member/application/password-kdf.admission';
+import { PasswordKdfSaturatedError } from '~/api/member/application/password-kdf-saturated.error';
 import { PasswordService } from '~/api/member/application/password.service';
 import { IdBlackList } from '~/api/member/domain/idBlackList';
 import { MemberRole } from '~/api/member/domain/member-role';
 import { MemberEntity } from '~/api/member/domain/member.entity';
-import { PasswordKdfBusy } from '~/global/common/error/auth.error';
-import { ExistingMember, InvalidMember } from '~/global/common/error/member.error';
+import { ExistingMember } from '~/global/common/error/existing-member.error';
+import { InvalidMember } from '~/global/common/error/invalid-member.error';
+import { PasswordKdfBusy } from '~/global/common/error/password-kdf-busy.error';
 
 @Injectable()
 export class MemberService {

@@ -5,16 +5,17 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 
 import { createHash } from 'node:crypto';
 import type { PaymentWebhookRecoveryResult, PaymentWebhookResult } from '~/api/payment/application/payment-result';
+import { PaymentWebhookPrerequisitePending } from '~/api/payment/application/payment-webhook-prerequisite-pending.error';
 import type {
     ProcessPaymentWebhookCommand,
     ReceivePaymentWebhookCommand,
     VerifiedPaymentWebhookCommand,
 } from '~/api/payment/application/payment.command';
-import { PaymentService, PaymentWebhookPrerequisitePending } from '~/api/payment/application/payment.service';
+import { PaymentService } from '~/api/payment/application/payment.service';
 import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity';
 import { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity';
+import { PaymentWebhookEventStatus } from '~/api/payment/domain/payment-webhook-event-status';
 import { PaymentWebhookEventEntity } from '~/api/payment/domain/payment-webhook-event.entity';
-import { PaymentWebhookEventStatus } from '~/api/payment/domain/payment.enum';
 
 interface ProcessWebhookOptions {
     readonly rejectFailedEvent?: boolean;

@@ -1,7 +1,7 @@
 import type { Opt, Rel } from '@mikro-orm/core';
 import { Entity, Enum, Index, OneToOne, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
 
-import { InventoryReservationStatus } from '~/api/inventory/domain/inventory.enum';
+import { InventoryReservationStatus } from '~/api/inventory/domain/inventory-reservation-status';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
 import { isPositiveMysqlSignedInt } from '~/global/common/utils/mysql-number';
 

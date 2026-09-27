@@ -13,12 +13,13 @@ import type {
     CreateFulfillmentCommand,
     ShipFulfillmentCommand,
 } from '~/api/fulfillment/application/fulfillment.command';
+import { FulfillmentStatus } from '~/api/fulfillment/domain/fulfillment-status';
 import { FulfillmentEntity } from '~/api/fulfillment/domain/fulfillment.entity';
-import { FulfillmentStatus } from '~/api/fulfillment/domain/fulfillment.enum';
 import { MemberRole } from '~/api/member/domain/member-role';
+import { OrderActorType } from '~/api/order/domain/entity/order-actor-type';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
+import { OrderStatus } from '~/api/order/domain/entity/order-status';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity';
-import { OrderActorType, OrderStatus } from '~/api/order/domain/entity/order.enum';
 import { isPositiveMysqlSignedInt } from '~/global/common/utils/mysql-number';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
 

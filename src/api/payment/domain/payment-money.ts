@@ -1,4 +1,4 @@
-const MONEY_PATTERN = /^(\d+)(?:\.(\d{1,3}))?$/;
+export const MONEY_PATTERN = /^(\d+)(?:\.(\d{1,3}))?$/;
 
 interface MoneyParts {
     readonly coefficient: bigint;

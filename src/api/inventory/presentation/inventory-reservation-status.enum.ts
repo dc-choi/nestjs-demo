@@ -1,6 +1,7 @@
 import { registerEnumType } from '@nestjs/graphql';
 
-import { InventoryMovementType, InventoryReservationStatus } from '~/api/inventory/domain/inventory.enum';
+import { InventoryMovementType } from '~/api/inventory/domain/inventory-movement-type';
+import { InventoryReservationStatus } from '~/api/inventory/domain/inventory-reservation-status';
 
 const InventoryAdjustmentType = {
     RECEIPT: InventoryMovementType.RECEIPT,

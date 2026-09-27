@@ -16,11 +16,9 @@ import { IsEnum, IsOptional, IsString, Matches, MaxLength } from 'class-validato
 import { Request } from 'express';
 import { createHash } from 'node:crypto';
 import { PaymentWebhookService } from '~/api/payment/application/payment-webhook.service';
-import { PaymentWebhookOutcome } from '~/api/payment/application/payment.command';
-import {
-    PAYMENT_WEBHOOK_SIGNATURE_VERIFIER,
-    PaymentWebhookSignatureVerifier,
-} from '~/api/payment/infrastructure/payment-webhook-signature.verifier';
+import { PaymentWebhookOutcome } from '~/api/payment/domain/payment-webhook-outcome';
+import { PAYMENT_WEBHOOK_SIGNATURE_VERIFIER } from '~/api/payment/infrastructure/payment-webhook-signature-verifier.symbol';
+import { PaymentWebhookSignatureVerifier } from '~/api/payment/infrastructure/payment-webhook-signature.verifier';
 
 class PaymentWebhookHttpBody {
     @IsOptional()

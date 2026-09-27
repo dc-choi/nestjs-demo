@@ -8,13 +8,8 @@ import type {
 } from './product-write.command';
 
 import { createHash } from 'node:crypto';
-import {
-    CatalogGraph,
-    CatalogGraphChange,
-    CatalogGraphError,
-    type CatalogItem,
-    type CatalogOption,
-} from '~/api/catalog/domain/catalog-graph';
+import { CatalogGraph, type CatalogItem, type CatalogOption, invalidGraph } from '~/api/catalog/domain/catalog-graph';
+import { CatalogGraphChange } from '~/api/catalog/domain/catalog-graph-change';
 import { CategoryEntity } from '~/api/catalog/domain/entity/category.entity';
 import { ItemOptionValueEntity } from '~/api/catalog/domain/entity/item-option-value.entity';
 import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status';
@@ -405,8 +400,4 @@ function createItem(product: ProductEntity, sku?: string): ItemEntity {
 
 function hash(value: string): string {
     return createHash('sha256').update(value).digest('hex');
-}
-
-function invalidGraph(message: string): CatalogGraphError {
-    return new CatalogGraphError(message);
 }

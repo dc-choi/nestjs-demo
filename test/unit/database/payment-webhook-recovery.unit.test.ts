@@ -11,12 +11,12 @@ import { OrderEntity } from '~/api/order/domain/entity/order.entity';
 import type { PaymentInventoryPort } from '~/api/payment/application/payment-inventory.port';
 import { PaymentWebhookRecoveryRelay } from '~/api/payment/application/payment-webhook-recovery.relay';
 import { PaymentWebhookService } from '~/api/payment/application/payment-webhook.service';
-import { PaymentWebhookOutcome } from '~/api/payment/application/payment.command';
 import { PaymentService } from '~/api/payment/application/payment.service';
 import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity';
 import { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity';
+import { PaymentWebhookEventStatus } from '~/api/payment/domain/payment-webhook-event-status';
 import { PaymentWebhookEventEntity } from '~/api/payment/domain/payment-webhook-event.entity';
-import { PaymentWebhookEventStatus } from '~/api/payment/domain/payment.enum';
+import { PaymentWebhookOutcome } from '~/api/payment/domain/payment-webhook-outcome';
 
 const NOW = new Date('2026-09-05T00:00:00.000Z');
 const verifiedCommand = {

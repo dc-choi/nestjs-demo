@@ -11,31 +11,30 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { ProductCommandService } from '~/api/catalog/application/product-command.service';
 import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
 import { FulfillmentService } from '~/api/fulfillment/application/fulfillment.service';
+import { FulfillmentStatus } from '~/api/fulfillment/domain/fulfillment-status';
 import { FulfillmentEntity } from '~/api/fulfillment/domain/fulfillment.entity';
-import { FulfillmentStatus } from '~/api/fulfillment/domain/fulfillment.enum';
 import { InventoryService } from '~/api/inventory/application/inventory.service';
+import { InventoryMovementType } from '~/api/inventory/domain/inventory-movement-type';
 import { InventoryMovementEntity } from '~/api/inventory/domain/inventory-movement.entity';
+import { InventoryReservationStatus } from '~/api/inventory/domain/inventory-reservation-status';
 import { InventoryReservationEntity } from '~/api/inventory/domain/inventory-reservation.entity';
-import { InventoryMovementType, InventoryReservationStatus } from '~/api/inventory/domain/inventory.enum';
 import { MemberEntity } from '~/api/member/domain/member.entity';
 import { OrderExpirationService } from '~/api/order/application/order-expiration.service';
 import { OrderService } from '~/api/order/application/order.service';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
+import { OrderStatus } from '~/api/order/domain/entity/order-status';
 import { OrderStatusHistoryEntity } from '~/api/order/domain/entity/order-status-history.entity';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity';
-import { OrderStatus } from '~/api/order/domain/entity/order.enum';
 import { PaymentWebhookService } from '~/api/payment/application/payment-webhook.service';
-import { PaymentWebhookOutcome } from '~/api/payment/application/payment.command';
 import { PaymentService } from '~/api/payment/application/payment.service';
+import { PaymentAttemptStatus } from '~/api/payment/domain/payment-attempt-status';
 import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity';
 import { compareMoney } from '~/api/payment/domain/payment-money';
+import { PaymentTransactionType } from '~/api/payment/domain/payment-transaction-type';
 import { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity';
+import { PaymentWebhookEventStatus } from '~/api/payment/domain/payment-webhook-event-status';
 import { PaymentWebhookEventEntity } from '~/api/payment/domain/payment-webhook-event.entity';
-import {
-    PaymentAttemptStatus,
-    PaymentTransactionType,
-    PaymentWebhookEventStatus,
-} from '~/api/payment/domain/payment.enum';
+import { PaymentWebhookOutcome } from '~/api/payment/domain/payment-webhook-outcome';
 import type { DistributedLockService } from '~/global/common/lock/distributed-lock.service';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
 import { databaseEntities } from '~/infra/database/entities';

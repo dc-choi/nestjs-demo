@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { CatalogProductProjectionSource } from '~/api/catalog/search/domain/product-search.document';
-import { CatalogBulkError, CatalogIndexManager } from '~/infra/search/catalog-index.manager';
+import { CatalogBulkError } from '~/infra/search/catalog-bulk.error';
+import { CatalogIndexManager } from '~/infra/search/catalog-index.manager';
 import { CatalogMaintenanceService } from '~/infra/search/catalog-maintenance.service';
 import { CatalogProjectionReader } from '~/infra/search/catalog-projection.reader';
 import { CatalogSearchWorker } from '~/infra/search/catalog-search.worker';

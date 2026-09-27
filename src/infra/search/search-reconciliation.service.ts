@@ -4,16 +4,11 @@ import { CatalogIndexManager, CatalogWriteTarget, StoredProductSearchDocument } 
 import { CatalogMaintenanceService } from './catalog-maintenance.service';
 import { CatalogProjectionReader } from './catalog-projection.reader';
 import { CatalogSearchWorker } from './catalog-search.worker';
+import { SearchReconciliationDifferenceKind } from './search-reconciliation-difference-kind';
 import { SearchConfig } from './search.config';
 
 import { projectCatalogProduct } from '~/api/catalog/search/domain/catalog-projector';
 import { MAX_PRODUCT_REVISION } from '~/api/catalog/search/domain/product-search.document';
-
-export const SearchReconciliationDifferenceKind = {
-    MISSING: 'MISSING',
-    STALE: 'STALE',
-    EXTRA: 'EXTRA',
-} as const;
 
 export interface SearchReconciliationDifference {
     productId: string;

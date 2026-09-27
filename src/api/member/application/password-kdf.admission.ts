@@ -1,10 +1,6 @@
-export const DEFAULT_PASSWORD_KDF_CONCURRENCY = 1;
+import { PasswordKdfSaturatedError } from '~/api/member/application/password-kdf-saturated.error';
 
-export class PasswordKdfSaturatedError extends Error {
-    constructor() {
-        super('Password KDF capacity is exhausted');
-    }
-}
+export const DEFAULT_PASSWORD_KDF_CONCURRENCY = 1;
 
 export class PasswordKdfAdmission {
     private active = 0;

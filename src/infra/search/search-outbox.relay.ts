@@ -1,7 +1,7 @@
 import { EntityManager, MikroORM } from '@mikro-orm/mysql';
 import { Injectable } from '@nestjs/common';
 
-import { CatalogMaintenanceError } from './catalog-maintenance.service';
+import { CatalogMaintenanceError } from './catalog-maintenance.error';
 import { CatalogSearchWorker } from './catalog-search.worker';
 import { SearchConfig } from './search.config';
 
