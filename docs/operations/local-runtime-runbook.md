@@ -374,8 +374,9 @@ curl --fail --silent --show-error \
   --data-binary "$payload"
 ```
 
-`outcome`은 `CAPTURED`, `FAILED`, `REFUNDED` 중 하나입니다. 매입에는 provider transaction ID, 실패에는
-error code, 환불에는 provider transaction ID와 금액이 추가로 필요합니다. 같은 provider/event ID에 같은
+`outcome`은 `CAPTURED`, `FAILED`, `REFUNDED` 중 하나입니다. 매입에는 provider transaction ID가 필요하며,
+금액을 전달하면 결제 시도의 요청 금액과 일치해야 합니다. 금액 생략은 기존 전액 매입 계약을 따릅니다.
+실패에는 error code, 환불에는 provider transaction ID와 금액이 추가로 필요합니다. 같은 provider/event ID에 같은
 payload가 다시 오면 기존 결과로 수렴하고, 다른 payload가 오면 충돌로 거절합니다.
 
 현재 구현은 provider 중립적인 결제 상태/원장과 HMAC 수신 adapter입니다. 실제 PG의 승인 API 호출,

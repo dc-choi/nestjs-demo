@@ -90,6 +90,65 @@ describe('payment lifecycle', () => {
         expect(persistence.persist).not.toHaveBeenCalled();
     });
 
+    it('매입 Webhook 금액이 주문 금액과 다르면 상태와 원장을 변경하지 않고 같은 금액은 허용한다', async () => {
+        const { attempt, reservation } = createAttempt();
+        const persistence = createPaymentService(attempt);
+        const command = {
+            provider: 'demo-pay',
+            providerEventId: 'capture-amount',
+            providerPaymentId: attempt.providerPaymentId,
+            payloadHash: 'a'.repeat(64),
+            outcome: PaymentWebhookOutcome.CAPTURED,
+            providerTransactionId: 'tx-capture-amount',
+        };
+
+        for (const amount of ['0', '1']) {
+            await expect(
+                RequestContext.create(persistence.requestContextSource, () =>
+                    persistence.service.applyWebhookOutcome(
+                        attempt,
+                        { ...command, amount },
+                        'webhook:capture-amount',
+                        NOW
+                    )
+                )
+            ).rejects.toBeInstanceOf(BadRequestException);
+        }
+        expect(attempt.status).toBe(PaymentAttemptStatus.PENDING);
+        expect(attempt.order.status).toBe(OrderStatus.PENDING);
+        expect(reservation.status).toBe('RESERVED');
+        expect(persistence.consumeForPayment).not.toHaveBeenCalled();
+        expect(persistence.persist).not.toHaveBeenCalled();
+
+        const result = await RequestContext.create(persistence.requestContextSource, () =>
+            persistence.service.applyWebhookOutcome(attempt, { ...command, amount: '100.000' }, 'webhook:capture-amount', NOW)
+        );
+        expect(result.transaction?.amount).toBe('100');
+        expect(attempt.status).toBe(PaymentAttemptStatus.CAPTURED);
+    });
+
+    it.each([undefined, null])('금액이 %s인 매입 Webhook은 기존 전액 매입 계약을 따른다', async (amount) => {
+        const { attempt } = createAttempt();
+        const persistence = createPaymentService(attempt);
+        const result = await RequestContext.create(persistence.requestContextSource, () =>
+            persistence.service.applyWebhookOutcome(
+                attempt,
+                {
+                    provider: 'demo-pay',
+                    providerEventId: 'capture-without-amount',
+                    providerPaymentId: attempt.providerPaymentId,
+                    payloadHash: 'a'.repeat(64),
+                    outcome: PaymentWebhookOutcome.CAPTURED,
+                    providerTransactionId: 'tx-capture-without-amount',
+                    amount,
+                },
+                'webhook:capture-without-amount',
+                NOW
+            )
+        );
+        expect(result.transaction?.amount).toBe('100');
+    });
+
     it('누적 환불이 매입액을 넘지 않게 하고 부분 및 전액 환불 상태를 구분한다', async () => {
         const { attempt } = createAttempt();
         attempt.capture(NOW);

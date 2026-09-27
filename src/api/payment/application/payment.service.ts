@@ -208,7 +208,8 @@ export class PaymentService {
                     idempotencyKey,
                     providerTransactionId: command.providerTransactionId,
                 },
-                now
+                now,
+                command.amount
             );
         }
         if (command.outcome === PaymentWebhookOutcome.REFUNDED) {
@@ -307,8 +308,15 @@ export class PaymentService {
     private async captureAttempt(
         attempt: PaymentAttemptEntity,
         command: CapturePaymentCommand,
-        now: Date
+        now: Date,
+        suppliedAmount?: string | null
     ): Promise<PaymentResult> {
+        if (suppliedAmount != null) {
+            this.assertPositiveAmount(suppliedAmount);
+            if (compareMoney(suppliedAmount, attempt.requestedAmount) !== 0) {
+                throw new BadRequestException('매입 금액이 주문 금액과 다릅니다.');
+            }
+        }
         const duplicate = await this.findTransaction(attempt, command.idempotencyKey, command.providerTransactionId);
         if (duplicate) {
             this.assertSameTransaction(
