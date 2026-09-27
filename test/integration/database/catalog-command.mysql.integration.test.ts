@@ -97,10 +97,10 @@ async function verifyCatalogRoundTrip(em: EntityManager): Promise<bigint> {
         options: [
             {
                 code: 'color',
-                name: 'Color',
+                name: '!０',
                 isRequired: true,
                 values: [
-                    { code: 'black', name: 'Black' },
+                    { code: 'black', name: '!０' },
                     { code: 'white', name: 'White' },
                 ],
             },
@@ -194,5 +194,61 @@ async function verifyCatalogRoundTrip(em: EntityManager): Promise<bigint> {
         },
     });
     snapshot.payload.items.forEach((item) => expect(item).not.toHaveProperty('stock'));
+
+    const optionsWithCrossedStagingIds = current!.options.map((option, index, options) => {
+        const code = `staging-${options[1 - index].id}`;
+        return {
+            id: option.id,
+            code,
+            name: code,
+            isRequired: true,
+            values: option.values.map((value, valueIndex, values) => {
+                const valueCode = `staging-${values[1 - valueIndex].id}`;
+                return { id: value.id, code: valueCode, name: valueCode };
+            }),
+        };
+    });
+    const crossedCatalog = {
+        productId: created.productId,
+        options: optionsWithCrossedStagingIds,
+        items: current!.items.map((item, index) => ({
+            id: item.id,
+            sku: item.sku,
+            name: item.name,
+            supplyPrice: index === 0 ? '80000' : '90000',
+            vat: index === 0 ? '8000' : '9000',
+            isTaxFree: false,
+            saleStatus: ItemSaleStatus.ALLOW,
+            selectedOptions: optionsWithCrossedStagingIds.map((option) => ({
+                optionCode: option.code,
+                valueCode: option.values[index].code,
+            })),
+        })),
+        categoryIds: [category.id],
+        tags: ['keyboard', 'wireless'],
+    };
+    const changed = await commandService.replaceCatalog(actor, {
+        ...crossedCatalog,
+        expectedRevision: 3,
+    });
+    const restaged = await commandService.replaceCatalog(actor, {
+        ...crossedCatalog,
+        expectedRevision: changed.revision,
+    });
+    expect(
+        (await new ProductService(em.getRepository(ProductEntity)).findCurrentById(created.productId))?.options
+    ).toMatchObject(optionsWithCrossedStagingIds);
+    await commandService.replaceCatalog(actor, {
+        ...crossedCatalog,
+        expectedRevision: restaged.revision,
+        options: [
+            {
+                ...optionsWithCrossedStagingIds[0],
+                values: [...optionsWithCrossedStagingIds[0].values, { code: 'extra', name: '!０' }],
+            },
+            optionsWithCrossedStagingIds[1],
+            { code: 'extra', name: '!０', isRequired: false, values: [{ code: 'choice', name: 'Choice' }] },
+        ],
+    });
     return created.productId;
 }

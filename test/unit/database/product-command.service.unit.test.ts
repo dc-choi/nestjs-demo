@@ -635,7 +635,9 @@ function createHarness(options: HarnessOptions = {}) {
         getReference,
         isInTransaction: () => true,
         getTransactionContext: () => ({}),
-        getConnection: () => ({ execute: async () => [{ owner_token: null }] }),
+        getConnection: () => ({
+            execute: async (query: string) => (query.includes('catalog_maintenance') ? [{ owner_token: null }] : []),
+        }),
     } as unknown as EntityManager;
     const transactional = vi.fn(async (work: (transaction: EntityManager) => Promise<unknown>) => {
         try {

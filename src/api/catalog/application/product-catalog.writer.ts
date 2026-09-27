@@ -1,4 +1,4 @@
-import { Collection, EntityManager } from '@mikro-orm/core';
+import { Collection, EntityManager, LockMode } from '@mikro-orm/core';
 
 import type {
     CreateProductItemCommand,
@@ -76,8 +76,8 @@ async function replaceGraph(em: EntityManager, product: ProductEntity, graph: Ca
     const resolvedCategories = resolveCategories(product, categories);
     const resolvedTags = resolveTags(product, graph.tags);
 
+    await stageOptions(em, product, resolvedOptions);
     stageItems(product);
-    stageOptions(product);
     stageCategories(product);
 
     const selections = product.items.getItems().flatMap((item) => item.optionValues.getItems());
@@ -203,17 +203,91 @@ function stageItems(product: ProductEntity): void {
     }
 }
 
-function stageOptions(product: ProductEntity): void {
-    product.options.getItems().forEach((option, optionIndex) => {
-        option.code = `staging-${option.id}`;
-        option.name = `staging-${option.id}`;
+async function stageOptions(
+    em: EntityManager,
+    product: ProductEntity,
+    resolved: readonly ResolvedOption[]
+): Promise<void> {
+    const options = product.options.getItems();
+    const incomingKeys = resolved.flatMap(({ input }) => [input.code, input.name]);
+    const optionKeys = await unusedStagingKeys(
+        options.length,
+        async (keys) =>
+            (await collidesWithIncoming(em, 'product_options', incomingKeys, keys)) ||
+            (
+                await em.find(
+                    ProductOptionEntity,
+                    {
+                        product: product.id,
+                        $or: [{ code: { $in: keys } }, { name: { $in: keys } }],
+                    },
+                    { limit: 1, lockMode: LockMode.PESSIMISTIC_READ }
+                )
+            ).length > 0
+    );
+    const valueKeys: string[][] = [];
+    for (const option of options) {
+        const incomingValueKeys =
+            resolved.find(({ entity }) => entity === option)?.values.flatMap(({ input }) => [input.code, input.name]) ??
+            [];
+        valueKeys.push(
+            await unusedStagingKeys(
+                option.values.length,
+                async (keys) =>
+                    (await collidesWithIncoming(em, 'product_option_values', incomingValueKeys, keys)) ||
+                    (
+                        await em.find(
+                            ProductOptionValueEntity,
+                            {
+                                option: option.id,
+                                $or: [{ code: { $in: keys } }, { name: { $in: keys } }],
+                            },
+                            { limit: 1, lockMode: LockMode.PESSIMISTIC_READ }
+                        )
+                    ).length > 0
+            )
+        );
+    }
+
+    options.forEach((option, optionIndex) => {
+        option.code = optionKeys[optionIndex];
+        option.name = optionKeys[optionIndex];
         option.sequence = MAX_UNSIGNED_INTEGER - optionIndex;
         option.values.getItems().forEach((value, valueIndex) => {
-            value.code = `staging-${value.id}`;
-            value.name = `staging-${value.id}`;
+            value.code = valueKeys[optionIndex][valueIndex];
+            value.name = valueKeys[optionIndex][valueIndex];
             value.sequence = MAX_UNSIGNED_INTEGER - valueIndex;
         });
     });
+}
+
+async function collidesWithIncoming(
+    em: EntityManager,
+    table: 'product_options' | 'product_option_values',
+    incoming: readonly string[],
+    keys: readonly string[]
+): Promise<boolean> {
+    if (incoming.length === 0) return false;
+    // The empty table arm gives bound incoming names the column's MySQL collation.
+    const rows: unknown[] = await em
+        .getConnection('write')
+        .execute(
+            `SELECT 1 FROM (SELECT name FROM ${table} WHERE 1 = 0${incoming.map(() => ' UNION ALL SELECT ?').join('')}) incoming WHERE name IN (${keys.map(() => '?').join(', ')}) LIMIT 1`,
+            [...incoming, ...keys],
+            'all',
+            em.getTransactionContext()
+        );
+    return rows.length > 0;
+}
+
+async function unusedStagingKeys(count: number, exists: (keys: string[]) => Promise<boolean>): Promise<string[]> {
+    if (count === 0) return [];
+    let start = 0;
+    while (true) {
+        const keys = Array.from({ length: count }, (_, index) => `!${start + index}`);
+        if (!(await exists(keys))) return keys;
+        start += count;
+    }
 }
 
 function stageCategories(product: ProductEntity): void {
