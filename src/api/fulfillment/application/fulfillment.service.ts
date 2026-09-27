@@ -136,14 +136,26 @@ export class FulfillmentService {
     async deliver(jwtPayload: JwtPayload, fulfillmentId: bigint, now = new Date()): Promise<FulfillmentEntity> {
         this.assertAdmin(jwtPayload);
         const fulfillment = await this.findForUpdate(fulfillmentId);
-        if (fulfillment.status === FulfillmentStatus.DELIVERED) return fulfillment;
-        if (fulfillment.status !== FulfillmentStatus.SHIPPED) {
+        if (fulfillment.status === FulfillmentStatus.DELIVERED && fulfillment.order.status === OrderStatus.COMPLETED) {
+            return fulfillment;
+        }
+        if (fulfillment.status !== FulfillmentStatus.SHIPPED && fulfillment.status !== FulfillmentStatus.DELIVERED) {
             throw new ConflictException(`${fulfillment.status} 배송은 배송 완료 처리할 수 없습니다.`);
         }
-        this.assertFunded(fulfillment.order);
-        fulfillment.deliver(now);
+        if (fulfillment.status === FulfillmentStatus.SHIPPED) this.assertFunded(fulfillment.order);
+        const fulfillments = await this.fulfillmentRepository.find(
+            { order: fulfillment.order.id },
+            {
+                populate: ['items.orderItem'],
+                connectionType: 'write',
+                lockMode: LockMode.PESSIMISTIC_WRITE,
+                refresh: true,
+                orderBy: { id: 'asc' },
+            }
+        );
+        if (fulfillment.status === FulfillmentStatus.SHIPPED) fulfillment.deliver(now);
 
-        if (this.isOrderFullyDelivered(fulfillment.order)) {
+        if (this.isOrderFullyDelivered(fulfillment.order, fulfillments)) {
             const history = fulfillment.order.transition({
                 to: OrderStatus.COMPLETED,
                 actorType: OrderActorType.MEMBER,
@@ -181,7 +193,7 @@ export class FulfillmentService {
         );
         if (!order) throw new NotFoundException('주문을 찾을 수 없습니다.');
 
-        await this.em.populate(order, ['items', 'fulfillments.items.orderItem', 'paymentAttempts'], { refresh: true });
+        await this.em.populate(order, ['items', 'paymentAttempts'], { refresh: true });
 
         const fulfillment = await this.fulfillmentRepository.findOne(
             { id, order: order.id },
@@ -234,9 +246,9 @@ export class FulfillmentService {
             .reduce((sum, { quantity }) => sum + quantity, 0);
     }
 
-    private isOrderFullyDelivered(order: OrderEntity): boolean {
+    private isOrderFullyDelivered(order: OrderEntity, fulfillments: readonly FulfillmentEntity[]): boolean {
         const deliveredQuantities = new Map<bigint, number>();
-        for (const fulfillment of order.fulfillments) {
+        for (const fulfillment of fulfillments) {
             if (fulfillment.status !== FulfillmentStatus.DELIVERED) continue;
             for (const item of fulfillment.items) {
                 deliveredQuantities.set(

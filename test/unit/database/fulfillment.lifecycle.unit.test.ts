@@ -1,6 +1,7 @@
 import {
     Collection,
     EntityManager,
+    LockMode,
     type EntityRepository,
     RequestContext,
     type TransactionOptions,
@@ -145,6 +146,10 @@ describe('fulfillment lifecycle', () => {
         expect(second.status).toBe(FulfillmentStatus.DELIVERED);
         expect(order.status).toBe(OrderStatus.COMPLETED);
         expect(order.completedAt).toBe(NOW);
+        expect(persistence.findFulfillments).toHaveBeenCalledWith(
+            { order: order.id },
+            expect.objectContaining({ lockMode: LockMode.PESSIMISTIC_WRITE, refresh: true })
+        );
         expect(persistence.persist).toHaveBeenCalledWith(
             expect.objectContaining({
                 fromStatus: OrderStatus.CONFIRMED,
@@ -152,6 +157,27 @@ describe('fulfillment lifecycle', () => {
                 reason: 'ALL_ITEMS_DELIVERED',
             })
         );
+    });
+
+    it('완료 누락 주문은 배송 완료 재시도로 복구하고 환불 뒤 재시도도 멱등이다', async () => {
+        const { order, orderItem } = createConfirmedOrder(1);
+        const fulfillment = FulfillmentEntity.create(order, 'delivered-replay', [{ orderItem, quantity: 1 }]);
+        fulfillment.id = 50n;
+        fulfillment.pack(NOW);
+        fulfillment.ship('parcel', 'tracking-replay', NOW);
+        fulfillment.deliver(NOW);
+        const persistence = createService(order, fulfillment);
+
+        await RequestContext.create(persistence.requestContextSource, () =>
+            persistence.service.deliver(ADMIN, fulfillment.id, NOW)
+        );
+        expect(order.status).toBe(OrderStatus.COMPLETED);
+        order.paymentAttempts[0].refund(true);
+        await RequestContext.create(persistence.requestContextSource, () =>
+            persistence.service.deliver(ADMIN, fulfillment.id, NOW)
+        );
+        expect(persistence.findFulfillments).toHaveBeenCalledTimes(1);
+        expect(persistence.persist).toHaveBeenCalledTimes(1);
     });
 
     it('포장, 발송, 배송 완료 순서를 강제하고 운송 정보 변경을 막는다', () => {
@@ -257,13 +283,14 @@ function createService(order: OrderEntity, fulfillment: FulfillmentEntity) {
         fork: vi.fn(() => entityManager),
     } as unknown as EntityManager;
     const findOrder = vi.fn(async () => order);
+    const findFulfillments = vi.fn(async () => order.fulfillments.getItems());
     const service = new FulfillmentService(
         entityManager,
         { findOne: findOrder } as unknown as EntityRepository<OrderEntity>,
-        { findOne: vi.fn(async () => fulfillment) } as unknown as EntityRepository<FulfillmentEntity>
+        { findOne: vi.fn(async () => fulfillment), find: findFulfillments } as unknown as EntityRepository<FulfillmentEntity>
     );
 
-    return { service, persist, requestContextSource, findOrder };
+    return { service, persist, requestContextSource, findOrder, findFulfillments };
 }
 
 function createConfirmedOrder(quantity: number): { order: OrderEntity; orderItem: OrderItemEntity } {

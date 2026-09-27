@@ -7,7 +7,7 @@ import {
     readMySqlIntegrationConnection,
     seedCatalogMaintenance,
 } from 'test/integration/database/mysql-integration.config';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProductCommandService } from '~/api/catalog/application/product-command.service';
 import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
 import { FulfillmentService } from '~/api/fulfillment/application/fulfillment.service';
@@ -355,6 +355,70 @@ describeCommerceMySql('Commerce lifecycle MySQL integration', () => {
             })
         ).rejects.toBeInstanceOf(ConflictException);
         expect(await orm!.em.fork().count(FulfillmentEntity, { order: placed.id })).toBe(1);
+    }, 30_000);
+
+    it('마지막 분할 배송 두 건을 동시에 완료해도 주문을 한 번만 완료한다', async () => {
+        const setup = createServices(orm!.em.fork({ useContext: true }), passThroughLock());
+        const placed = await setup.order.order(customer, {
+            idempotencyKey: 'mysql-concurrent-delivery-order',
+            items: [{ itemId, quantity: 2 }],
+        });
+        const attempt = await setup.payment.createAttempt(customer, {
+            orderId: placed.id,
+            provider: 'mysql-concurrent-delivery-provider',
+            idempotencyKey: 'mysql-concurrent-delivery-attempt',
+            providerPaymentId: 'mysql-concurrent-delivery-payment',
+        });
+        await setup.payment.capture(admin, {
+            paymentAttemptId: attempt.attempt.id,
+            idempotencyKey: 'mysql-concurrent-delivery-capture',
+            providerTransactionId: 'mysql-concurrent-delivery-capture-transaction',
+        });
+        const first = await setup.fulfillment.create(admin, {
+            orderId: placed.id,
+            idempotencyKey: 'mysql-concurrent-delivery-first',
+            items: [{ orderItemId: placed.items[0].id, quantity: 1 }],
+        });
+        const second = await setup.fulfillment.create(admin, {
+            orderId: placed.id,
+            idempotencyKey: 'mysql-concurrent-delivery-second',
+            items: [{ orderItemId: placed.items[0].id, quantity: 1 }],
+        });
+        for (const fulfillment of [first, second]) {
+            await setup.fulfillment.pack(admin, fulfillment.id);
+            await setup.fulfillment.ship(admin, {
+                fulfillmentId: fulfillment.id,
+                carrier: 'mysql-carrier',
+                trackingNumber: `mysql-concurrent-${fulfillment.id}`,
+            });
+        }
+
+        let arrivals = 0;
+        let release!: () => void;
+        const bothDiscovered = new Promise<void>((resolve) => (release = resolve));
+        const deliveryService = () => {
+            const em = orm!.em.fork({ useContext: true });
+            const orderRepository = em.getRepository(OrderEntity);
+            const findOne = orderRepository.findOne.bind(orderRepository);
+            vi.spyOn(orderRepository, 'findOne').mockImplementationOnce(async (where, options) => {
+                if (++arrivals === 2) release();
+                await bothDiscovered;
+                return (await findOne(where, options)) as Awaited<ReturnType<typeof findOne>>;
+            });
+            return new FulfillmentService(em, orderRepository, em.getRepository(FulfillmentEntity));
+        };
+        await Promise.all([
+            deliveryService().deliver(admin, first.id),
+            deliveryService().deliver(admin, second.id),
+        ]);
+
+        const state = await readOrderState(orm!.em.fork(), placed.id);
+        expect(state.fulfillments.map(({ status }) => status)).toEqual([
+            FulfillmentStatus.DELIVERED,
+            FulfillmentStatus.DELIVERED,
+        ]);
+        expect(state.order.status).toBe(OrderStatus.COMPLETED);
+        expect(state.histories.filter(({ toStatus }) => toStatus === OrderStatus.COMPLETED)).toHaveLength(1);
     }, 30_000);
 
     it('배송 생성과 전액 환불이 경합해도 둘 중 하나만 성공한다', async () => {
