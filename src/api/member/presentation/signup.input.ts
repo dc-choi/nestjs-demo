@@ -1,6 +1,6 @@
 import { Field, InputType } from '@nestjs/graphql';
 
-import { IsNotEmpty, IsString, Matches, MaxLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, Matches, MaxLength } from 'class-validator';
 import { emptyValue, invalidMax, invalidValue } from '~/global/common/message/error.message';
 import {
     EMAIL_MAX_LENGTH,
@@ -8,7 +8,7 @@ import {
     PASSWORD_MAX_LENGTH,
     PHONE_MAX_LENGTH,
 } from '~/global/common/utils/maxLength';
-import { EMAIL_REGEXP, NAME_REGEXP, PASSWORD_REGEXP, PHONE_REGEXP } from '~/global/common/utils/regExpPattern';
+import { NAME_REGEXP, PASSWORD_REGEXP, PHONE_REGEXP } from '~/global/common/utils/regExpPattern';
 
 @InputType()
 export class SignupInput {
@@ -23,7 +23,7 @@ export class SignupInput {
     @IsString({ message: invalidValue('이메일') })
     @IsNotEmpty({ message: emptyValue('이메일') })
     @MaxLength(EMAIL_MAX_LENGTH, { message: invalidMax('이메일', EMAIL_MAX_LENGTH) })
-    @Matches(EMAIL_REGEXP, { message: invalidValue('이메일') })
+    @IsEmail({}, { message: invalidValue('이메일') })
     email!: string;
 
     @Field()
