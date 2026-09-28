@@ -311,29 +311,61 @@ describe('payment lifecycle', () => {
         ).rejects.toThrow('다른 payload');
     });
 
-    it('HMAC verifier는 raw body에 대한 SHA-256 서명만 허용한다', () => {
+    it('HMAC verifier는 식별자 경계와 raw body byte를 고정한 SHA-256 서명만 허용한다', () => {
         const verifier = new HmacPaymentWebhookSignatureVerifier({
             get: vi.fn(() => 'test-secret'),
         } as unknown as ConfigService<EnvConfig, true>);
-        const rawBody = Buffer.from(JSON.stringify({ outcome: PaymentWebhookOutcome.CAPTURED }));
-        const signature = createHmac('sha256', 'test-secret').update('demo-pay.event-1.').update(rawBody).digest('hex');
+        const rawBody = Buffer.from('{"결과":"승인.✓"}');
+        const signature = createHmac('sha256', 'test-secret')
+            .update(`${JSON.stringify(['a.b', 'c'])}.`)
+            .update(rawBody)
+            .digest('hex');
 
         expect(
             verifier.verify({
-                provider: 'demo-pay',
-                providerEventId: 'event-1',
+                provider: 'a.b',
+                providerEventId: 'c',
                 rawBody,
                 signature: `sha256=${signature}`,
             })
         ).toBe(true);
         expect(
             verifier.verify({
-                provider: 'demo-pay',
-                providerEventId: 'event-2',
+                provider: 'a',
+                providerEventId: 'b.c',
                 rawBody,
                 signature,
             })
         ).toBe(false);
+        expect(
+            verifier.verify({
+                provider: 'a.b',
+                providerEventId: 'c',
+                rawBody: Buffer.from('{"결과": "승인.✓"}'),
+                signature,
+            })
+        ).toBe(false);
+        expect(
+            verifier.verify({
+                provider: 'a.b',
+                providerEventId: 'c',
+                rawBody,
+                signature: createHmac('sha256', 'test-secret').update('a.b.c.').update(rawBody).digest('hex'),
+            })
+        ).toBe(false);
+
+        const unicodeSignature = createHmac('sha256', 'test-secret')
+            .update(`${JSON.stringify(['결제.제공자', '행사.🌟'])}.`)
+            .update(rawBody)
+            .digest('hex');
+        expect(
+            verifier.verify({
+                provider: '결제.제공자',
+                providerEventId: '행사.🌟',
+                rawBody,
+                signature: unicodeSignature,
+            })
+        ).toBe(true);
     });
 });
 

@@ -268,7 +268,7 @@ describeWebhookRecovery('Payment webhook recovery MySQL integration', () => {
         });
         const secret = 'mysql-webhook-legacy-failed-secret';
         const signature = createHmac('sha256', secret)
-            .update(`${webhook.provider}.${webhook.providerEventId}.`)
+            .update(`${JSON.stringify([webhook.provider, webhook.providerEventId])}.`)
             .update(rawBody)
             .digest('hex');
         const verifier = new HmacPaymentWebhookSignatureVerifier({
@@ -355,7 +355,7 @@ describeWebhookRecovery('Payment webhook recovery MySQL integration', () => {
         });
         const secret = 'mysql-webhook-unique-race-secret';
         const signature = createHmac('sha256', secret)
-            .update(`${webhook.provider}.${webhook.providerEventId}.`)
+            .update(`${JSON.stringify([webhook.provider, webhook.providerEventId])}.`)
             .update(rawBody)
             .digest('hex');
         const controller = new PaymentWebhookController(

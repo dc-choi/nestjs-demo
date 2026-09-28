@@ -28,9 +28,7 @@ export class HmacPaymentWebhookSignatureVerifier implements PaymentWebhookSignat
         if (!/^[a-f\d]{64}$/i.test(suppliedHex)) return false;
 
         const expected = createHmac('sha256', secret)
-            .update(provider)
-            .update('.')
-            .update(providerEventId)
+            .update(JSON.stringify([provider, providerEventId]))
             .update('.')
             .update(rawBody)
             .digest();

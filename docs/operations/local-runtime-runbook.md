@@ -345,14 +345,16 @@ HTTP 진입점은 `POST /webhooks/payments/:provider`입니다. 다음 header가
 - `x-payment-signature`: 64자리 HMAC-SHA256 hex, 선택적으로 `sha256=` prefix 사용
 - `content-type: application/json`
 
-서명 입력은 구분점까지 포함한 다음 byte sequence입니다.
+서명 입력은 provider와 event ID를 JSON 문자열 배열로 직렬화한 뒤 ASCII 점(`.`)과 전송할 raw body byte를
+붙인 byte sequence입니다. 배열 경계와 JSON 문자열 이스케이프가 두 식별자의 경계를 고정합니다.
 
 ```text
-<provider>.<event-id>.<raw-request-body>
+["<provider>","<event-id>"].<raw-request-body>
 ```
 
 `PAYMENT_WEBHOOK_SECRET`이 있으면 이를 HMAC key로 사용하고, 없으면 기존 `SECRET`을 사용합니다. JSON을
 parse한 뒤 다시 직렬화하면 byte가 달라져 서명이 실패하므로 전송할 raw body 그대로 서명합니다.
+기존 `<provider>.<event-id>.<raw-request-body>` 형식의 서명은 더 이상 허용하지 않습니다.
 
 아래 예시는 실행 중인 애플리케이션과 같은 secret을 shell에 주입하고, 앞서 `createPaymentAttempt`로
 `provider=demo`, `providerPaymentId=pay-local-001`인 결제 시도를 만든 경우에 성공합니다. 일치하는 결제
@@ -363,7 +365,7 @@ webhook_signing_secret='same-secret-used-by-the-running-app'
 provider='demo'
 event_id='evt-local-001'
 payload='{"providerPaymentId":"pay-local-001","outcome":"CAPTURED","providerTransactionId":"tx-local-001"}'
-signature=$(printf %s "${provider}.${event_id}.${payload}" | \
+signature=$(printf '%s.%s' "$(node -p 'JSON.stringify([process.argv[1], process.argv[2]])' "$provider" "$event_id")" "$payload" | \
   openssl dgst -sha256 -hmac "$webhook_signing_secret" -hex | awk '{print $2}')
 
 curl --fail --silent --show-error \
