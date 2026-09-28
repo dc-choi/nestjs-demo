@@ -5,6 +5,8 @@ import { CatalogIndexManager } from '~/infra/search/catalog-index.manager';
 import { CatalogMaintenanceService } from '~/infra/search/catalog-maintenance.service';
 import { CatalogProjectionReader } from '~/infra/search/catalog-projection.reader';
 import { CatalogSearchWorker } from '~/infra/search/catalog-search.worker';
+import { OpenSearchHttpClient } from '~/infra/search/opensearch.client';
+import { SearchConfig } from '~/infra/search/search.config';
 
 const target = { indexName: 'catalog-v1', writeAlias: 'catalog-v1-projection' };
 
@@ -40,6 +42,31 @@ describe('Catalog search worker', () => {
         await expect(worker.synchronize(source.id, 3)).resolves.toBeUndefined();
         expect(indexManager.deleteExternal).toHaveBeenCalledWith('1', 3, target);
         expect(indexManager.getDocument).toHaveBeenCalledWith(target.indexName, '1');
+    });
+
+    it('accepts an absent-document Bulk delete through the real manager', async () => {
+        const request = vi.fn().mockResolvedValue({
+            errors: false,
+            items: [{ delete: { _id: '1', status: 404, result: 'not_found' } }],
+        });
+        const manager = new CatalogIndexManager({ request } as unknown as OpenSearchHttpClient, {} as SearchConfig);
+        const worker = new CatalogSearchWorker(
+            {
+                findById: vi.fn(async () => createSource({ revision: 3, status: 'CLOSED' })),
+            } as unknown as CatalogProjectionReader,
+            manager,
+            maintenance
+        );
+
+        await expect(worker.synchronize(1n, 3, target)).resolves.toBeUndefined();
+        expect(request).toHaveBeenCalledOnce();
+        expect(request).toHaveBeenCalledWith(
+            'POST',
+            '/_bulk',
+            expect.objectContaining({
+                query: { require_alias: true },
+            })
+        );
     });
 
     it('pins the target before reading a revision that can become stale during cutover', async () => {

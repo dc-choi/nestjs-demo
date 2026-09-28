@@ -18,6 +18,7 @@ interface AliasResponse {
 interface BulkItemResult {
     _id?: string;
     status?: number;
+    result?: string;
     error?: unknown;
 }
 
@@ -43,6 +44,8 @@ interface MultiGetResponse {
 
 interface SearchResponse {
     pit_id?: string;
+    timed_out?: boolean;
+    _shards?: { failed?: number };
     hits?: {
         hits?: Array<{
             _id?: string;
@@ -182,14 +185,20 @@ export class CatalogIndexManager {
     }
 
     async verifyQueryable(indexName: string): Promise<void> {
-        await this.client.request('POST', `/${escapeOpenSearchPathSegment(indexName)}/_search`, {
-            body: {
-                size: 1,
-                query: { match_all: {} },
-                sort: [{ productId: 'asc' }],
-                _source: ['productId', 'productRevision'],
-            },
-        });
+        const response = await this.client.request<SearchResponse>(
+            'POST',
+            `/${escapeOpenSearchPathSegment(indexName)}/_search`,
+            {
+                query: { allow_partial_search_results: false },
+                body: {
+                    size: 1,
+                    query: { match_all: {} },
+                    sort: [{ productId: 'asc' }],
+                    _source: ['productId', 'productRevision'],
+                },
+            }
+        );
+        assertCompleteSearch(response);
     }
 
     async getActiveAliasTargets(): Promise<CatalogAliasTargets> {
@@ -285,6 +294,7 @@ export class CatalogIndexManager {
         try {
             while (true) {
                 const response = await this.client.request<SearchResponse>('POST', '/_search', {
+                    query: { allow_partial_search_results: false },
                     body: {
                         size: batchSize,
                         pit: { id: pitId, keep_alive: '1m' },
@@ -294,9 +304,10 @@ export class CatalogIndexManager {
                         ...(searchAfter ? { search_after: searchAfter } : {}),
                     },
                 });
+                pitId = response.pit_id ?? pitId;
+                assertCompleteSearch(response);
                 const hits = response.hits?.hits;
                 if (!Array.isArray(hits)) throw new Error('OpenSearch scan response did not contain hits');
-                pitId = response.pit_id ?? pitId;
                 if (hits.length === 0) return;
 
                 const documents = hits.map((hit) => {
@@ -384,7 +395,12 @@ function parseBulkFailures(response: BulkResponse, expectedIds: readonly string[
             failures.push({ documentId, status: 500, error: 'Malformed Bulk item response' });
             continue;
         }
-        if ((status as number) >= 300) failures.push({ documentId, status: status as number, error: result.error });
+        if (
+            (status as number) >= 300 &&
+            !(item.delete === result && status === 404 && result.result === 'not_found' && result.error == null)
+        ) {
+            failures.push({ documentId, status: status as number, error: result.error });
+        }
     }
     if (response.errors === false && failures.length > 0) {
         throw new Error('OpenSearch Bulk response reported errors=false but contained failed items');
@@ -393,6 +409,12 @@ function parseBulkFailures(response: BulkResponse, expectedIds: readonly string[
         throw new Error('OpenSearch Bulk response did not confirm that every item succeeded');
     }
     return failures;
+}
+
+function assertCompleteSearch(response: SearchResponse): void {
+    if (response.timed_out === true || (response._shards?.failed ?? 0) > 0) {
+        throw new Error('OpenSearch Search response was incomplete');
+    }
 }
 
 function serializeNdjson(lines: readonly unknown[]): string {

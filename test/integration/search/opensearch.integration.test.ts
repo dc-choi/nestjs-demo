@@ -54,6 +54,9 @@ describeOpenSearch('OpenSearch catalog integration', () => {
 
         const updated = { ...documents[0], productRevision: 2, name: '무선 기계식 키보드' };
         const target = await manager.resolveWriteTarget();
+        const absentId = `missing-${suffix}`;
+        await expect(manager.deleteExternal(absentId, 1, target)).resolves.toBeUndefined();
+        await expect(manager.repairDeleteExternal(absentId, 1, target)).resolves.toBeUndefined();
         await manager.writeExternal(updated, target);
         await expect(manager.writeExternal(documents[0], target)).rejects.toBeInstanceOf(CatalogBulkError);
         await expect(manager.getDocument(config.writeAlias, '1')).resolves.toMatchObject({

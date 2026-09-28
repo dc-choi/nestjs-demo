@@ -84,6 +84,63 @@ describe('Catalog index manager', () => {
         expect(options.ndjson).toContain('"_index":"old-projection"');
     });
 
+    it('keeps a delete error as a Bulk failure even when the result says not_found', async () => {
+        const request = vi.fn().mockResolvedValue({
+            errors: true,
+            items: [
+                {
+                    delete: {
+                        _id: '1',
+                        status: 404,
+                        result: 'not_found',
+                        error: { type: 'index_not_found_exception' },
+                    },
+                },
+            ],
+        });
+        const manager = createManager(request);
+
+        await expect(
+            manager.deleteExternal('1', 3, { indexName: 'old-index', writeAlias: 'old-projection' })
+        ).rejects.toMatchObject({
+            failures: [{ documentId: '1', status: 404, error: { type: 'index_not_found_exception' } }],
+        });
+    });
+
+    it('rejects an incomplete queryability response', async () => {
+        const request = vi.fn().mockResolvedValue({ timed_out: true, hits: { hits: [] } });
+        const manager = createManager(request);
+
+        await expect(manager.verifyQueryable('candidate')).rejects.toThrow('incomplete');
+        expect(request).toHaveBeenCalledWith(
+            'POST',
+            '/candidate/_search',
+            expect.objectContaining({
+                query: { allow_partial_search_results: false },
+            })
+        );
+    });
+
+    it('closes the rotated PIT when a scan response has failed shards', async () => {
+        const request = vi
+            .fn()
+            .mockResolvedValueOnce({ pit_id: 'pit-1' })
+            .mockResolvedValueOnce({ pit_id: 'pit-2', _shards: { failed: 1 }, hits: { hits: [] } })
+            .mockResolvedValueOnce(null);
+        const manager = createManager(request);
+
+        await expect(manager.scanDocuments('catalog-products-read').next()).rejects.toThrow('incomplete');
+        expect(request).toHaveBeenNthCalledWith(
+            2,
+            'POST',
+            '/_search',
+            expect.objectContaining({
+                query: { allow_partial_search_results: false },
+            })
+        );
+        expect(request).toHaveBeenLastCalledWith('DELETE', '/_search/point_in_time', { body: { pit_id: 'pit-2' } });
+    });
+
     it('creates a generation-specific write alias and adopts older indexes without moving it', async () => {
         const request = vi.fn().mockResolvedValue({ acknowledged: true });
         const manager = createManager(request);

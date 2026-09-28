@@ -75,8 +75,42 @@ describe('OpenSearch product search adapter', () => {
             2,
             'POST',
             '/_search',
-            expect.objectContaining({ body: expect.objectContaining({ pit: { id: 'pit-1', keep_alive: '1m' } }) })
+            expect.objectContaining({
+                query: { allow_partial_search_results: false },
+                body: expect.objectContaining({ pit: { id: 'pit-1', keep_alive: '1m' } }),
+            })
         );
+    });
+
+    it.each([
+        ['timeout', { timed_out: true }],
+        ['failed shard', { _shards: { failed: 1 } }],
+    ])('rejects a %s response and closes its rotated PIT', async (_, incomplete) => {
+        const request = vi
+            .fn()
+            .mockResolvedValueOnce({ pit_id: 'pit-1' })
+            .mockResolvedValueOnce({ pit_id: 'pit-2', hits: { hits: [] }, ...incomplete })
+            .mockResolvedValueOnce(null);
+        const adapter = new OpenSearchProductSearchAdapter(
+            { enabled: true, readAlias: 'catalog-products-read' } as SearchConfig,
+            { request } as unknown as OpenSearchHttpClient
+        );
+
+        await expect(adapter.search(searchRequest())).rejects.toMatchObject({ code: 'SEARCH_UNAVAILABLE' });
+        expect(request).toHaveBeenLastCalledWith('DELETE', '/_search/point_in_time', { body: { pit_id: 'pit-2' } });
+    });
+
+    it('keeps a caller-owned PIT available after an incomplete response', async () => {
+        const request = vi.fn().mockResolvedValue({ timed_out: true, hits: { hits: [] } });
+        const adapter = new OpenSearchProductSearchAdapter(
+            { enabled: true, readAlias: 'catalog-products-read' } as SearchConfig,
+            { request } as unknown as OpenSearchHttpClient
+        );
+
+        await expect(adapter.search({ ...searchRequest(), sessionId: 'cursor-pit' })).rejects.toMatchObject({
+            code: 'SEARCH_UNAVAILABLE',
+        });
+        expect(request).toHaveBeenCalledTimes(1);
     });
 
     it('converts unavailable backend errors to an application port error', async () => {

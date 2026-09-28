@@ -34,6 +34,8 @@ interface OpenSearchProductHit {
 
 interface OpenSearchProductSearchResponse {
     pit_id?: string;
+    timed_out?: boolean;
+    _shards?: { failed?: number };
     hits?: {
         hits?: OpenSearchProductHit[];
     };
@@ -65,9 +67,13 @@ export class OpenSearchProductSearchAdapter implements ProductSearchPort {
         let pitId = request.sessionId ?? (await this.openPointInTime());
         try {
             const response = await this.client.request<OpenSearchProductSearchResponse>('POST', '/_search', {
+                query: { allow_partial_search_results: false },
                 body: buildOpenSearchProductRequest(request.input, pitId, request.searchAfter ?? undefined),
             });
             pitId = response.pit_id ?? pitId;
+            if (response.timed_out === true || (response._shards?.failed ?? 0) > 0) {
+                throw new Error('OpenSearch Search response was incomplete');
+            }
             const hits = response.hits?.hits;
             if (!Array.isArray(hits)) throw new Error('OpenSearch Search response did not contain hits');
             const hasNextPage = hits.length > request.input.first;
