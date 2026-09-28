@@ -175,6 +175,7 @@ export class OrderEntity {
 
         const totalPrice = sumDecimals(items.map(({ lineTotalPrice }) => lineTotalPrice));
         assertOrderMoneyFits(totalPrice);
+        if (totalPrice === '0') throw new RangeError('주문 총액은 0보다 커야 합니다.');
 
         const order = new OrderEntity();
         order.member = member;

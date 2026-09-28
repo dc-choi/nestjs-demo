@@ -98,6 +98,29 @@ describe('OrderService', () => {
         ]);
     });
 
+    it.each(['0', '0.000'])('합계가 %s인 주문은 재고 예약과 저장 전에 거부한다', async (price) => {
+        const item = createLiveItem(3);
+        item.supplyPrice = price;
+        item.vat = '0';
+        item.totalPrice = price;
+        const persist = vi.fn();
+        const { service, requestContextSource, reserveForPlacement } = createService(
+            { persist, flush: vi.fn() } as unknown as Partial<EntityManager>,
+            vi.fn<() => Promise<ItemEntity>>().mockResolvedValue(item)
+        );
+
+        await expect(
+            RequestContext.create(requestContextSource, () =>
+                service.order(
+                    { memberId: 10n, role: 'CUSTOMER' },
+                    { idempotencyKey: 'zero-total', items: [{ itemId: ITEM_ID, quantity: 2 }] }
+                )
+            )
+        ).rejects.toMatchObject({ status: 400, message: '주문 총액은 0보다 커야 합니다.' });
+        expect(reserveForPlacement).not.toHaveBeenCalled();
+        expect(persist).not.toHaveBeenCalled();
+    });
+
     it('잠근 Item의 합산 재고가 부족하면 주문을 저장하지 않는다', async () => {
         const findOne = vi.fn<() => Promise<ItemEntity>>().mockResolvedValue(createLiveItem(3));
         const reserveForPlacement = vi.fn().mockRejectedValue(new BadRequestException('재고가 부족합니다.'));
