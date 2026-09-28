@@ -1,4 +1,4 @@
-import { type MikroORM as CoreMikroORM, type EntityManager } from '@mikro-orm/core';
+import { type MikroORM as CoreMikroORM, type EntityManager, IsolationLevel } from '@mikro-orm/core';
 import { ReflectMetadataProvider } from '@mikro-orm/decorators/legacy';
 import { MikroORM, MySqlDriver } from '@mikro-orm/mysql';
 import { ConflictException } from '@nestjs/common';
@@ -596,6 +596,89 @@ describeCommerceMySql('Commerce lifecycle MySQL integration', () => {
             })
         ).toBe(1);
     }, 30_000);
+
+    it.each([
+        ['same idempotency key', false],
+        ['same provider transaction ID', true],
+    ])(
+        '커밋 전 발견 조회를 한 매입 재시도는 %s를 현재 읽기로 찾는다',
+        async (_case, differentKey) => {
+            const placement = createServices(orm!.em.fork({ useContext: true }), passThroughLock());
+            const placed = await placement.order.order(customer, {
+                idempotencyKey: 'mysql-capture-race-order',
+                items: [{ itemId, quantity: 1 }],
+            });
+            const { attempt } = await placement.payment.createAttempt(customer, {
+                orderId: placed.id,
+                provider: 'mysql-capture-race-provider',
+                idempotencyKey: 'mysql-capture-race-attempt',
+                providerPaymentId: 'mysql-capture-race-payment',
+            });
+            const command = {
+                paymentAttemptId: attempt.id,
+                idempotencyKey: 'mysql-capture-race-key',
+                providerTransactionId: 'mysql-capture-race-transaction',
+            };
+            let firstInserted!: () => void;
+            const inserted = new Promise<void>((resolve) => (firstInserted = resolve));
+            let releaseFirst!: () => void;
+            const release = new Promise<void>((resolve) => (releaseFirst = resolve));
+            const firstEm = orm!.em.fork({ useContext: true });
+            const firstCapture = firstEm.transactional(
+                async (tx) => {
+                    const result = await createServices(tx, passThroughLock()).payment.capture(admin, command);
+                    await tx.flush();
+                    firstInserted();
+                    await release;
+                    return result;
+                },
+                { isolationLevel: IsolationLevel.REPEATABLE_READ }
+            );
+            const secondEm = orm!.em.fork({ useContext: true });
+            let secondDiscovered!: () => void;
+            const discovered = new Promise<void>((resolve) => (secondDiscovered = resolve));
+            let replay: ReturnType<PaymentService['capture']> | undefined;
+            try {
+                await Promise.race([
+                    inserted,
+                    firstCapture.then(() => {
+                        throw new Error('First capture committed before the barrier');
+                    }),
+                ]);
+                replay = secondEm.transactional(
+                    async (tx) => {
+                        const attemptRepository = tx.getRepository(PaymentAttemptEntity);
+                        const originalFindOne = attemptRepository.findOne.bind(attemptRepository);
+                        vi.spyOn(attemptRepository, 'findOne').mockImplementationOnce(async (...args) => {
+                            const found = await Reflect.apply(originalFindOne, attemptRepository, args);
+                            secondDiscovered();
+                            return found;
+                        });
+                        return createServices(tx, passThroughLock()).payment.capture(admin, {
+                            ...command,
+                            idempotencyKey: differentKey ? 'mysql-capture-race-replay-key' : command.idempotencyKey,
+                        });
+                    },
+                    { isolationLevel: IsolationLevel.REPEATABLE_READ }
+                );
+                await Promise.race([
+                    discovered,
+                    replay.then(() => {
+                        throw new Error('Replay finished before discovery');
+                    }),
+                ]);
+                releaseFirst();
+
+                const [first, second] = await Promise.all([firstCapture, replay]);
+                expect(second.transaction?.id).toBe(first.transaction?.id);
+                expect(await orm!.em.fork().count(PaymentTransactionEntity, { paymentAttempt: attempt.id })).toBe(1);
+            } finally {
+                releaseFirst();
+                await Promise.allSettled([firstCapture, ...(replay ? [replay] : [])]);
+            }
+        },
+        30_000
+    );
 
     it('새 EntityManager에서도 동일 Webhook을 inbox와 매입 거래 한 행으로 수렴시킨다', async () => {
         const placement = createServices(orm!.em.fork({ useContext: true }), passThroughLock());

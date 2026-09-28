@@ -467,13 +467,13 @@ export class PaymentService {
     ): Promise<PaymentTransactionEntity | null> {
         const idempotencyReplay = await this.transactionRepository.findOne(
             { paymentAttempt: attempt.id, idempotencyKey },
-            { connectionType: 'write' }
+            { connectionType: 'write', lockMode: LockMode.PESSIMISTIC_WRITE, refresh: true }
         );
         if (idempotencyReplay || !providerTransactionId) return idempotencyReplay;
 
         return this.transactionRepository.findOne(
             { paymentAttempt: attempt.id, providerTransactionId },
-            { connectionType: 'write' }
+            { connectionType: 'write', lockMode: LockMode.PESSIMISTIC_WRITE, refresh: true }
         );
     }
 
