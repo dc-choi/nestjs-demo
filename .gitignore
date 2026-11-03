@@ -43,3 +43,8 @@ lerna-debug.log*
 api.http
 
 **/influxdb*
+
+# Local recommender datasets and Python caches
+/recommender/output/
+__pycache__/
+*.py[cod]

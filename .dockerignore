@@ -2,6 +2,8 @@ dist
 http
 logs
 node_modules
+recommender/output
+**/__pycache__
 test
 deployment
 .env

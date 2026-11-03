@@ -92,6 +92,9 @@ pnpm e2e
 
 ## 설계 문서
 
+- [상품 추천시스템 실습 계획](docs/recommender/product-recommender-plan.md)
+- [추천시스템 더미 SQL 생성과 로컬 적재](docs/recommender/local-sql.md)
+- [추천시스템 주문과 결제 더미 데이터](docs/recommender/commerce-data.md)
 - [데이터베이스 스키마 안내서](docs/database/schema.md)
 - [애플리케이션 레이어 원칙](docs/architecture/layering.md)
 - [GraphQL, Entity와 도메인 모델 경계](docs/architecture/model-boundaries.md)

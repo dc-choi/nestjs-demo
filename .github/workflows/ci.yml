@@ -63,6 +63,9 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v4
 
+            - name: Test recommender SQL generation
+              run: python3 -m unittest discover -s recommender/tests -v
+
             - name: Setup Node.js
               uses: actions/setup-node@v4
               with:
