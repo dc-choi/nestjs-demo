@@ -41,6 +41,7 @@
         "search:outbox:drain": "node dist/src/cli/search-outbox-relay.js",
         "search:reconcile": "node dist/src/cli/search-reconcile.js",
         "search:evaluate": "node dist/src/cli/search-evaluate.js",
+        "recommend:candidates": "node dist/src/cli/recommend-candidates.js",
         "integration": "NODE_ENV=test vitest run --project integration",
         "integration:redis": "NODE_ENV=test REDIS_INTEGRATION=1 vitest run --project integration test/integration/token-provider.redis.integration.test.ts test/integration/login-rate-limiter.redis.integration.test.ts",
         "integration:mysql": "NODE_ENV=test MYSQL_INTEGRATION=1 vitest run --project integration test/integration/database",
