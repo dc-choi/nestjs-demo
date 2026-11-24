@@ -10,7 +10,7 @@ describe('Search config', () => {
         expect(config.nodeUrl.href).toBe('http://127.0.0.1:9200/');
     });
 
-    it('requires endpoint and aliases when enabled', () => {
+    it('requires an endpoint when enabled', () => {
         expect(
             () =>
                 new SearchConfig(
@@ -21,17 +21,18 @@ describe('Search config', () => {
         ).toThrow('OPENSEARCH_NODE_URL is required');
     });
 
-    it('accepts an enabled lazy client configuration', () => {
+    it('owns the runtime defaults for aliases and request timeout', () => {
+        // env Joi schema는 기본값을 두지 않으므로 앱과 CLI의 기본값은 이 값이다.
         const config = new SearchConfig(
             createConfigService({
                 OPENSEARCH_ENABLED: true,
                 OPENSEARCH_NODE_URL: 'http://127.0.0.1:9200',
-                OPENSEARCH_READ_ALIAS: 'catalog-products-read',
-                OPENSEARCH_WRITE_ALIAS: 'catalog-products-write',
             })
         );
         expect(config.enabled).toBe(true);
-        expect(config.requestTimeoutMs).toBe(2_000);
+        expect(config.readAlias).toBe('catalog-products-read');
+        expect(config.writeAlias).toBe('catalog-products-write');
+        expect(config.requestTimeoutMs).toBe(5_000);
     });
 
     it('rejects a shared read and write alias', () => {

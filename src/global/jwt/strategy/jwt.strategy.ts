@@ -7,6 +7,7 @@ import { JwtClaims, JwtPayload } from '../payload/jwt.payload.js';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { EnvConfig } from '~/global/config/env/env.config.js';
 import { Unauthorized } from '~/global/jwt/error/unauthorized.error.js';
+import { resolveJwtSecret } from '~/global/jwt/jwt-secret.js';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -14,7 +15,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         super({
             jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
             ignoreExpiration: false,
-            secretOrKey: configService.get<string>('SECRET'),
+            secretOrKey: resolveJwtSecret(configService),
         });
     }
 

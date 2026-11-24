@@ -1,5 +1,6 @@
 export interface EnvConfig {
     SERVER_PORT: number;
+    TRUST_PROXY?: number | string;
 
     MYSQL_HOST: string;
     MYSQL_PORT: number;
@@ -14,6 +15,7 @@ export interface EnvConfig {
     MYSQL_READ_REPLICA_DATABASE: string;
 
     SECRET: string;
+    JWT_SECRET?: string;
 
     ENV: string;
 

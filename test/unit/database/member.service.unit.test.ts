@@ -84,6 +84,21 @@ describe('MemberService', () => {
         expect(eventBus.publish).not.toHaveBeenCalled();
     });
 
+    it('로그인에서 검증한 hash가 남아 있는 활성 회원 행만 현재 정책 hash로 갱신한다', async () => {
+        const nativeUpdate = vi.fn<() => Promise<number>>().mockResolvedValue(1);
+        const repository = { nativeUpdate } as unknown as EntityRepository<MemberEntity>;
+        const passwordService = { hash: vi.fn().mockResolvedValue('scrypt-v1$new-hash') } as unknown as PasswordService;
+        const service = new MemberService(repository, passwordService, {} as EventBus);
+
+        await service.upgradePasswordHash(1n, 'legacy-hash', 'password');
+
+        expect(passwordService.hash).toHaveBeenCalledWith('password');
+        expect(nativeUpdate).toHaveBeenCalledWith(
+            { id: 1n, hashedPassword: 'legacy-hash', deletedAt: null },
+            { hashedPassword: 'scrypt-v1$new-hash' }
+        );
+    });
+
     it('활성 회원 목록을 replica에서 조회한다', async () => {
         const members = [
             {

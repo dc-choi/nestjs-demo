@@ -25,11 +25,11 @@ function parseLimit(arguments_: readonly string[]): number {
 }
 
 function usageError(): Error {
-    return new Error('Usage: inventory-expire [--limit <1..500>]');
+    return new Error('Usage: order-expire [--limit <1..500>]');
 }
 
 void main().catch((error: unknown) => {
-    const message = error instanceof Error ? error.message : 'Unknown inventory expiration error';
+    const message = error instanceof Error ? error.message : 'Unknown order expiration error';
     process.stderr.write(`${message}\n`);
     process.exitCode = 1;
 });

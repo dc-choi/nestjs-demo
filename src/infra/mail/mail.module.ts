@@ -32,7 +32,8 @@ import { LoggingModule } from '~/global/config/logger/logging.module.js';
                     },
                     template: {
                         // import.meta.dirname 기준으로 source, Nest build, SWC build에서 같은 상대 위치를 사용한다.
-                        dir: join(import.meta.dirname, '../../global/templates'),
+                        // Nest build는 nest-cli.json assets, SWC build는 package.json prod:build가 이 폴더를 복사한다.
+                        dir: join(import.meta.dirname, 'templates'),
                         adapter: new HandlebarsAdapter(),
                         options: {
                             strict: true,

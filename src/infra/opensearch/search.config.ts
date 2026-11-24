@@ -2,7 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 const ALIAS_PATTERN = /^[a-z0-9][a-z0-9_-]{0,254}$/;
+const DEFAULT_READ_ALIAS = 'catalog-products-read';
+const DEFAULT_WRITE_ALIAS = 'catalog-products-write';
+const DEFAULT_REQUEST_TIMEOUT_MS = 5_000;
 
+/** OpenSearch 연결 설정과 기본값의 유일한 소유자. env Joi schema는 형식만 검사하고 기본값을 두지 않는다. */
 @Injectable()
 export class SearchConfig {
     readonly enabled: boolean;
@@ -14,16 +18,8 @@ export class SearchConfig {
     constructor(config: ConfigService) {
         this.enabled = parseBoolean(config.get<unknown>('OPENSEARCH_ENABLED'), false);
         this.nodeUrl = parseNodeUrl(config.get<unknown>('OPENSEARCH_NODE_URL'), this.enabled);
-        this.readAlias = parseAlias(
-            config.get<unknown>('OPENSEARCH_READ_ALIAS'),
-            'catalog-products-read',
-            this.enabled
-        );
-        this.writeAlias = parseAlias(
-            config.get<unknown>('OPENSEARCH_WRITE_ALIAS'),
-            'catalog-products-write',
-            this.enabled
-        );
+        this.readAlias = parseAlias(config.get<unknown>('OPENSEARCH_READ_ALIAS'), DEFAULT_READ_ALIAS);
+        this.writeAlias = parseAlias(config.get<unknown>('OPENSEARCH_WRITE_ALIAS'), DEFAULT_WRITE_ALIAS);
         if (this.enabled && this.readAlias === this.writeAlias) {
             throw new Error('OpenSearch read and write aliases must be different');
         }
@@ -52,11 +48,8 @@ function parseNodeUrl(value: unknown, required: boolean): URL {
     return url;
 }
 
-function parseAlias(value: unknown, fallback: string, required: boolean): string {
-    if (typeof value !== 'string' || value.trim() === '') {
-        if (required) throw new Error(`${fallback} alias environment value is required when OpenSearch is enabled`);
-        return fallback;
-    }
+function parseAlias(value: unknown, fallback: string): string {
+    if (typeof value !== 'string' || value.trim() === '') return fallback;
 
     const alias = value.trim();
     if (!ALIAS_PATTERN.test(alias)) throw new Error(`Invalid OpenSearch alias: ${alias}`);
@@ -64,7 +57,7 @@ function parseAlias(value: unknown, fallback: string, required: boolean): string
 }
 
 function parseTimeout(value: unknown): number {
-    if (value === undefined || value === null || value === '') return 2_000;
+    if (value === undefined || value === null || value === '') return DEFAULT_REQUEST_TIMEOUT_MS;
     const timeout = typeof value === 'number' ? value : Number(value);
     if (!Number.isInteger(timeout) || timeout < 100 || timeout > 30_000) {
         throw new Error('OPENSEARCH_REQUEST_TIMEOUT_MS must be an integer between 100 and 30000');

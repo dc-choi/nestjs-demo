@@ -13,7 +13,7 @@ export interface SearchMaintenanceEnvConfig {
 
     ENV: string;
 
-    OPENSEARCH_ENABLED: boolean;
+    OPENSEARCH_ENABLED?: boolean;
     OPENSEARCH_NODE_URL?: string;
     OPENSEARCH_READ_ALIAS?: string;
     OPENSEARCH_WRITE_ALIAS?: string;

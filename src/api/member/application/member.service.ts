@@ -11,8 +11,8 @@ import { PasswordService } from '~/api/member/application/password.service.js';
 import { MemberRole } from '~/api/member/domain/entity/member-role.js';
 import { MemberEntity } from '~/api/member/domain/entity/member.entity.js';
 import { ExistingMember } from '~/api/member/domain/existing-member.error.js';
-import { IdBlackList } from '~/api/member/domain/idBlackList.js';
 import { InvalidMember } from '~/api/member/domain/invalid-member.error.js';
+import { isReservedMemberName } from '~/api/member/domain/member.rules.js';
 
 @Injectable()
 export class MemberService {
@@ -26,7 +26,7 @@ export class MemberService {
     async signup({ name, password, email, phone }: SignupCommand) {
         const role = MemberRole.CUSTOMER;
 
-        if (IdBlackList.includes(name)) throw new BadRequestException(new InvalidMember());
+        if (isReservedMemberName(name)) throw new BadRequestException(new InvalidMember());
 
         try {
             await this.repository.insert({
@@ -52,6 +52,16 @@ export class MemberService {
         this.eventBus.publish(new SignupEvent(email, name, phone));
 
         return { name, email, phone, role };
+    }
+
+    /**
+     * 로그인에서 검증한 hash가 아직 저장된 활성 회원만 현재 정책 hash로 바꾼다.
+     * 그 사이 비밀번호가 바뀌었거나 탈퇴한 행은 조건에 맞지 않아 덮어쓰지 않는다.
+     * KDF 포화는 PasswordKdfSaturatedError로 그대로 던지므로 호출자가 응답 코드를 정한다.
+     */
+    async upgradePasswordHash(id: bigint, expectedHash: string, password: string): Promise<void> {
+        const hashedPassword = await this.passwordService.hash(password);
+        await this.repository.nativeUpdate({ id, hashedPassword: expectedHash, deletedAt: null }, { hashedPassword });
     }
 
     async findAll() {

@@ -17,11 +17,23 @@ pnpm install
 이미 사용 중인 `.env`가 있으면 그대로 유지합니다. 새 checkout처럼 파일이 없는 경우에만
 `cp .env.example .env`로 시작한 뒤 로컬 서비스의 실제 접속값을 입력합니다.
 
-`.env`의 `SECRET`, `OPENSEARCH_CURSOR_SECRET`, `DEMO_SEED_PASSWORD`는 예시 문자열을 그대로 사용하지 말고
-로컬 전용 임의 값으로 바꿉니다. Cursor secret은 32자 이상이어야 하며 `DEMO_SEED_PASSWORD`는 8자
+`.env`의 `SECRET`, `JWT_SECRET`, `OPENSEARCH_CURSOR_SECRET`, `DEMO_SEED_PASSWORD`는 예시 문자열을 그대로
+사용하지 말고 로컬 전용 임의 값으로 바꿉니다. Cursor secret은 32자 이상이어야 하며 `DEMO_SEED_PASSWORD`는 8자
 이상이어야 합니다. 결제 Webhook에 별도 키를 쓰려는 환경에서만 선택 항목인
 `PAYMENT_WEBHOOK_SECRET`을 32자 이상으로 지정합니다. 지정하지 않으면 기존 `SECRET`을 HMAC key로
 사용합니다. `.env`는 커밋하지 않습니다.
+
+선택 항목인 `JWT_SECRET`(32자 이상)은 access token 서명과 검증 key입니다. 지정하지 않으면 기존 `SECRET`을
+사용합니다. `SECRET`은 기존 HMAC 비밀번호 검증 key이기도 하므로, JWT key를 바꿀 때는 `SECRET`을 그대로 두고
+`JWT_SECRET`만 지정하거나 바꿉니다. JWT key가 바뀌면 발급된 access token이 모두 무효가 되고, 만료 access
+token으로 하는 `refreshToken` 재발급도 실패하므로 사용자는 다시 로그인해야 합니다.
+
+선택 항목인 `TRUST_PROXY`는 로그인 요청 제한이 클라이언트 IP를 고르는 기준입니다. 지정하지 않으면 TCP
+peer 주소를 사용하므로, reverse proxy나 load balancer 뒤에서는 모든 요청이 proxy 주소 하나의 제한을
+공유합니다. proxy 뒤에서는 Express `trust proxy` 형식으로 앞단 proxy hop 수(예: `1`)나 쉼표로 구분한 proxy
+주소/CIDR(예: `loopback, 10.0.0.0/8`)을 지정합니다. 모든 proxy를 믿는 `true`는 거절합니다. 클라이언트가
+proxy를 거치지 않고 애플리케이션 port에 직접 접속할 수 있으면 `X-Forwarded-For`를 위조할 수 있으므로,
+hop 수보다 proxy 주소 목록을 쓰거나 직접 접속을 막습니다.
 
 ## 2. MySQL과 Redis
 
@@ -112,7 +124,8 @@ pnpm database:migrate:prod
 seed는 `DEMO_SEED_PASSWORD`를 8자 이상으로 필수 입력받고, 고정 비밀번호를 소스에
 저장하지 않습니다. Admin/Seller/Customer 회원, 카테고리, 활성 상품과 두 Item, revision별 Snapshot,
 초기 입고 원장과 검색 Outbox를 만듭니다. 비밀번호는 사용자별 salt를 가진 scrypt 해시로 저장합니다.
-기존 HMAC 계정은 기존 `SECRET`으로 로그인 검증한 뒤 자동 이관하므로 이관 전 키를 바꾸지 않습니다.
+기존 HMAC 계정은 기존 `SECRET`으로 로그인 검증한 뒤 자동 이관하므로 이관 전 키를 바꾸지 않습니다. JWT key
+교체는 `JWT_SECRET`으로 합니다.
 
 ```sh
 pnpm database:seed
@@ -156,7 +169,7 @@ pnpm integration:mysql
 
 ```sh
 pnpm prod:build
-pnpm inventory:expire --limit 100
+pnpm order:expire --limit 100
 ```
 
 CLI는 만료 시각이 지난 `RESERVED` 예약을 가진 `PENDING` 주문을 찾습니다. 주문 행을 먼저 잠그고 그 주문의
@@ -214,6 +227,10 @@ OPENSEARCH_READ_ALIAS=catalog-products-read
 OPENSEARCH_WRITE_ALIAS=catalog-products-write
 OPENSEARCH_CURSOR_SECRET=replace-with-a-long-random-cursor-secret
 ```
+
+`OPENSEARCH_READ_ALIAS`, `OPENSEARCH_WRITE_ALIAS`, `OPENSEARCH_REQUEST_TIMEOUT_MS`를 생략하면 각각
+`catalog-products-read`, `catalog-products-write`, 5000ms를 사용합니다. 이 기본값은
+[`SearchConfig`](../../src/infra/opensearch/search.config.ts) 한 곳에서 정합니다.
 
 ## 7. 전체 rebuild와 Alias 전환
 

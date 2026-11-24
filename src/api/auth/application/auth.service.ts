@@ -4,7 +4,9 @@ import { Injectable, ServiceUnavailableException, UnauthorizedException } from '
 
 import { InvalidIdOrPassword } from '~/api/auth/application/invalid-id-or-password.error.js';
 import { NotExistingMember } from '~/api/auth/application/not-existing-member.error.js';
+import { LoginRateLimiter } from '~/api/auth/infrastructure/login-rate-limiter.js';
 import { TokenProvider } from '~/api/auth/infrastructure/token.provider.js';
+import { MemberService } from '~/api/member/application/member.service.js';
 import { PasswordKdfBusy } from '~/api/member/application/password-kdf-busy.error.js';
 import { PasswordKdfSaturatedError } from '~/api/member/application/password-kdf-saturated.error.js';
 import { PasswordService } from '~/api/member/application/password.service.js';
@@ -16,10 +18,15 @@ export class AuthService {
         @InjectRepository(MemberEntity)
         private readonly repository: EntityRepository<MemberEntity>,
         private readonly passwordService: PasswordService,
-        private readonly tokenProvider: TokenProvider
+        private readonly memberService: MemberService,
+        private readonly tokenProvider: TokenProvider,
+        private readonly loginRateLimiter: LoginRateLimiter
     ) {}
 
-    async login({ email, password }: LoginCommand) {
+    async login({ email, password, clientIp }: LoginCommand) {
+        // 계정 조회와 KDF 비용을 쓰기 전에 계정별, 클라이언트별 시도 횟수를 먼저 센다.
+        await this.loginRateLimiter.assertAllowed(email, clientIp);
+
         const findMember = await this.repository.findOne(
             { email, deletedAt: null },
             {
@@ -33,13 +40,9 @@ export class AuthService {
         );
         if (!findMember || !passwordVerification.isValid) throw new UnauthorizedException(new InvalidIdOrPassword());
 
-        const { id, role } = findMember;
-        if (passwordVerification.needsRehash) {
-            const hashedPassword = await this.runPasswordKdf(() => this.passwordService.hash(password));
-            await this.repository.nativeUpdate(
-                { id, hashedPassword: findMember.hashedPassword, deletedAt: null },
-                { hashedPassword }
-            );
+        const { id, role, hashedPassword } = findMember;
+        if (passwordVerification.needsRehash && hashedPassword) {
+            await this.runPasswordKdf(() => this.memberService.upgradePasswordHash(id, hashedPassword, password));
         }
 
         const loggedInAt = new Date();
@@ -103,6 +106,7 @@ export class AuthService {
 interface LoginCommand {
     email: string;
     password: string;
+    clientIp: string;
 }
 
 interface RefreshTokenCommand {

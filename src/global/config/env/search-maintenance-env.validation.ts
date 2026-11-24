@@ -2,6 +2,7 @@ import type { SearchMaintenanceEnvConfig } from './search-maintenance-env.config
 
 import Joi from 'joi';
 
+// OpenSearch 값의 기본값은 SearchConfig 한 곳이 소유한다. 여기서는 형식만 검사한다.
 export const searchMaintenanceEnvValidationSchema = Joi.object<SearchMaintenanceEnvConfig>({
     MYSQL_HOST: Joi.string().required(),
     MYSQL_PORT: Joi.number().required(),
@@ -14,11 +15,11 @@ export const searchMaintenanceEnvValidationSchema = Joi.object<SearchMaintenance
     MYSQL_READ_REPLICA_PASSWORD: Joi.string().required(),
     MYSQL_READ_REPLICA_DATABASE: Joi.string().required(),
     ENV: Joi.string().required(),
-    OPENSEARCH_ENABLED: Joi.boolean().optional().default(false),
+    OPENSEARCH_ENABLED: Joi.boolean().optional(),
     OPENSEARCH_NODE_URL: Joi.string()
         .uri({ scheme: ['http', 'https'] })
         .when('OPENSEARCH_ENABLED', { is: true, then: Joi.required(), otherwise: Joi.optional() }),
-    OPENSEARCH_READ_ALIAS: Joi.string().optional().default('catalog-products-read'),
-    OPENSEARCH_WRITE_ALIAS: Joi.string().optional().default('catalog-products-write'),
-    OPENSEARCH_REQUEST_TIMEOUT_MS: Joi.number().integer().min(100).max(30_000).optional().default(5_000),
+    OPENSEARCH_READ_ALIAS: Joi.string().optional(),
+    OPENSEARCH_WRITE_ALIAS: Joi.string().optional(),
+    OPENSEARCH_REQUEST_TIMEOUT_MS: Joi.number().integer().min(100).max(30_000).optional(),
 });

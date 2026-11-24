@@ -10,5 +10,6 @@ import { MemberResolver } from './presentation/member.resolver.js';
 @Module({
     imports: [CqrsModule, MikroOrmModule.forFeature([MemberEntity]), PasswordModule],
     providers: [MemberService, MemberResolver],
+    exports: [MemberService],
 })
 export class MemberModule {}

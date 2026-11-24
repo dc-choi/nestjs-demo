@@ -1,4 +1,4 @@
-import { type EntityManager, LockMode } from '@mikro-orm/core';
+import { type EntityManager } from '@mikro-orm/core';
 import { Seeder } from '@mikro-orm/seeder';
 import { ConfigService } from '@nestjs/config';
 
@@ -8,8 +8,10 @@ import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status.js'
 import { ItemEntity } from '~/api/catalog/domain/entity/item.entity.js';
 import { ProductStatus } from '~/api/catalog/domain/entity/product-status.js';
 import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
+import { InventoryService } from '~/api/inventory/application/inventory.service.js';
 import { InventoryMovementType } from '~/api/inventory/domain/entity/inventory-movement-type.js';
 import { InventoryMovementEntity } from '~/api/inventory/domain/entity/inventory-movement.entity.js';
+import { InventoryReservationEntity } from '~/api/inventory/domain/entity/inventory-reservation.entity.js';
 import { PasswordKdfAdmission } from '~/api/member/application/password-kdf.admission.js';
 import { PasswordService } from '~/api/member/application/password.service.js';
 import { MemberRole } from '~/api/member/domain/entity/member-role.js';
@@ -207,50 +209,41 @@ async function requireSeedProduct(em: EntityManager, productId: bigint): Promise
 async function seedInventory(em: EntityManager, seller: JwtPayload): Promise<void> {
     if (seller.role !== MemberRole.SELLER) throw new Error('Demo inventory seed requires the seller actor');
 
-    await em.transactional(async (tx) => {
+    // InventoryService.adjust는 @Transactional()로 주입된 EntityManager의 transaction context를 따른다.
+    // Seeder가 받은 em은 context를 따르지 않는 fork라서, 그대로 주입하면 조회와 잠금이 transaction 밖에서 실행된다.
+    // context를 따르는 fork로 조립하고 바깥 transaction에 두 Item 입고를 묶어 이전 seed처럼 함께 commit한다.
+    const contextEm = em.fork({ useContext: true });
+    const inventory = new InventoryService(
+        contextEm,
+        contextEm.getRepository(ItemEntity),
+        contextEm.getRepository(InventoryReservationEntity),
+        contextEm.getRepository(InventoryMovementEntity)
+    );
+
+    await contextEm.transactional(async (tx) => {
         const product = await tx.findOne(ProductEntity, { slug: DEMO_PRODUCT_SLUG }, { connectionType: 'write' });
         if (!product) throw new Error(`Seed product ${DEMO_PRODUCT_SLUG} was not created`);
 
-        const items = await tx.find(
-            ItemEntity,
-            { product, deletedAt: null },
-            { connectionType: 'write', lockMode: LockMode.PESSIMISTIC_WRITE }
-        );
+        // 잠금은 adjust가 Product, Item 순서로 잡으므로 여기서는 잠그지 않는다.
+        const items = await tx.find(ItemEntity, { product, deletedAt: null }, { connectionType: 'write' });
         if (items.length !== demoItems.length) {
             throw new Error(`Seed product ${DEMO_PRODUCT_SLUG} must contain exactly ${demoItems.length} items`);
         }
 
-        for (const item of items) await seedItemInventory(tx, item);
-    });
-}
+        for (const item of items) {
+            const quantityDelta = initialStockBySku.get(item.sku);
+            if (quantityDelta === undefined) throw new Error(`Unexpected demo seed SKU: ${item.sku}`);
 
-async function seedItemInventory(em: EntityManager, item: ItemEntity): Promise<void> {
-    const quantityDelta = initialStockBySku.get(item.sku);
-    if (quantityDelta === undefined) throw new Error(`Unexpected demo seed SKU: ${item.sku}`);
-    const idempotencyKey = `demo-seed-initial-stock:${item.sku}`;
-    const existing = await em.findOne(InventoryMovementEntity, { item, idempotencyKey });
-    if (existing) {
-        if (
-            existing.type !== InventoryMovementType.RECEIPT ||
-            existing.quantityDelta !== quantityDelta ||
-            existing.reason !== 'DEMO_SEED_INITIAL_STOCK'
-        ) {
-            throw new Error(`Seed inventory key ${idempotencyKey} is already used by another movement`);
+            // 같은 key의 기존 원장이 같은 입고면 재사용하고, 다른 요청이면 adjust가 충돌로 거절한다.
+            await inventory.adjust(seller, {
+                itemId: item.id,
+                type: InventoryMovementType.RECEIPT,
+                quantityDelta,
+                reason: 'DEMO_SEED_INITIAL_STOCK',
+                idempotencyKey: `demo-seed-initial-stock:${item.sku}`,
+            });
         }
-        return;
-    }
-
-    item.stock += quantityDelta;
-    em.persist(
-        InventoryMovementEntity.record({
-            item,
-            type: InventoryMovementType.RECEIPT,
-            quantityDelta,
-            stockAfter: item.stock,
-            idempotencyKey,
-            reason: 'DEMO_SEED_INITIAL_STOCK',
-        })
-    );
+    });
 }
 
 function requireMember(members: readonly MemberEntity[], role: MemberRole): MemberEntity {

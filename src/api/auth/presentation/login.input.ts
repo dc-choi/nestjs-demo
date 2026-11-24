@@ -1,8 +1,8 @@
 import { Field, InputType } from '@nestjs/graphql';
 
 import { IsEmail, IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { EMAIL_MAX_LENGTH } from '~/api/member/domain/member.rules.js';
 import { emptyValue, invalidMax, invalidValue } from '~/global/common/message/error.message.js';
-import { EMAIL_MAX_LENGTH } from '~/global/common/utils/maxLength.js';
 
 @InputType()
 export class LoginInput {
