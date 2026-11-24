@@ -1,13 +1,14 @@
 import { Injectable } from '@nestjs/common';
 
-import { CatalogAnalyzer, createCatalogIndexName } from '../infrastructure/catalog-index.definition.js';
+import { createCatalogIndexName } from '../infrastructure/catalog-index.definition.js';
 import { CatalogAliasTargets, CatalogIndexManager } from '../infrastructure/catalog-index.manager.js';
 import { CatalogProjectionReader } from '../infrastructure/catalog-projection.reader.js';
 import { CatalogMaintenanceService } from './catalog-maintenance.service.js';
 import { SearchReconciliationService } from './search-reconciliation.service.js';
 
+import { CatalogAnalyzer } from '~/api/search/domain/catalog-analyzer.js';
 import { projectCatalogProduct } from '~/api/search/domain/catalog-projector.js';
-import { ProductSearchDocument } from '~/api/search/domain/product-search.document.js';
+import { ProductSearchDocument, isIndexedDocumentCurrent } from '~/api/search/domain/product-search.document.js';
 import { SearchConfig } from '~/infra/opensearch/search.config.js';
 
 export interface CatalogRebuildResult {
@@ -40,7 +41,7 @@ export class CatalogRebuildService {
     ): Promise<CatalogRebuildResult> {
         if (!this.config.enabled) throw new Error('OpenSearch must be enabled before rebuilding the search index');
 
-        const analyzer = options.analyzer ?? 'standard';
+        const analyzer = options.analyzer ?? CatalogAnalyzer.STANDARD;
         const activate = options.activate ?? true;
         const evaluationAlias = options.evaluationAlias ?? null;
         if (evaluationAlias && !/^[a-z0-9][a-z0-9_-]{0,254}$/.test(evaluationAlias)) {
@@ -122,11 +123,7 @@ export class CatalogRebuildService {
 
     private async verifySample(indexName: string, expected: ProductSearchDocument): Promise<void> {
         const actual = await this.indexManager.getDocument(indexName, expected.productId);
-        if (
-            !actual ||
-            actual.version !== expected.productRevision ||
-            JSON.stringify(actual.source) !== JSON.stringify(expected)
-        ) {
+        if (!actual || !isIndexedDocumentCurrent(actual, expected)) {
             throw new Error(`Search rebuild sample validation failed for product ${expected.productId}`);
         }
     }

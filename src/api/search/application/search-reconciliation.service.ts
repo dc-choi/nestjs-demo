@@ -1,17 +1,13 @@
 import { Injectable } from '@nestjs/common';
 
 import { SearchReconciliationDifferenceKind } from '../domain/search-reconciliation-difference-kind.js';
-import {
-    CatalogIndexManager,
-    CatalogWriteTarget,
-    StoredProductSearchDocument,
-} from '../infrastructure/catalog-index.manager.js';
+import { CatalogIndexManager, CatalogWriteTarget } from '../infrastructure/catalog-index.manager.js';
 import { CatalogProjectionReader } from '../infrastructure/catalog-projection.reader.js';
 import { CatalogMaintenanceService } from './catalog-maintenance.service.js';
 import { CatalogSearchWorker } from './catalog-search.worker.js';
 
 import { projectCatalogProduct } from '~/api/search/domain/catalog-projector.js';
-import { MAX_PRODUCT_REVISION } from '~/api/search/domain/product-search.document.js';
+import { MAX_PRODUCT_REVISION, isIndexedDocumentCurrent } from '~/api/search/domain/product-search.document.js';
 import { SearchConfig } from '~/infra/opensearch/search.config.js';
 
 export interface SearchReconciliationDifference {
@@ -108,7 +104,7 @@ export class SearchReconciliationService {
                         await this.worker.synchronize(BigInt(document.productId), document.productRevision, target);
                         result.repairedCount += 1;
                     }
-                } else if (!documentsMatch(stored, document)) {
+                } else if (!isIndexedDocumentCurrent(stored, document)) {
                     recordDifference(result, maxSamples, {
                         productId: document.productId,
                         kind: SearchReconciliationDifferenceKind.STALE,
@@ -159,17 +155,6 @@ export class SearchReconciliationService {
         result.samplesTruncated = result.differenceCount > result.differences.length;
         return result;
     }
-}
-
-function documentsMatch(
-    stored: StoredProductSearchDocument,
-    desired: ReturnType<typeof projectCatalogProduct>
-): boolean {
-    return (
-        desired !== null &&
-        stored.version === desired.productRevision &&
-        JSON.stringify(stored.source) === JSON.stringify(desired)
-    );
 }
 
 function recordDifference(

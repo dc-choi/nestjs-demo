@@ -1,4 +1,5 @@
 import { type Mock, describe, expect, it, vi } from 'vitest';
+import { CatalogWriteConflictError } from '~/api/search/application/catalog-write-conflict.error.js';
 import { CatalogBulkError } from '~/api/search/infrastructure/catalog-bulk.error.js';
 import { catalogIndexDefinition, catalogNoriIndexDefinition } from '~/api/search/infrastructure/catalog-index.definition.js';
 import { CatalogIndexManager } from '~/api/search/infrastructure/catalog-index.manager.js';
@@ -100,11 +101,33 @@ describe('Catalog index manager', () => {
         });
         const manager = createManager(request);
 
-        await expect(
-            manager.deleteExternal('1', 3, { indexName: 'old-index', writeAlias: 'old-projection' })
-        ).rejects.toMatchObject({
+        const error = await manager
+            .deleteExternal('1', 3, { indexName: 'old-index', writeAlias: 'old-projection' })
+            .catch((caught: unknown) => caught);
+        expect(error).toBeInstanceOf(CatalogWriteConflictError);
+        expect((error as Error).cause).toMatchObject({
             failures: [{ documentId: '1', status: 404, error: { type: 'index_not_found_exception' } }],
         });
+    });
+
+    it('reports only version conflicts and missing targets of an external write as convergence candidates', async () => {
+        const target = { indexName: 'old-index', writeAlias: 'old-projection' };
+        const request = vi
+            .fn()
+            .mockResolvedValueOnce({
+                errors: true,
+                items: [{ index: { _id: '1', status: 409, error: { type: 'version_conflict_engine_exception' } } }],
+            })
+            .mockResolvedValueOnce({
+                errors: true,
+                items: [{ index: { _id: '1', status: 400, error: { type: 'strict_dynamic_mapping_exception' } } }],
+            });
+        const manager = createManager(request);
+
+        await expect(manager.writeExternal(createDocument('1'), target)).rejects.toBeInstanceOf(
+            CatalogWriteConflictError
+        );
+        await expect(manager.writeExternal(createDocument('1'), target)).rejects.toBeInstanceOf(CatalogBulkError);
     });
 
     it('rejects an incomplete queryability response', async () => {

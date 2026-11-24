@@ -72,7 +72,10 @@ Worker가 primary에서 읽은 `currentProductRevision`을 실제 OpenSearch ext
 
 동일하거나 오래된 revision은 409가 될 수 있습니다. Worker는 오류 문자열을 정합성 판단 근거로 쓰지
 않고 현재 문서를 GET해 external version과 결정적 source가 MySQL desired projection에 이미 수렴했는지
-확인합니다. Alias가 없으면 같은 이름의 물리 인덱스를 자동 생성하지 않고 실패합니다.
+확인합니다. HTTP status 해석은 index manager가 맡습니다. External version 쓰기의 Bulk item이 409(version
+충돌)나 404(대상 없음)로만 거절되면 application 에러 `CatalogWriteConflictError`로 바꾸고, worker는 이
+에러에서만 GET 대조를 합니다. 그 밖의 Bulk 실패는 그대로 실패합니다. Alias가 없으면 같은 이름의 물리
+인덱스를 자동 생성하지 않고 실패합니다.
 
 Delete version 표식은 `index.gc_deletes` 기간 뒤 영구 보장되지 않습니다. 삭제 전 요청이 그보다 오래
 멈춘 뒤 재개되는 극단적인 상황에서는 문서가 잠시 되살아날 수 있습니다. 현재 구현은 영속 tombstone이나
@@ -138,8 +141,16 @@ sink별 delivery는 제공하지 않습니다. Alias API는 Alias membership 변
 - PIT와 `search_after`로 read Alias 전체를 scan하고 MySQL에 없는 `EXTRA` 확인
 
 문서 비교는 Product ID/revision만 보지 않고 projection source 전체를 결정적으로 비교합니다. 기본 실행은
-차이와 제한된 표본만 출력하는 읽기 전용 검사입니다. `--repair`를 명시하면 같은 worker로 누락/오래된
-문서를 upsert하고 초과 문서를 versioned delete합니다. 복구 뒤 읽기 전용 검사를 다시 실행해야 합니다.
+차이와 제한된 표본만 출력하는 읽기 전용 검사입니다. `--repair`를 명시하면 차이에 따라 두 경로로
+복구합니다.
+
+- 누락 문서와 색인 revision이 MySQL과 다른 오래된/초과 문서는 증분 경로와 같은 worker가 MySQL primary를
+  다시 읽어 `version_type=external`로 upsert하거나 delete합니다.
+- 색인 revision이 MySQL과 같은데 source만 다른 문서(drift)와 revision이 같은 초과 문서는 worker의 같은
+  external version이 409로 거절되므로 worker를 거치지 않고 `version_type=external_gte`로 직접 덮어쓰거나
+  삭제합니다. 이 복구 모드는 reconciliation에만 있고 worker에는 두지 않습니다.
+
+복구 뒤 읽기 전용 검사를 다시 실행해야 합니다.
 
 감사용 `ProductSnapshot`은 대조 원본에 포함하지 않습니다.
 

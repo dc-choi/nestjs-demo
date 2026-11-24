@@ -15,10 +15,6 @@ interface ClusterHealthResponse {
     number_of_nodes?: number;
 }
 
-interface AnalyzeResponse {
-    tokens?: Array<{ token?: string }>;
-}
-
 export interface SearchHealthResult {
     enabled: boolean;
     reachable: boolean;
@@ -54,24 +50,5 @@ export class SearchHealthService {
             if (error instanceof OpenSearchHttpError) return { enabled: true, reachable: false };
             throw error;
         }
-    }
-
-    async verifyNoriAnalyzer(): Promise<string[]> {
-        if (!this.config.enabled) throw new Error('OpenSearch is disabled');
-        const plugins = await this.client.request<Array<{ component?: string }>>('GET', '/_cat/plugins', {
-            query: { format: 'json' },
-        });
-        if (!Array.isArray(plugins) || !plugins.some(({ component }) => component === 'analysis-nori')) {
-            throw new Error('OpenSearch analysis-nori plugin is not installed');
-        }
-        const analysis = await this.client.request<AnalyzeResponse>('POST', '/_analyze', {
-            body: { tokenizer: 'nori_tokenizer', text: '무선 기계식 키보드' },
-        });
-        if (!Array.isArray(analysis.tokens)) throw new Error('OpenSearch Nori analysis did not return tokens');
-        const tokens = analysis.tokens
-            .map(({ token }) => token)
-            .filter((token): token is string => typeof token === 'string');
-        if (tokens.length === 0) throw new Error('OpenSearch Nori analysis returned no tokens');
-        return tokens;
     }
 }

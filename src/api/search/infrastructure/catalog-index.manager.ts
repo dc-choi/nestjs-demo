@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
 
 import { CatalogBulkError, CatalogBulkFailure } from './catalog-bulk.error.js';
-import { CatalogAnalyzer, catalogIndexDefinition, catalogNoriIndexDefinition } from './catalog-index.definition.js';
+import { catalogIndexDefinition, catalogNoriIndexDefinition } from './catalog-index.definition.js';
 
 import { createHash } from 'node:crypto';
+import { CatalogWriteConflictError } from '~/api/search/application/catalog-write-conflict.error.js';
+import { CatalogAnalyzer } from '~/api/search/domain/catalog-analyzer.js';
 import { ProductSearchDocument } from '~/api/search/domain/product-search.document.js';
 import { OpenSearchHttpError } from '~/infra/opensearch/opensearch-http.error.js';
 import { OpenSearchHttpClient, escapeOpenSearchPathSegment } from '~/infra/opensearch/opensearch.client.js';
@@ -79,10 +81,10 @@ export class CatalogIndexManager {
         private readonly config: SearchConfig
     ) {}
 
-    async createIndex(indexName: string, analyzer: CatalogAnalyzer = 'standard'): Promise<void> {
+    async createIndex(indexName: string, analyzer: CatalogAnalyzer = CatalogAnalyzer.STANDARD): Promise<void> {
         await this.client.request('PUT', `/${escapeOpenSearchPathSegment(indexName)}`, {
             body: {
-                ...(analyzer === 'nori' ? catalogNoriIndexDefinition : catalogIndexDefinition),
+                ...(analyzer === CatalogAnalyzer.NORI ? catalogNoriIndexDefinition : catalogIndexDefinition),
                 aliases: { [projectionWriteAlias(indexName)]: { is_write_index: true } },
             },
         });
@@ -128,8 +130,7 @@ export class CatalogIndexManager {
     }
 
     async writeExternal(document: ProductSearchDocument, target: CatalogWriteTarget): Promise<void> {
-        const failures = await this.sendBulkIndex(target.writeAlias, [document], true, 'external');
-        if (failures.length > 0) throw new CatalogBulkError(failures);
+        throwExternalWriteFailures(await this.sendBulkIndex(target.writeAlias, [document], true, 'external'));
     }
 
     async repairExternal(document: ProductSearchDocument, target: CatalogWriteTarget): Promise<void> {
@@ -138,11 +139,12 @@ export class CatalogIndexManager {
     }
 
     async deleteExternal(productId: string, productRevision: number, target: CatalogWriteTarget): Promise<void> {
-        await this.sendBulkDelete(productId, productRevision, 'external', target);
+        throwExternalWriteFailures(await this.sendBulkDelete(productId, productRevision, 'external', target));
     }
 
     async repairDeleteExternal(productId: string, productRevision: number, target: CatalogWriteTarget): Promise<void> {
-        await this.sendBulkDelete(productId, productRevision, 'external_gte', target);
+        const failures = await this.sendBulkDelete(productId, productRevision, 'external_gte', target);
+        if (failures.length > 0) throw new CatalogBulkError(failures);
     }
 
     private async sendBulkDelete(
@@ -150,7 +152,7 @@ export class CatalogIndexManager {
         productRevision: number,
         versionType: 'external' | 'external_gte',
         target: CatalogWriteTarget
-    ): Promise<void> {
+    ): Promise<CatalogBulkFailure[]> {
         const ndjson = serializeNdjson([
             {
                 delete: {
@@ -165,8 +167,7 @@ export class CatalogIndexManager {
             query: { require_alias: true },
             ndjson,
         });
-        const failures = parseBulkFailures(response, [productId]);
-        if (failures.length > 0) throw new CatalogBulkError(failures);
+        return parseBulkFailures(response, [productId]);
     }
 
     async refresh(indexName: string): Promise<void> {
@@ -409,6 +410,16 @@ function parseBulkFailures(response: BulkResponse, expectedIds: readonly string[
         throw new Error('OpenSearch Bulk response did not confirm that every item succeeded');
     }
     return failures;
+}
+
+/** A rejected version (409) or missing target (404) may already be converged; any other failure is not. */
+function throwExternalWriteFailures(failures: CatalogBulkFailure[]): void {
+    if (failures.length === 0) return;
+    const error = new CatalogBulkError(failures);
+    if (failures.every(({ status }) => status === 404 || status === 409)) {
+        throw new CatalogWriteConflictError({ cause: error });
+    }
+    throw error;
 }
 
 function assertCompleteSearch(response: SearchResponse): void {

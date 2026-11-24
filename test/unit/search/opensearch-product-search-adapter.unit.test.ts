@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
+import { ProductSearchSessionExpiredError } from '~/api/search/application/product-search-session-expired.error.js';
 import { ProductSearchUnavailableError } from '~/api/search/application/product-search-unavailable.error.js';
 import { ProductSearchBackendRequest } from '~/api/search/application/product-search.port.js';
 import { canonicalizeProductSearchInput } from '~/api/search/domain/product-search.query.js';
 import { OpenSearchProductSearchAdapter } from '~/api/search/infrastructure/opensearch-product-search.adapter.js';
+import { OpenSearchHttpError } from '~/infra/opensearch/opensearch-http.error.js';
 import { OpenSearchHttpClient } from '~/infra/opensearch/opensearch.client.js';
 import { SearchConfig } from '~/infra/opensearch/search.config.js';
 
@@ -61,8 +63,7 @@ describe('OpenSearch product search adapter', () => {
                     name: '키보드',
                     itemId: '11',
                     itemName: '검정',
-                    price: { amount: '1234.500', currencyCode: 'KRW' },
-                    thumbnail: null,
+                    price: 1234.5,
                 },
             ],
             hasNextPage: false,
@@ -152,6 +153,23 @@ describe('OpenSearch product search adapter', () => {
         expect(request).toHaveBeenLastCalledWith('DELETE', '/_search/point_in_time', { body: { pit_id: 'pit-2' } });
     });
 
+    it('reports an expired caller-owned PIT as an expired session without closing it', async () => {
+        const request = vi
+            .fn()
+            .mockRejectedValue(
+                new OpenSearchHttpError(404, { error: { type: 'search_context_missing_exception' } }, 'expired')
+            );
+        const adapter = new OpenSearchProductSearchAdapter(
+            { enabled: true, readAlias: 'catalog-products-read' } as SearchConfig,
+            { request } as unknown as OpenSearchHttpClient
+        );
+
+        await expect(adapter.search({ ...searchRequest(), sessionId: 'cursor-pit' })).rejects.toBeInstanceOf(
+            ProductSearchSessionExpiredError
+        );
+        expect(request).toHaveBeenCalledTimes(1);
+    });
+
     it('does not close a caller-owned PIT after a retriable search failure', async () => {
         const request = vi.fn().mockRejectedValue(new Error('offline'));
         const adapter = new OpenSearchProductSearchAdapter(
@@ -204,6 +222,57 @@ describe('OpenSearch product search adapter', () => {
             hasNextPage: true,
             nextSortValues: ['1'],
         });
+    });
+});
+
+describe('OpenSearch product ID search for relevance evaluation', () => {
+    it('reads top product IDs from an explicit alias without partial results and closes the PIT', async () => {
+        const request = vi
+            .fn()
+            .mockResolvedValueOnce({ pit_id: 'pit-1' })
+            .mockResolvedValueOnce({ pit_id: 'pit-2', hits: { hits: [{ _id: '3' }, { _id: '1' }] } })
+            .mockResolvedValueOnce(null);
+        const adapter = new OpenSearchProductSearchAdapter(
+            { enabled: true, readAlias: 'catalog-products-read' } as SearchConfig,
+            { request } as unknown as OpenSearchHttpClient
+        );
+
+        await expect(
+            adapter.searchProductIds('candidate-alias', canonicalizeProductSearchInput({ query: '키보드', first: 10 }))
+        ).resolves.toEqual(['3', '1']);
+        expect(request).toHaveBeenNthCalledWith(1, 'POST', '/candidate-alias/_search/point_in_time', {
+            query: { keep_alive: '1m' },
+        });
+        expect(request).toHaveBeenNthCalledWith(
+            2,
+            'POST',
+            '/_search',
+            expect.objectContaining({
+                query: { allow_partial_search_results: false },
+                body: expect.objectContaining({ size: 10, _source: false, pit: { id: 'pit-1', keep_alive: '1m' } }),
+            })
+        );
+        expect(request).toHaveBeenLastCalledWith('DELETE', '/_search/point_in_time', { body: { pit_id: 'pit-2' } });
+    });
+
+    it.each([
+        ['timeout', { timed_out: true }],
+        ['failed shard', { _shards: { failed: 1 } }],
+    ])('rejects a %s response and closes its rotated PIT', async (_, incomplete) => {
+        const request = vi
+            .fn()
+            .mockResolvedValueOnce({ pit_id: 'pit-1' })
+            .mockResolvedValueOnce({ pit_id: 'pit-2', hits: { hits: [{ _id: '1' }] }, ...incomplete })
+            .mockResolvedValueOnce(null);
+        const adapter = new OpenSearchProductSearchAdapter(
+            { enabled: true, readAlias: 'catalog-products-read' } as SearchConfig,
+            { request } as unknown as OpenSearchHttpClient
+        );
+
+        await expect(
+            adapter.searchProductIds('candidate-alias', canonicalizeProductSearchInput({ first: 10 }))
+        ).rejects.toThrow('incomplete');
+        expect(request).toHaveBeenLastCalledWith('DELETE', '/_search/point_in_time', { body: { pit_id: 'pit-2' } });
     });
 });
 

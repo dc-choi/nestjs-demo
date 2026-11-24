@@ -7,6 +7,10 @@
 `pnpm search:evaluate`로 구현되어 있습니다. Nori를 설치했다는 사실이 개선을 의미하지 않으며, 실험별
 관련도 judgment와 회귀 수치로 채택 여부를 결정합니다.
 
+평가는 `searchProducts`와 같은 OpenSearch adapter와 Query Builder로 각 Alias의 상위 10개 Product ID를
+조회합니다. `allow_partial_search_results=false`와 timeout, shard 실패 검사도 같이 적용하므로 불완전한
+응답은 지표에 섞이지 않고 평가 전체가 실패합니다.
+
 ## 선행 조건
 
 - v001 전체 rebuild와 `searchProducts` Query가 동작함

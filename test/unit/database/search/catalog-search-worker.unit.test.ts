@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { CatalogProductProjectionSource } from '~/api/search/domain/product-search.document.js';
-import { CatalogBulkError } from '~/api/search/infrastructure/catalog-bulk.error.js';
 import { CatalogIndexManager } from '~/api/search/infrastructure/catalog-index.manager.js';
 import { CatalogMaintenanceService } from '~/api/search/application/catalog-maintenance.service.js';
+import { CatalogWriteConflictError } from '~/api/search/application/catalog-write-conflict.error.js';
 import { CatalogProjectionReader } from '~/api/search/infrastructure/catalog-projection.reader.js';
 import { CatalogSearchWorker } from '~/api/search/application/catalog-search.worker.js';
 import { OpenSearchHttpClient } from '~/infra/opensearch/opensearch.client.js';
@@ -34,14 +34,21 @@ describe('Catalog search worker', () => {
     it('treats a repeated delete of an already absent document as converged', async () => {
         const source = createSource({ revision: 3, status: 'CLOSED' });
         const { worker, indexManager } = createWorker(source);
-        indexManager.deleteExternal.mockRejectedValue(
-            new CatalogBulkError([{ documentId: '1', status: 404, error: { type: 'document_missing_exception' } }])
-        );
+        indexManager.deleteExternal.mockRejectedValue(new CatalogWriteConflictError());
         indexManager.getDocument.mockResolvedValue(null);
 
         await expect(worker.synchronize(source.id, 3)).resolves.toBeUndefined();
         expect(indexManager.deleteExternal).toHaveBeenCalledWith('1', 3, target);
         expect(indexManager.getDocument).toHaveBeenCalledWith(target.indexName, '1');
+    });
+
+    it('rethrows a write failure that is not a conflict without a convergence check', async () => {
+        const source = createSource();
+        const { worker, indexManager } = createWorker(source);
+        indexManager.writeExternal.mockRejectedValue(new Error('mapping rejected'));
+
+        await expect(worker.synchronize(source.id, source.revision)).rejects.toThrow('mapping rejected');
+        expect(indexManager.getDocument).not.toHaveBeenCalled();
     });
 
     it('accepts an absent-document Bulk delete through the real manager', async () => {

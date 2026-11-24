@@ -1,3 +1,4 @@
+import { CatalogProjectionError } from './catalog-projection.error.js';
 import {
     CATALOG_SEARCH_SCHEMA_VERSION,
     CatalogCategoryProjectionSource,
@@ -13,13 +14,6 @@ import { compareBigInt } from '~/global/common/utils/bigint.js';
 const CODE_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 const DECIMAL_PATTERN = /^(?:0|[1-9]\d{0,6})(?:\.\d{1,3})?$/;
 const MAX_SIGNED_BIGINT = 9_223_372_036_854_775_807n;
-
-export class CatalogProjectionError extends Error {
-    constructor(message: string) {
-        super(message);
-        this.name = CatalogProjectionError.name;
-    }
-}
 
 export function projectCatalogProduct(source: CatalogProductProjectionSource): ProductSearchDocument | null {
     validateProductIdentity(source);
@@ -38,7 +32,7 @@ export function projectCatalogProduct(source: CatalogProductProjectionSource): P
 
     const items = searchableItems.map(projectItem);
     const categories = source.categories
-        .filter(({ isActive, deletedAt }) => isActive && deletedAt === null)
+        .filter(isVisibleCategory)
         .toSorted((left, right) => left.sequence - right.sequence || compareBigInt(left.id, right.id));
     const thumbnail = source.media
         .filter(({ role }) => role === 'THUMBNAIL')
@@ -116,10 +110,18 @@ function parsePrice(value: string, itemId: bigint): number {
     return Number(value);
 }
 
+function isVisibleCategory({ isActive, deletedAt }: { isActive: boolean; deletedAt: Date | null }): boolean {
+    return isActive && deletedAt === null;
+}
+
+/**
+ * Each hidden ancestor is skipped on its own: a visible ancestor above a hidden middle category stays in the
+ * filter path, so filtering by the upper category still finds the product.
+ */
 function collectAncestorSlugs(categories: CatalogCategoryProjectionSource[]): string[] {
     const slugs = new Set<string>();
     for (const category of categories) {
-        for (const slug of category.ancestorSlugs) slugs.add(slug);
+        for (const ancestor of category.ancestors) if (isVisibleCategory(ancestor)) slugs.add(ancestor.slug);
     }
     return [...slugs];
 }

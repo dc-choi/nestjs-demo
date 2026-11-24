@@ -76,7 +76,14 @@ export interface CatalogCategoryProjectionSource {
     name: string;
     slug: string;
     sequence: number;
-    ancestorSlugs: string[];
+    /** The category path from the topmost ancestor down to this category itself. */
+    ancestors: CatalogCategoryAncestorProjectionSource[];
+    isActive: boolean;
+    deletedAt: Date | null;
+}
+
+export interface CatalogCategoryAncestorProjectionSource {
+    slug: string;
     isActive: boolean;
     deletedAt: Date | null;
 }
@@ -92,4 +99,12 @@ export interface CatalogMediaProjectionSource {
     storageKey: string;
     altText: string | null;
     sequence: number;
+}
+
+/** The index serves `desired` only when both the external version and the full source match it. */
+export function isIndexedDocumentCurrent(
+    indexed: { readonly version: number; readonly source: ProductSearchDocument },
+    desired: ProductSearchDocument
+): boolean {
+    return indexed.version === desired.productRevision && JSON.stringify(indexed.source) === JSON.stringify(desired);
 }

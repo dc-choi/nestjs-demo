@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { CatalogWriteConflictError } from '~/api/search/application/catalog-write-conflict.error.js';
 import { ProductSearchService } from '~/api/search/application/product-search.service.js';
 import { ProductSearchDocument } from '~/api/search/domain/product-search.document.js';
 import { CatalogBulkError } from '~/api/search/infrastructure/catalog-bulk.error.js';
@@ -39,7 +40,14 @@ describeOpenSearch('OpenSearch catalog integration', () => {
     it('verifies health, Nori, strict mapping, Bulk items, aliases and nested search', async () => {
         const health = new SearchHealthService(config, client);
         await expect(health.check()).resolves.toMatchObject({ enabled: true, reachable: true });
-        await expect(health.verifyNoriAnalyzer()).resolves.not.toHaveLength(0);
+        const plugins = await client.request<Array<{ component?: string }>>('GET', '/_cat/plugins', {
+            query: { format: 'json' },
+        });
+        expect(plugins).toEqual(expect.arrayContaining([expect.objectContaining({ component: 'analysis-nori' })]));
+        const analysis = await client.request<{ tokens?: unknown[] }>('POST', '/_analyze', {
+            body: { tokenizer: 'nori_tokenizer', text: '무선 기계식 키보드' },
+        });
+        expect(analysis.tokens).not.toHaveLength(0);
 
         const documents = [createDocument('1'), createDocument('2')];
         await Promise.all([manager.bulkIndex(indexName, documents), manager.bulkIndex(noriIndexName, documents)]);
@@ -58,7 +66,7 @@ describeOpenSearch('OpenSearch catalog integration', () => {
         await expect(manager.deleteExternal(absentId, 1, target)).resolves.toBeUndefined();
         await expect(manager.repairDeleteExternal(absentId, 1, target)).resolves.toBeUndefined();
         await manager.writeExternal(updated, target);
-        await expect(manager.writeExternal(documents[0], target)).rejects.toBeInstanceOf(CatalogBulkError);
+        await expect(manager.writeExternal(documents[0], target)).rejects.toBeInstanceOf(CatalogWriteConflictError);
         await expect(manager.getDocument(config.writeAlias, '1')).resolves.toMatchObject({
             version: 2,
             source: { productRevision: 2, name: '무선 기계식 키보드' },
@@ -75,10 +83,8 @@ describeOpenSearch('OpenSearch catalog integration', () => {
         await expect(missingAliasManager.resolveWriteTarget()).rejects.toThrow('exactly one index');
         await expect(client.request('GET', `/${missingAlias}`)).rejects.toMatchObject({ status: 404 });
 
-        const search = new ProductSearchService(
-            new OpenSearchProductSearchAdapter(config, client),
-            'integration-test-cursor-secret-at-least-32'
-        );
+        const adapter = new OpenSearchProductSearchAdapter(config, client);
+        const search = new ProductSearchService(adapter, 'integration-test-cursor-secret-at-least-32');
         const input = {
             categorySlug: 'keyboards',
             minPrice: '1000',
@@ -88,7 +94,7 @@ describeOpenSearch('OpenSearch catalog integration', () => {
         };
         const firstPage = await search.search(input);
         expect(firstPage).toMatchObject({
-            nodes: [{ productId: '1', itemId: '11', price: { amount: '1500.000', currencyCode: 'KRW' } }],
+            nodes: [{ productId: '1', itemId: '11', price: 1500 }],
             pageInfo: { hasNextPage: true },
         });
         expect(typeof firstPage.pageInfo.endCursor).toBe('string');
@@ -97,7 +103,7 @@ describeOpenSearch('OpenSearch catalog integration', () => {
             pageInfo: { hasNextPage: false, endCursor: null },
         });
 
-        const relevance = await new SearchRelevanceEvaluationService(client).compare(
+        const relevance = await new SearchRelevanceEvaluationService(adapter).compare(
             {
                 name: 'standard-vs-nori',
                 queries: [{ id: 'wireless', input: { query: '무선 키보드' }, judgments: { '1': 3 } }],
@@ -128,7 +134,9 @@ describeOpenSearch('OpenSearch catalog integration', () => {
             await expect(manager.getDocument(retiredIndex, '7')).resolves.not.toBeNull();
 
             await manager.deleteIndex(retiredIndex);
-            await expect(manager.writeExternal(createDocument('8'), target)).rejects.toBeInstanceOf(CatalogBulkError);
+            await expect(manager.writeExternal(createDocument('8'), target)).rejects.toBeInstanceOf(
+                CatalogWriteConflictError
+            );
             await expect(client.request('GET', `/${retiredIndex}`)).rejects.toMatchObject({ status: 404 });
             await expect(client.request('GET', `/${target.writeAlias}`)).rejects.toMatchObject({ status: 404 });
         } finally {

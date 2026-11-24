@@ -1,9 +1,8 @@
+import { CatalogAnalyzer } from '~/api/search/domain/catalog-analyzer.js';
 import { CATALOG_SEARCH_SCHEMA_VERSION } from '~/api/search/domain/product-search.document.js';
 
 export const CATALOG_INDEX_FAMILY = `catalog-products-v${String(CATALOG_SEARCH_SCHEMA_VERSION).padStart(3, '0')}`;
 export const CATALOG_NORI_INDEX_FAMILY = 'catalog-products-v002';
-
-export type CatalogAnalyzer = 'standard' | 'nori';
 
 const textField = {
     type: 'text',
@@ -103,11 +102,11 @@ export const catalogNoriIndexDefinition = {
     },
 } as const;
 
-export function createCatalogIndexName(buildId: string, analyzer: CatalogAnalyzer = 'standard'): string {
+export function createCatalogIndexName(buildId: string, analyzer: CatalogAnalyzer = CatalogAnalyzer.STANDARD): string {
     const normalizedBuildId = buildId.trim().toLowerCase();
     if (!/^[a-z0-9][a-z0-9_-]{0,63}$/.test(normalizedBuildId)) {
         throw new Error('OpenSearch build ID must contain only lowercase letters, numbers, underscores, or hyphens');
     }
-    const family = analyzer === 'nori' ? CATALOG_NORI_INDEX_FAMILY : CATALOG_INDEX_FAMILY;
+    const family = analyzer === CatalogAnalyzer.NORI ? CATALOG_NORI_INDEX_FAMILY : CATALOG_INDEX_FAMILY;
     return `${family}-${normalizedBuildId}`;
 }

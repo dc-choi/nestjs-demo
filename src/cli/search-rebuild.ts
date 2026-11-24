@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 
 import { CatalogRebuildService } from '~/api/search/application/catalog-rebuild.service.js';
-import { CatalogAnalyzer } from '~/api/search/infrastructure/catalog-index.definition.js';
+import { CatalogAnalyzer } from '~/api/search/domain/catalog-analyzer.js';
 import { SearchMaintenanceAppModule } from '~/search-maintenance-app.module.js';
 
 async function main(): Promise<void> {
@@ -49,7 +49,8 @@ function parseArguments(values: string[]): {
         if (!value) throw usageError();
         if (key === '--build-id') options.buildId = value;
         else if (key === '--batch-size') options.batchSize = Number(value);
-        else if (key === '--analyzer' && (value === 'standard' || value === 'nori')) options.analyzer = value;
+        else if (key === '--analyzer' && (value === CatalogAnalyzer.STANDARD || value === CatalogAnalyzer.NORI))
+            options.analyzer = value;
         else if (key === '--evaluation-alias') options.evaluationAlias = value;
         else throw usageError();
         index += 2;

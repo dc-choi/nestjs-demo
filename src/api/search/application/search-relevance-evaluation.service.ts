@@ -1,10 +1,9 @@
 import { Injectable } from '@nestjs/common';
 
-import { buildOpenSearchProductRequest } from '../infrastructure/product-search-query.compiler.js';
+import { OpenSearchProductSearchAdapter } from '../infrastructure/opensearch-product-search.adapter.js';
 
 import { performance } from 'node:perf_hooks';
 import { ProductSearchInput, canonicalizeProductSearchInput } from '~/api/search/domain/product-search.query.js';
-import { OpenSearchHttpClient, escapeOpenSearchPathSegment } from '~/infra/opensearch/opensearch.client.js';
 
 export interface RelevanceEvaluationQuery {
     id: string;
@@ -47,7 +46,7 @@ export interface RelevanceComparisonResult {
 
 @Injectable()
 export class SearchRelevanceEvaluationService {
-    constructor(private readonly client: OpenSearchHttpClient) {}
+    constructor(private readonly productSearch: OpenSearchProductSearchAdapter) {}
 
     async compare(
         fixture: RelevanceEvaluationFixture,
@@ -74,7 +73,10 @@ export class SearchRelevanceEvaluationService {
         const queries: RelevanceQueryResult[] = [];
         for (const query of fixture.queries) {
             const startedAt = performance.now();
-            const productIds = await this.searchTopTen(alias, query.input);
+            const productIds = await this.productSearch.searchProductIds(
+                alias,
+                canonicalizeProductSearchInput({ ...query.input, first: 10, after: null })
+            );
             queries.push({
                 queryId: query.id,
                 productIds,
@@ -106,37 +108,6 @@ export class SearchRelevanceEvaluationService {
             ),
             queries,
         };
-    }
-
-    private async searchTopTen(alias: string, input: ProductSearchInput): Promise<string[]> {
-        const opened = await this.client.request<{ pit_id?: string }>(
-            'POST',
-            `/${escapeOpenSearchPathSegment(alias)}/_search/point_in_time`,
-            { query: { keep_alive: '1m' } }
-        );
-        if (!opened.pit_id) throw new Error(`OpenSearch did not return a PIT ID for ${alias}`);
-        let pitId = opened.pit_id;
-        try {
-            const canonical = canonicalizeProductSearchInput({ ...input, first: 10, after: null });
-            const response = await this.client.request<{
-                pit_id?: string;
-                hits?: { hits?: Array<{ _id?: string }> };
-            }>('POST', '/_search', {
-                body: { ...buildOpenSearchProductRequest(canonical, pitId), size: 10, _source: false },
-            });
-            pitId = response.pit_id ?? pitId;
-            const hits = response.hits?.hits;
-            if (!Array.isArray(hits) || hits.some(({ _id }) => typeof _id !== 'string')) {
-                throw new Error(`OpenSearch relevance response for ${alias} was malformed`);
-            }
-            return hits.map(({ _id }) => _id as string);
-        } finally {
-            try {
-                await this.client.request('DELETE', '/_search/point_in_time', { body: { pit_id: pitId } });
-            } catch {
-                // PIT expires automatically after the short evaluation keep-alive.
-            }
-        }
     }
 }
 

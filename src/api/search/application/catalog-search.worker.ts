@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 
-import { CatalogBulkError } from '../infrastructure/catalog-bulk.error.js';
 import { CatalogIndexManager, CatalogWriteTarget } from '../infrastructure/catalog-index.manager.js';
 import { CatalogProjectionReader } from '../infrastructure/catalog-projection.reader.js';
 import { CatalogMaintenanceService } from './catalog-maintenance.service.js';
+import { CatalogWriteConflictError } from './catalog-write-conflict.error.js';
 
 import { projectCatalogProduct } from '~/api/search/domain/catalog-projector.js';
 import { MAX_PRODUCT_REVISION } from '~/api/search/domain/product-search.document.js';
@@ -45,7 +45,7 @@ export class CatalogSearchWorker {
             if (desired) await this.indexManager.writeExternal(desired, target);
             else await this.indexManager.deleteExternal(productId.toString(), currentRevision, target);
         } catch (error) {
-            if (!(error instanceof CatalogBulkError) || !error.failures.every(isConvergenceCandidate)) throw error;
+            if (!(error instanceof CatalogWriteConflictError)) throw error;
             await this.assertAlreadyConverged(productId.toString(), currentRevision, desired, target);
         }
     }
@@ -74,8 +74,4 @@ function validateRevision(revision: number): void {
     if (!Number.isInteger(revision) || revision < 1 || revision > MAX_PRODUCT_REVISION) {
         throw new Error(`Invalid search projection revision: ${revision}`);
     }
-}
-
-function isConvergenceCandidate(failure: { status: number }): boolean {
-    return failure.status === 404 || failure.status === 409;
 }

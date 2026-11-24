@@ -8,7 +8,7 @@ export interface ProductSearchPort {
      * Opens a session when sessionId is null and returns the latest session ID on success.
      * Failures must close newly opened sessions and replacement IDs that cannot be returned.
      * Request failures before a replacement ID arrives preserve the caller's existing session.
-     * Backend failures become ProductSearchUnavailableError; expired sessions become ProductSearchCursorExpiredError.
+     * Backend failures become ProductSearchUnavailableError; expired sessions become ProductSearchSessionExpiredError.
      * The caller closes successful terminal pages and sessions whose continuation cursor cannot be returned.
      */
     search(request: ProductSearchBackendRequest): Promise<ProductSearchPage>;
@@ -45,17 +45,6 @@ export interface ProductSearchNode {
     readonly name: string;
     readonly itemId: string;
     readonly itemName: string;
-    readonly price: {
-        readonly amount: string;
-        readonly currencyCode: string;
-    };
-    readonly thumbnail: null;
-}
-
-export interface ProductSearchConnection {
-    readonly nodes: readonly ProductSearchNode[];
-    readonly pageInfo: {
-        readonly hasNextPage: boolean;
-        readonly endCursor: string | null;
-    };
+    /** Selected item's total price as stored in the read model; presentation composes the public Money. */
+    readonly price: number;
 }

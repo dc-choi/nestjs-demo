@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { CatalogProjectionError, projectCatalogProduct } from '~/api/search/domain/catalog-projector.js';
+import { CatalogProjectionError } from '~/api/search/domain/catalog-projection.error.js';
+import { projectCatalogProduct } from '~/api/search/domain/catalog-projector.js';
 import { CatalogProductProjectionSource } from '~/api/search/domain/product-search.document.js';
 
 describe('Catalog projector', () => {
@@ -11,7 +12,7 @@ describe('Catalog projector', () => {
             name: '키보드',
             slug: 'keyboards',
             sequence: 0,
-            ancestorSlugs: ['electronics', 'keyboards'],
+            ancestors: [visible('electronics'), visible('keyboards')],
             isActive: true,
             deletedAt: null,
         });
@@ -64,6 +65,41 @@ describe('Catalog projector', () => {
         });
     });
 
+    it('drops each hidden ancestor and keeps visible ancestors above a hidden middle category', () => {
+        const source = createSource();
+        source.categories.push(
+            {
+                id: 21n,
+                name: '키보드',
+                slug: 'keyboards',
+                sequence: 0,
+                ancestors: [
+                    visible('electronics'),
+                    { slug: 'computer-accessories', isActive: false, deletedAt: null },
+                    { slug: 'input-devices', isActive: true, deletedAt: new Date('2026-08-01T00:00:00.000Z') },
+                    visible('keyboards'),
+                ],
+                isActive: true,
+                deletedAt: null,
+            },
+            {
+                id: 22n,
+                name: '숨김 분류',
+                slug: 'hidden',
+                sequence: 1,
+                ancestors: [visible('outlet'), { slug: 'hidden', isActive: false, deletedAt: null }],
+                isActive: false,
+                deletedAt: null,
+            }
+        );
+
+        expect(projectCatalogProduct(source)).toMatchObject({
+            categoryIds: ['21'],
+            categorySlugs: ['keyboards'],
+            categoryAncestorSlugs: ['electronics', 'keyboards'],
+        });
+    });
+
     it('returns null for a product without a live sellable item', () => {
         const source = createSource();
         source.items[0].deletedAt = new Date();
@@ -86,6 +122,10 @@ describe('Catalog projector', () => {
         expect(() => projectCatalogProduct(source)).toThrow('invalid option code');
     });
 });
+
+function visible(slug: string) {
+    return { slug, isActive: true, deletedAt: null };
+}
 
 function createSource(): CatalogProductProjectionSource {
     return {

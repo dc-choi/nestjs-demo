@@ -258,7 +258,7 @@ function hydrateCategories(byId: Map<string, CatalogProductProjectionSource>, ro
                 name: toStringValue(row.root_name, 'root_name'),
                 slug: toStringValue(row.root_slug, 'root_slug'),
                 sequence: toSafeNumber(row.root_sequence, 'root_sequence'),
-                ancestorSlugs: [],
+                ancestors: [],
                 isActive: toBoolean(row.root_is_active, 'root_is_active'),
                 deletedAt: toNullableDate(row.root_deleted_at, 'root_deleted_at'),
             };
@@ -270,9 +270,13 @@ function hydrateCategories(byId: Map<string, CatalogProductProjectionSource>, ro
         if (depth >= 31 && row.ancestor_parent_id !== null) {
             throw new Error(`Category hierarchy for product ${productId} exceeds 32 levels`);
         }
-        if (toBoolean(row.ancestor_is_active, 'ancestor_is_active') && row.ancestor_deleted_at === null) {
-            category.ancestorSlugs.unshift(toStringValue(row.ancestor_slug, 'ancestor_slug'));
-        }
+        // Rows climb from the category itself by depth; unshift keeps the path ordered from the top.
+        // The projector decides which ancestors are visible.
+        category.ancestors.unshift({
+            slug: toStringValue(row.ancestor_slug, 'ancestor_slug'),
+            isActive: toBoolean(row.ancestor_is_active, 'ancestor_is_active'),
+            deletedAt: toNullableDate(row.ancestor_deleted_at, 'ancestor_deleted_at'),
+        });
     }
 }
 

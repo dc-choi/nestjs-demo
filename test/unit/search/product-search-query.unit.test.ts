@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { CatalogGraph } from '~/api/catalog/domain/catalog-graph.js';
 import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status.js';
-import { ProductSearchContractError } from '~/api/search/domain/product-search-contract.error.js';
-import { ProductSearchSort } from '~/api/search/domain/product-search-sort.js';
 import {
     assertSearchCursorFingerprint,
-    canonicalizeProductSearchInput,
     decodeSearchCursor,
     encodeSearchCursor,
+} from '~/api/search/application/product-search-cursor.js';
+import { ProductSearchInputError } from '~/api/search/domain/product-search-input.error.js';
+import { ProductSearchSort } from '~/api/search/domain/product-search-sort.js';
+import {
+    canonicalizeProductSearchInput,
     fingerprintProductSearchInput,
 } from '~/api/search/domain/product-search.query.js';
 import { buildOpenSearchProductRequest } from '~/api/search/infrastructure/product-search-query.compiler.js';
@@ -40,7 +42,7 @@ describe('Product search query contract', () => {
 
     it('rejects invalid semantic input', () => {
         expect(() => canonicalizeProductSearchInput({ minPrice: '2', maxPrice: '1' })).toThrow(
-            ProductSearchContractError
+            expect.objectContaining({ code: 'INVALID_SEARCH_INPUT' })
         );
         expect(() =>
             canonicalizeProductSearchInput({
@@ -74,7 +76,7 @@ describe('Product search query contract', () => {
 
     it('rejects blank, oversized and non-string SKU search input', () => {
         for (const sku of [' ', 'x'.repeat(256), 1 as unknown as string]) {
-            expect(() => canonicalizeProductSearchInput({ sku })).toThrow(ProductSearchContractError);
+            expect(() => canonicalizeProductSearchInput({ sku })).toThrow(ProductSearchInputError);
         }
     });
 
@@ -101,9 +103,18 @@ describe('Product search query contract', () => {
     it('signs cursors, rejects tampering and enforces expiry and fingerprints', () => {
         const cursor = encodeSearchCursor('pit-1', [1.5, '2'], 'fingerprint', 'secret', 1_000);
         const decoded = decodeSearchCursor(cursor, 'secret', 2_000);
-        expect(decoded).toEqual({ pitId: 'pit-1', sortValues: [1.5, '2'], fingerprint: 'fingerprint' });
-        expect(() => decodeSearchCursor(`${cursor}x`, 'secret', 2_000)).toThrow('invalid');
-        expect(() => decodeSearchCursor(cursor, 'secret', 62_000)).toThrow('expired');
-        expect(() => assertSearchCursorFingerprint(decoded, 'different')).toThrow('does not match');
+        expect(decoded).toEqual({ sessionId: 'pit-1', sortValues: [1.5, '2'], fingerprint: 'fingerprint' });
+        expect(() => decodeSearchCursor(`${cursor}x`, 'secret', 2_000)).toThrow(
+            expect.objectContaining({ code: 'INVALID_SEARCH_CURSOR', message: 'Search cursor is invalid' })
+        );
+        expect(() => decodeSearchCursor(cursor, 'secret', 62_000)).toThrow(
+            expect.objectContaining({ code: 'SEARCH_CURSOR_EXPIRED', message: 'Search cursor has expired' })
+        );
+        expect(() => assertSearchCursorFingerprint(decoded, 'different')).toThrow(
+            expect.objectContaining({
+                code: 'SEARCH_CURSOR_MISMATCH',
+                message: 'Search cursor does not match the current search input',
+            })
+        );
     });
 });

@@ -202,6 +202,14 @@ code 안에 들어가 서로 다른 조합이 같은 token이 되는 일을 막�
 항목입니다. 해당 media가 없으면 `null`로 저장합니다. 여러 thumbnail을 허용하는 DB 구조와 검색 응답의
 단일 대표 이미지를 이 결정 규칙으로 연결합니다.
 
+`categoryAncestorSlugs`는 Product에 연결된 카테고리 중 활성이고 삭제되지 않은 카테고리마다 최상위 상위
+카테고리부터 자기 자신까지의 slug를 모아 중복 없이 저장합니다. 비활성이거나 삭제된 카테고리 연결은
+`categoryIds`, `categorySlugs`, `categoryNames`와 함께 문서에서 빠집니다. 상위 경로 중간의 카테고리만
+비활성이거나 삭제됐다면 그 slug만 빠지고 그보다 위의 활성 상위 slug는 남습니다. 그래서 상위 분류 filter는
+중간 분류가 숨겨져도 하위 상품을 계속 찾습니다. 이 노출 판정은 순수 Projector가 연결 카테고리와 상위
+카테고리에 같은 조건(`isActive`이고 `deletedAt == null`)으로 적용하며, projection reader는 경로의 활성과
+삭제 상태를 판정 없이 그대로 전달합니다.
+
 ### Mapping 계약
 
 Root와 `items` 모두 `dynamic: strict`를 사용합니다. 문서에 새 필드를 넣으려면 Mapping과
@@ -366,7 +374,9 @@ query SearchProducts($input: ProductSearchInput!) {
 - `after`: 서버가 만든 불투명 PIT와 정렬 cursor
 
 Product/Item ID는 GraphQL `ID` 10진 문자열로 노출합니다. 가격 출력은 공통
-`Money { amount, currencyCode }`를 사용하고 amount는 정밀도를 보존하는 decimal 문자열입니다.
+`Money { amount, currencyCode }`를 사용하고 amount는 정밀도를 보존하는 decimal 문자열입니다. 검색 port는
+선택된 Item의 숫자 가격만 돌려주고, presentation mapper가 소수점 셋째 자리 문자열과 `KRW`로 Money를
+조합합니다.
 가격 범위 input은 별도의 문자열 기반 `Decimal` scalar를 사용합니다.
 옵션 input은 Resolver에서 정규화된 `option-code:value-code` token으로 변환합니다.
 
@@ -419,6 +429,12 @@ PIT 자체는 query에 묶이지 않으므로 이 검증이 없으면 같은 cur
 클라이언트가 중간에 중단하면 1분 뒤 만료되며 만료된 cursor는 `SEARCH_CURSOR_EXPIRED`, 조작되거나 형식이
 잘못된 cursor는 `INVALID_SEARCH_CURSOR` code로 거절합니다. Resolver 실행 오류의 HTTP status를 공개
 계약으로 사용하지 않습니다.
+
+입력 규칙 위반인 `INVALID_SEARCH_INPUT`은 domain 에러 `ProductSearchInputError`입니다. Cursor 서명과 형식,
+만료, 조건 불일치의 세 code는 application cursor codec(`product-search-cursor.ts`)의 에러
+`ProductSearchCursorError`입니다. Port는 PIT를 session으로 추상화하므로 OpenSearch의 PIT 만료
+(`search_context_missing_exception`)는 `ProductSearchSessionExpiredError`로 올라오고, Service가 이를
+`SEARCH_CURSOR_EXPIRED`로 바꿉니다. Resolver는 두 에러 모두 같은 code와 message의 HTTP 400으로 변환합니다.
 
 검색 응답은 OpenSearch 내부 `_source`, `_score`, sort 배열을 그대로 노출하지 않고 GraphQL type으로
 변환합니다. 주문에 필요한 `itemId`는 포함하되 검색 결과의 가격과 상태가 확정값은 아니라는 경계를
@@ -603,6 +619,8 @@ src/api/search/
   presentation/product-search-connection.type.ts
   presentation/search-health.controller.ts
   application/product-search.service.ts
+  application/product-search-cursor.ts
+  application/product-search-cursor.error.ts
   application/catalog-maintenance.service.ts
   application/catalog-rebuild.service.ts
   application/catalog-search.worker.ts
@@ -614,6 +632,7 @@ src/api/search/
   domain/catalog-projector.ts
   domain/product-search.document.ts
   domain/product-search.query.ts
+  domain/product-search-input.error.ts
   domain/entity/search-projection-outbox.entity.ts
   domain/entity/catalog-maintenance.entity.ts
   infrastructure/opensearch-product-search.adapter.ts
@@ -646,11 +665,15 @@ test/integration/search/
 - BigInt ID 문자열 변환
 - Decimal 가격 변환과 소수점 셋째 자리 보존
 - category ancestor slug, tag와 thumbnail 투영
+- 비활성 또는 삭제된 카테고리와 상위 카테고리 제외, 중간 상위만 숨겨진 경로의 상위 slug 유지
 - Item 옵션을 `option-code:value-code` 형태로 정규화
 - option/value code 문자 규칙과 Item 100개 상한 검증
 - 판매 불가 또는 soft-deleted Item 제외
 - Query Builder의 boost, filter와 sort allowlist
 - cursor encode/decode, GraphQL input fingerprint mismatch와 잘못된 cursor 거절
+- PIT 만료 응답의 session 만료 변환과 Service의 `SEARCH_CURSOR_EXPIRED` 변환
+- Resolver의 Money 조합(소수점 셋째 자리, `KRW`), thumbnail 비공개와 오류 code 변환
+- `searchProducts`를 포함한 GraphQL schema 생성
 
 ### 통합 테스트
 
@@ -658,9 +681,11 @@ test/integration/search/
 - Nori plugin과 `_analyze`
 - Bulk 전체 성공과 부분 실패
 - `nested` Item 옵션/가격 조건
-- PIT와 `search_after` 다음 페이지, 동률 해소와 PIT 만료
-- `searchProducts` input/connection/Decimal/ID/error code 직렬화
+- PIT와 `search_after` 다음 페이지와 동률 해소
 - 새 인덱스 검증 뒤 Alias 전환
+
+실제 클러스터에서 PIT 만료를 재현하는 통합 테스트와 `searchProducts` GraphQL 요청의 end-to-end 직렬화
+테스트는 아직 없습니다. 둘 다 위 단위 테스트로만 고정합니다.
 
 ### 기존 기능 회귀
 

@@ -65,11 +65,25 @@ describe('Catalog projection reader', () => {
                         root_sequence: 0,
                         root_is_active: 1,
                         root_deleted_at: null,
+                        ancestor_slug: 'computer-accessories',
+                        ancestor_is_active: 0,
+                        ancestor_deleted_at: null,
+                        ancestor_parent_id: '5',
+                        depth: 1,
+                    },
+                    {
+                        product_id: '1',
+                        root_category_id: '3',
+                        root_name: '키보드',
+                        root_slug: 'keyboards',
+                        root_sequence: 0,
+                        root_is_active: 1,
+                        root_deleted_at: null,
                         ancestor_slug: 'electronics',
                         ancestor_is_active: 1,
                         ancestor_deleted_at: null,
                         ancestor_parent_id: null,
-                        depth: 1,
+                        depth: 2,
                     },
                 ];
             }
@@ -100,7 +114,17 @@ describe('Catalog projection reader', () => {
                     id: 1n,
                     sellerId: 2n,
                     items: [{ id: 11n, options: [{ optionCode: 'color', valueCode: 'black' }] }],
-                    categories: [{ id: 3n, ancestorSlugs: ['electronics', 'keyboards'] }],
+                    // The reader keeps hidden ancestors; the projector filters them.
+                    categories: [
+                        {
+                            id: 3n,
+                            ancestors: [
+                                { slug: 'electronics', isActive: true, deletedAt: null },
+                                { slug: 'computer-accessories', isActive: false, deletedAt: null },
+                                { slug: 'keyboards', isActive: true, deletedAt: null },
+                            ],
+                        },
+                    ],
                     tags: [{ value: '무선' }],
                     media: [{ id: 5n, storageKey: 'keyboard.webp' }],
                 },

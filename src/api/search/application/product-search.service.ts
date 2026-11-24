@@ -1,22 +1,32 @@
 import { Inject, Injectable } from '@nestjs/common';
 
-import { ProductSearchCursorExpiredError } from '~/api/search/application/product-search-cursor-expired.error.js';
 import { PRODUCT_SEARCH_CURSOR_SECRET } from '~/api/search/application/product-search-cursor-secret.js';
+import { ProductSearchCursorError } from '~/api/search/application/product-search-cursor.error.js';
+import {
+    assertSearchCursorFingerprint,
+    decodeSearchCursor,
+    encodeSearchCursor,
+} from '~/api/search/application/product-search-cursor.js';
+import { ProductSearchSessionExpiredError } from '~/api/search/application/product-search-session-expired.error.js';
 import { ProductSearchUnavailableError } from '~/api/search/application/product-search-unavailable.error.js';
 import {
     PRODUCT_SEARCH_PORT,
-    ProductSearchConnection,
+    type ProductSearchNode,
     type ProductSearchPort,
 } from '~/api/search/application/product-search.port.js';
-import { ProductSearchContractError } from '~/api/search/domain/product-search-contract.error.js';
 import {
     ProductSearchInput,
-    assertSearchCursorFingerprint,
     canonicalizeProductSearchInput,
-    decodeSearchCursor,
-    encodeSearchCursor,
     fingerprintProductSearchInput,
 } from '~/api/search/domain/product-search.query.js';
+
+export interface ProductSearchConnection {
+    readonly nodes: readonly ProductSearchNode[];
+    readonly pageInfo: {
+        readonly hasNextPage: boolean;
+        readonly endCursor: string | null;
+    };
+}
 
 @Injectable()
 export class ProductSearchService {
@@ -40,12 +50,12 @@ export class ProductSearchService {
         try {
             page = await this.searchPort.search({
                 input: canonical,
-                sessionId: cursor?.pitId ?? null,
+                sessionId: cursor?.sessionId ?? null,
                 searchAfter: cursor?.sortValues ?? null,
             });
         } catch (error) {
-            if (error instanceof ProductSearchCursorExpiredError) {
-                throw new ProductSearchContractError('SEARCH_CURSOR_EXPIRED', error.message);
+            if (error instanceof ProductSearchSessionExpiredError) {
+                throw new ProductSearchCursorError('SEARCH_CURSOR_EXPIRED', { cause: error });
             }
             throw error;
         }

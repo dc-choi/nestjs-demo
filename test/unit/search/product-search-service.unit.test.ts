@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { ProductSearchSessionExpiredError } from '~/api/search/application/product-search-session-expired.error.js';
 import type { ProductSearchNode } from '~/api/search/application/product-search.port.js';
 import { ProductSearchService } from '~/api/search/application/product-search.service.js';
 
@@ -29,8 +30,7 @@ describe('Product search service', () => {
                     name: '키보드',
                     itemId: '11',
                     itemName: '검정',
-                    price: { amount: '1234.500', currencyCode: 'KRW' },
-                    thumbnail: null,
+                    price: 1234.5,
                 },
             ],
             pageInfo: { hasNextPage: false, endCursor: null },
@@ -61,6 +61,28 @@ describe('Product search service', () => {
         expect(close).not.toHaveBeenCalled();
     });
 
+    it('reports an expired search session behind a valid cursor as SEARCH_CURSOR_EXPIRED', async () => {
+        const search = vi
+            .fn()
+            .mockResolvedValueOnce({
+                sessionId: 'session-1',
+                nodes: [node('1', '11')],
+                hasNextPage: true,
+                nextSortValues: ['1'],
+            })
+            .mockRejectedValueOnce(new ProductSearchSessionExpiredError());
+        const service = new ProductSearchService({ isAvailable: () => true, search, close: vi.fn() }, 'test-secret');
+        const firstPage = await service.search({ first: 1 });
+
+        await expect(service.search({ first: 1, after: firstPage.pageInfo.endCursor })).rejects.toMatchObject({
+            code: 'SEARCH_CURSOR_EXPIRED',
+            message: 'Search cursor has expired',
+        });
+        expect(search).toHaveBeenLastCalledWith(
+            expect.objectContaining({ sessionId: 'session-1', searchAfter: ['1'] })
+        );
+    });
+
     it('closes a returned PIT when an invalid continuation cannot become a cursor', async () => {
         const close = vi.fn().mockResolvedValue(undefined);
         const search = vi.fn().mockResolvedValue({
@@ -83,7 +105,6 @@ function node(productId: string, itemId: string): ProductSearchNode {
         name: '키보드',
         itemId,
         itemName: '검정',
-        price: { amount: '1234.500', currencyCode: 'KRW' },
-        thumbnail: null,
+        price: 1234.5,
     };
 }

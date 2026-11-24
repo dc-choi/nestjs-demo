@@ -2,21 +2,23 @@ import { Injectable, Logger } from '@nestjs/common';
 
 import { buildOpenSearchProductRequest } from './product-search-query.compiler.js';
 
-import { ProductSearchCursorExpiredError } from '~/api/search/application/product-search-cursor-expired.error.js';
+import { ProductSearchSessionExpiredError } from '~/api/search/application/product-search-session-expired.error.js';
 import { ProductSearchUnavailableError } from '~/api/search/application/product-search-unavailable.error.js';
 import {
     ProductSearchBackendRequest,
+    ProductSearchNode,
     ProductSearchPage,
     ProductSearchPort,
 } from '~/api/search/application/product-search.port.js';
 import { ProductSearchItemDocument } from '~/api/search/domain/product-search.document.js';
-import { SearchSortValue } from '~/api/search/domain/product-search.query.js';
+import { CanonicalProductSearchInput, SearchSortValue } from '~/api/search/domain/product-search.query.js';
 import { getCurrentRequestId } from '~/global/common/context/request-context.js';
 import { OpenSearchHttpError } from '~/infra/opensearch/opensearch-http.error.js';
 import { OpenSearchHttpClient, escapeOpenSearchPathSegment } from '~/infra/opensearch/opensearch.client.js';
 import { SearchConfig } from '~/infra/opensearch/search.config.js';
 
 interface OpenSearchProductHit {
+    _id?: unknown;
     _source?: {
         productId?: unknown;
         slug?: unknown;
@@ -64,18 +66,13 @@ export class OpenSearchProductSearchAdapter implements ProductSearchPort {
         }
 
         const ownsPointInTime = request.sessionId === null;
-        let pitId = request.sessionId ?? (await this.openPointInTime());
+        let pitId = request.sessionId ?? (await this.openReadPointInTime());
         try {
-            const response = await this.client.request<OpenSearchProductSearchResponse>('POST', '/_search', {
-                query: { allow_partial_search_results: false },
-                body: buildOpenSearchProductRequest(request.input, pitId, request.searchAfter ?? undefined),
-            });
+            const response = await this.searchPointInTime(
+                buildOpenSearchProductRequest(request.input, pitId, request.searchAfter ?? undefined)
+            );
             pitId = response.pit_id ?? pitId;
-            if (response.timed_out === true || (response._shards?.failed ?? 0) > 0) {
-                throw new Error('OpenSearch Search response was incomplete');
-            }
-            const hits = response.hits?.hits;
-            if (!Array.isArray(hits)) throw new Error('OpenSearch Search response did not contain hits');
+            const hits = completeHits(response);
             const hasNextPage = hits.length > request.input.first;
             const pageHits = hits.slice(0, request.input.first);
             const nodes = pageHits.map(toProductSearchNode);
@@ -90,8 +87,30 @@ export class OpenSearchProductSearchAdapter implements ProductSearchPort {
             };
         } catch (error) {
             if (ownsPointInTime || pitId !== request.sessionId) await this.close(pitId);
-            if (request.sessionId && isExpiredPointInTimeError(error)) throw new ProductSearchCursorExpiredError();
+            if (request.sessionId && isExpiredPointInTimeError(error)) throw new ProductSearchSessionExpiredError();
             throw this.unavailable(error);
+        }
+    }
+
+    /**
+     * Returns the top `input.first` product IDs from an explicit index or alias with the same query and
+     * completeness checks as search(). Relevance evaluation uses it; errors are not converted to port errors.
+     */
+    async searchProductIds(indexOrAlias: string, input: CanonicalProductSearchInput): Promise<string[]> {
+        let pitId = await this.openPointInTime(indexOrAlias);
+        try {
+            const response = await this.searchPointInTime({
+                ...buildOpenSearchProductRequest(input, pitId),
+                size: input.first,
+                _source: false,
+            });
+            pitId = response.pit_id ?? pitId;
+            return completeHits(response).map(({ _id }) => {
+                if (typeof _id !== 'string') throw new Error('OpenSearch product hit did not contain an ID');
+                return _id;
+            });
+        } finally {
+            await this.close(pitId);
         }
     }
 
@@ -106,20 +125,31 @@ export class OpenSearchProductSearchAdapter implements ProductSearchPort {
         }
     }
 
-    private async openPointInTime(): Promise<string> {
+    private async openReadPointInTime(): Promise<string> {
         try {
-            const response = await this.client.request<OpenPointInTimeResponse>(
-                'POST',
-                `/${escapeOpenSearchPathSegment(this.config.readAlias)}/_search/point_in_time`,
-                { query: { keep_alive: '1m' } }
-            );
-            if (typeof response.pit_id !== 'string' || response.pit_id === '') {
-                throw new Error('OpenSearch did not return a point-in-time ID');
-            }
-            return response.pit_id;
+            return await this.openPointInTime(this.config.readAlias);
         } catch (error) {
             throw this.unavailable(error);
         }
+    }
+
+    private async openPointInTime(indexOrAlias: string): Promise<string> {
+        const response = await this.client.request<OpenPointInTimeResponse>(
+            'POST',
+            `/${escapeOpenSearchPathSegment(indexOrAlias)}/_search/point_in_time`,
+            { query: { keep_alive: '1m' } }
+        );
+        if (typeof response.pit_id !== 'string' || response.pit_id === '') {
+            throw new Error('OpenSearch did not return a point-in-time ID');
+        }
+        return response.pit_id;
+    }
+
+    private searchPointInTime(body: Record<string, unknown>): Promise<OpenSearchProductSearchResponse> {
+        return this.client.request<OpenSearchProductSearchResponse>('POST', '/_search', {
+            query: { allow_partial_search_results: false },
+            body,
+        });
     }
 
     private unavailable(error: unknown): ProductSearchUnavailableError {
@@ -134,7 +164,17 @@ export class OpenSearchProductSearchAdapter implements ProductSearchPort {
     }
 }
 
-function toProductSearchNode(hit: OpenSearchProductHit) {
+/** Call after taking the response PIT ID so that a rejected page still closes its rotated PIT. */
+function completeHits(response: OpenSearchProductSearchResponse): OpenSearchProductHit[] {
+    if (response.timed_out === true || (response._shards?.failed ?? 0) > 0) {
+        throw new Error('OpenSearch Search response was incomplete');
+    }
+    const hits = response.hits?.hits;
+    if (!Array.isArray(hits)) throw new Error('OpenSearch Search response did not contain hits');
+    return hits;
+}
+
+function toProductSearchNode(hit: OpenSearchProductHit): ProductSearchNode {
     const source = hit._source;
     const item = hit.inner_hits?.selected_item?.hits?.hits?.[0]?._source;
     if (
@@ -156,8 +196,7 @@ function toProductSearchNode(hit: OpenSearchProductHit) {
         name: source.name,
         itemId: item.itemId,
         itemName: item.name,
-        price: { amount: price.toFixed(3), currencyCode: 'KRW' },
-        thumbnail: null,
+        price,
     };
 }
 

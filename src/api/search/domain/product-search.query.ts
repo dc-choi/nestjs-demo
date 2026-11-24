@@ -1,7 +1,7 @@
-import { ProductSearchContractError } from './product-search-contract.error.js';
+import { ProductSearchInputError } from './product-search-input.error.js';
 import { ProductSearchSort } from './product-search-sort.js';
 
-import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { PRODUCT_ITEM_SKU_MAX_LENGTH } from '~/api/catalog/domain/product.rules.js';
 
 export interface ProductOptionFilter {
@@ -34,28 +34,11 @@ export interface CanonicalProductSearchInput {
 
 export type SearchSortValue = string | number | null;
 
-export interface DecodedSearchCursor {
-    pitId: string;
-    sortValues: SearchSortValue[];
-    fingerprint: string;
-}
-
 const OPTION_CODE_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 const CATEGORY_SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,253}[a-z0-9])?$/;
 const PRICE_PATTERN = /^(?:0|[1-9]\d{0,6})(?:\.\d{1,3})?$/;
 const VALID_SORTS = new Set<ProductSearchSort>(Object.values(ProductSearchSort));
-const CURSOR_VERSION = 1;
-const CURSOR_TTL_MS = 60_000;
-const MAX_CURSOR_LENGTH = 8_192;
 const MAX_OPTION_FILTERS = 20;
-
-interface SearchCursorPayload {
-    v: number;
-    p: string;
-    s: SearchSortValue[];
-    f: string;
-    e: number;
-}
 
 export function canonicalizeProductSearchInput(input: ProductSearchInput): CanonicalProductSearchInput {
     const query = normalizeQuery(input.query);
@@ -92,58 +75,6 @@ export function canonicalizeProductSearchInput(input: ProductSearchInput): Canon
 
 export function fingerprintProductSearchInput(input: CanonicalProductSearchInput): string {
     return createHash('sha256').update(JSON.stringify(input)).digest('base64url');
-}
-
-export function encodeSearchCursor(
-    pitId: string,
-    sortValues: SearchSortValue[],
-    fingerprint: string,
-    secret: string,
-    now = Date.now()
-): string {
-    const payload: SearchCursorPayload = {
-        v: CURSOR_VERSION,
-        p: pitId,
-        s: sortValues,
-        f: fingerprint,
-        e: now + CURSOR_TTL_MS,
-    };
-    const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url');
-    const signature = signCursor(encoded, secret);
-    return `${encoded}.${signature}`;
-}
-
-export function decodeSearchCursor(cursor: string, secret: string, now = Date.now()): DecodedSearchCursor {
-    if (cursor.length > MAX_CURSOR_LENGTH) invalidCursor();
-    const parts = cursor.split('.');
-    if (parts.length !== 2 || !parts[0] || !parts[1]) invalidCursor();
-    const [encoded, signature] = parts as [string, string];
-    const expected = signCursor(encoded, secret);
-    const suppliedBytes = Buffer.from(signature, 'base64url');
-    const expectedBytes = Buffer.from(expected, 'base64url');
-    if (suppliedBytes.length !== expectedBytes.length || !timingSafeEqual(suppliedBytes, expectedBytes))
-        invalidCursor();
-
-    let payload: unknown;
-    try {
-        payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8'));
-    } catch {
-        invalidCursor();
-    }
-    if (!isSearchCursorPayload(payload)) invalidCursor();
-    if (payload.e <= now) {
-        throw new ProductSearchContractError('SEARCH_CURSOR_EXPIRED', 'Search cursor has expired');
-    }
-    return { pitId: payload.p, sortValues: payload.s, fingerprint: payload.f };
-}
-
-export function assertSearchCursorFingerprint(cursor: DecodedSearchCursor, fingerprint: string): void {
-    if (cursor.fingerprint !== fingerprint) {
-        throw new ProductSearchContractError(
-            'SEARCH_CURSOR_MISMATCH',
-            'Search cursor does not match the current search input'
-        );
-    }
 }
 
 function normalizeQuery(value: string | null | undefined): string | null {
@@ -187,36 +118,6 @@ function toScaledPrice(value: string): bigint {
     return BigInt(value.replace('.', ''));
 }
 
-function signCursor(encodedPayload: string, secret: string): string {
-    return createHmac('sha256', secret).update(encodedPayload).digest('base64url');
-}
-
-function isSearchCursorPayload(value: unknown): value is SearchCursorPayload {
-    if (!value || typeof value !== 'object') return false;
-    const candidate = value as Partial<SearchCursorPayload>;
-    return (
-        candidate.v === CURSOR_VERSION &&
-        typeof candidate.p === 'string' &&
-        candidate.p.length > 0 &&
-        candidate.p.length <= 4_096 &&
-        typeof candidate.f === 'string' &&
-        candidate.f.length > 0 &&
-        candidate.f.length <= 128 &&
-        Number.isSafeInteger(candidate.e) &&
-        Array.isArray(candidate.s) &&
-        candidate.s.length > 0 &&
-        candidate.s.length <= 10 &&
-        candidate.s.every(
-            (entry) =>
-                entry === null || typeof entry === 'string' || (typeof entry === 'number' && Number.isFinite(entry))
-        )
-    );
-}
-
 function invalidInput(message: string): never {
-    throw new ProductSearchContractError('INVALID_SEARCH_INPUT', message);
-}
-
-function invalidCursor(): never {
-    throw new ProductSearchContractError('INVALID_SEARCH_CURSOR', 'Search cursor is invalid');
+    throw new ProductSearchInputError(message);
 }
