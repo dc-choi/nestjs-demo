@@ -95,8 +95,21 @@ OrderEntity.expireReservations(...)
 OrderItemEntity.create(...)
 OrderItemSnapshotEntity.capture(...)
 InventoryReservationEntity.reserve(...)
+InventoryReservationEntity.isConsumableAt(...)
+InventoryReservationEntity.consume(...)
+InventoryReservationEntity.release(...)
+InventoryReservationEntity.expire(...)
 PaymentAttemptEntity.create(...)
+PaymentAttemptEntity.capture(...)
+PaymentAttemptEntity.fail(...)
+PaymentAttemptEntity.isFullRefund(...)
+PaymentAttemptEntity.refund(...)
 FulfillmentEntity.create(...)
+FulfillmentEntity.pack(...)
+FulfillmentEntity.ship(...)
+FulfillmentEntity.cancel(...)
+ItemEntity.retire(...)
+ItemEntity.revive()
 ProductEntity.create(...)
 ProductEntity.applyChanges(...)
 ProductEntity.restoreFrom(...)
@@ -107,6 +120,20 @@ ProductEntity.assertSaleableWhenActive()
 
 Aggregate 내부의 합법적 상태 전이와 계산은 Entity 행동으로 두고, 여러 aggregate와 외부 저장소를
 조율하는 Catalog/Order/Inventory/Payment/Fulfillment/Search 유스케이스는 Service에 둡니다.
+
+Entity는 자기 상태 전이 위반을 모듈 `domain/`의 충돌 에러(`OrderCancellationConflict`,
+`FulfillmentConflict`, `InventoryReservationConflict`, `PaymentAttemptConflict`)로, 입력 범위 위반을
+`RangeError`로 던지고, Service는 이를 각각 HTTP 409와 400으로 번역합니다. 오류 우선순위를 지키려고 다른
+aggregate 검사보다 먼저 알려야 하는 규칙은 상태를 바꾸지 않는 Entity 검사 메서드
+(`PaymentAttemptEntity.assertCapturable`, `InventoryReservationEntity.assertRestorable`,
+`FulfillmentEntity.assertShippingInfo`/`assertDistinctAllocations`)로 노출하고 Service가 먼저 호출합니다.
+같은 요청의 재실행(멱등성 키, 원장)은 Service가 판정합니다. 이미 도달한 상태로의 재요청은
+`FulfillmentEntity`의 전이, `PaymentAttemptEntity.cancel`, `InventoryReservationEntity.consume`이 변경 없이
+`false`를 돌려주고, `PaymentAttemptEntity.capture`/`fail`과 `InventoryReservationEntity.release`/`expire`는
+종료된 상태로의 새 전이를 거절합니다. `FulfillmentService`의 `deliver`/`cancel`은 여러 aggregate를 함께
+판정하므로 상태 사전 검사를 Service에 둡니다. `OrderEntity.transition`은 허용되지 않은 전이를
+`OrderTransitionConflict`로 거절하고, 주문 취소와 만료는 연쇄로 부르는 결제 시도, 배송, 주문 전이의 충돌을 함께
+409로 번역합니다.
 
 Entity에 두지 않는 예:
 
@@ -214,19 +241,29 @@ append-only 감사 이력입니다. 이 경계는 다음과 같이 고정합니�
 `ProductSnapshotEntity`와 검색 Outbox 삽입을 함께 완료합니다. Seller는 자기 상품만 변경할 수 있고
 Admin은 전체 상품을 관리할 수 있습니다.
 
-Catalog 규칙은 세 곳에 역할별로 둡니다. `ProductEntity`는 생성 factory, slug/이름/설명 정규화, 상태 값
-검증, `ACTIVE` 상품의 판매 가능 Item 불변식, Snapshot 복원 적용과 soft delete 전이를 소유합니다.
-`CatalogGraph`는 옵션, Item, 카테고리, 태그 graph 규칙을 검증하고, command Service는 transaction,
-row lock, 권한, `expectedRevision`, Snapshot schema version과 Outbox 조율을 담당합니다. 변경 사유 길이와
-입력 revision 값처럼 command 입력 자체에 대한 검증도 Service에 둡니다.
+Catalog 규칙은 역할별로 둡니다. `ProductEntity`는 생성 factory, slug/이름/설명 정규화, 상태 값
+검증, `ACTIVE` 상품의 판매 가능 Item 불변식, Snapshot 복원 적용과 soft delete 전이를 소유하고,
+`ItemEntity`는 Item soft delete(`retire`)와 되살리기(`revive`)를 소유합니다. `CatalogGraph`는 입력
+graph의 옵션, Item, 카테고리, 태그 규칙을 검증하고, 같은 domain의 `resolveOptions`/`resolveItems`
+(`catalog-graph-resolution.ts`)는 검증된 graph를 live 옵션/Item 행과 대조해 옵션/값 중복 연결, 다른
+상품 Item ID, 기존 Item SKU 변경을 거절합니다. Catalog writer는 DB 조회가 필요한 카테고리 존재/활성
+검증과 ORM staging/적용만 맡습니다. command Service는 transaction, row lock, 권한, `expectedRevision`,
+Snapshot schema version과 Outbox 조율을 담당합니다. 변경 사유 길이와 입력 revision 값처럼 command 입력
+자체에 대한 검증도 Service에 둡니다.
 도메인 규칙 위반은 `ProductRuleError`와 `CatalogGraphError`로 던지고 Service가 HTTP 400으로 번역합니다.
+지원하지 않는 Snapshot schema version과 이력 조회 limit 범위는 application 에러
+(`UnsupportedProductSnapshotSchema`, `InvalidProductSnapshotLimit`)이며 같은 400을 반환합니다.
+공개 `Money`는 presentation mapper가 read result의 decimal 문자열과 `PRODUCT_CURRENCY_CODE`로 조합합니다.
+모든 모듈의 `Money.amount`는 `global/graphql/money-amount.ts`의 `formatMoneyAmount`로 소수 셋째 자리 표기를 맞춥니다.
 
 ### Member/Auth
 
 `MemberType`은 `hashedPassword`, soft delete와 내부 relation을 공개하지 않기 위해 분리합니다.
 비밀번호 hashing, token 발급과 최초 로그인 조건부 갱신은 설정, repository와 DB 원자 연산이 필요하므로
 Service 책임입니다. 새 비밀번호는 사용자별 salt를 가진 비동기 scrypt로 저장하고, 기존 HMAC은
-로그인 성공 시 조건부 갱신으로 이관합니다. Refresh token은 해시로 저장하며 Redis Lua가 소비/회전과
+로그인 성공 시 조건부 갱신으로 이관합니다. 이 조건부 hash 갱신은 hash를 소유한 `member`의
+`MemberService.upgradePasswordHash`가 하고, `auth`는 로그인 요청 제한, 검증과 `lastLoginAt` 기록만 합니다.
+Refresh token은 해시로 저장하며 Redis Lua가 소비/회전과
 재사용 차단을 원자적으로 처리합니다. Member 상태 전이가 실제로 추가되기 전에는 억지로 rich Entity 메서드를 만들지
 않습니다.
 
@@ -236,7 +273,9 @@ OpenSearch document는 MySQL Entity의 복사본이나 GraphQL 타입이 아닙�
 model이며 별도 projection mapper가 생성합니다. 검색 GraphQL 타입도 Entity를 직접 반환하지 않습니다.
 전체 rebuild는 MySQL live Catalog를 batch로 읽고 검증 뒤 Alias를 전환합니다. 증분 경로는 Catalog
 transaction의 Outbox를 relay해 external version으로 쓰며, reconciliation이 누락/오래됨/초과 문서를
-대조합니다.
+대조합니다. 검색 port는 숫자 가격 같은 read 데이터만 반환하고, 공개 `Money`와 썸네일 표현은
+presentation mapper가 만듭니다. 카테고리 조상의 노출 판정(활성, 미삭제)도 reader가 아니라 Projector가
+합니다.
 
 ## 피해야 할 구조
 
@@ -268,8 +307,9 @@ object의 중복을 줄일 때만 검토합니다.
 
 1. 이 문서와 [애플리케이션 레이어 원칙](layering.md)을 설계 정본으로 사용합니다.
 2. Order를 rich MikroORM aggregate로 전환하고 중복 `Order`/`OrderLine`을 제거했습니다.
-3. Catalog 규칙은 `ProductEntity`(scalar 규칙과 ACTIVE 불변식), `CatalogGraph`(graph 규칙), command
-   Service(transaction, 권한, revision 조율)에 역할별로 배치했습니다.
+3. Catalog 규칙은 `ProductEntity`(scalar 규칙과 ACTIVE 불변식), `ItemEntity`(Item soft delete 전이),
+   `CatalogGraph`와 `resolveOptions`/`resolveItems`(graph 규칙), command Service(transaction, 권한,
+   revision 조율)에 역할별로 배치했습니다.
 4. OpenSearch document와 검색 GraphQL 타입은 별도 read model로 구현했습니다.
 
 새 계층이나 타입을 추가할 때는 먼저 다음을 확인합니다.

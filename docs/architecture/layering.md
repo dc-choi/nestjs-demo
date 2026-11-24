@@ -98,7 +98,8 @@ export class MemberService {
 
 ```text
 MemberResolver -> MemberService -> EntityRepository<MemberEntity>
-AuthResolver   -> AuthService   -> EntityRepository<MemberEntity>
+AuthResolver   -> AuthService   -> LoginRateLimiter(Redis) + EntityRepository<MemberEntity>
+                                -> MemberService.upgradePasswordHash (hash 갱신은 member 소유)
 ProductResolver -> ProductService -> EntityRepository<ProductEntity>
 OrderResolver  -> OrderService  -> EntityManager + EntityRepository<ItemEntity/MemberEntity>
                                 -> @Transactional RequestContext transaction
@@ -106,7 +107,9 @@ OrderResolver  -> OrderService  -> EntityManager + EntityRepository<ItemEntity/M
 
 Catalog의 일반 조회와 주문은 live `ProductEntity`/`ItemEntity` graph를 사용합니다.
 `ProductSnapshotEntity`는 감사와 복원을 위한 추가 전용 변경 이력이므로, 해당 기능을 구현하는
-전용 Service 이외의 일반 Query/Mutation Service가 조회하거나 FK로 참조하지 않습니다.
+전용 Service 이외의 일반 Query/Mutation Service가 조회하거나 FK로 참조하지 않습니다. 이력 조회는
+`ProductSnapshotService`, 과거 revision 복원(`restore`)은 `ProductCommandService`가 전용으로 맡습니다.
+일반 조회가 감사 행을 populate하지 않도록 `ProductEntity`에는 Snapshot 역방향 collection을 두지 않습니다.
 
 이 원칙은 계층 수를 최소화하기 위한 기본값입니다. 중복과 불변식이라는 실제 근거가 생기면 그때 구조를
 추가합니다.

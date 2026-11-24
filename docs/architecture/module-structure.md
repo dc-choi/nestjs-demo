@@ -18,8 +18,11 @@ src/
 - 특정 도메인만 쓰는 코드는 `infra/`나 `global/`에 두지 않고 그 도메인 모듈 안에 둡니다.
 - `infra/`는 기술 연결, 설정, 외부 발송 handler(mail)만 담고 도메인 규칙과 Entity를 담지 않습니다.
   예외: `infra/database/seeders/`는 개발용 데이터 적재를 위해 도메인 Service를 직접 조립합니다.
+  `@Transactional()` Service는 `em.fork({ useContext: true })`로 조립해야 transaction 안에서 조회와 잠금을 합니다.
+  `infra/mail`은 발송 handler와 템플릿(`infra/mail/templates/`)을 함께 둡니다.
 - `global/`에는 여러 모듈이 쓰는 횡단 관심사만 둡니다. `global/jwt`는 모든 Resolver가 쓰는 guard,
-  decorator, JWT 검증 strategy, 공유 claims 타입(`payload/`)과 `Unauthorized` 에러를 담습니다. 토큰 발급과 갱신(`TokenProvider`)은 `auth`가 소유합니다.
+  decorator, JWT 검증 strategy, 서명과 검증이 함께 쓰는 secret 해석(`jwt-secret.ts`, `JWT_SECRET ?? SECRET`),
+  공유 claims 타입(`payload/`)과 `Unauthorized` 에러를 담습니다. 토큰 발급과 갱신(`TokenProvider`)은 `auth`가 소유합니다.
 
 ## 도메인 모듈 구조
 
@@ -42,17 +45,17 @@ src/api/{domain}/
 
 현재 도메인 모듈은 다음과 같습니다.
 
-| 모듈             | 역할                                                                   |
-| ---------------- | ---------------------------------------------------------------------- |
-| `member`         | 회원 계정, 역할, 비밀번호 hash                                         |
-| `auth`           | 로그인, 토큰 발급과 갱신(Redis), 로그인 요청 제한                      |
-| `catalog`        | 상품, Item, 옵션, 카테고리, 상품 변경 이력                             |
-| `inventory`      | 재고 예약과 재고 원장                                                  |
-| `order`          | 주문 생성, 취소, 만료                                                  |
-| `payment`        | 결제 시도, 매입, 환불, webhook                                         |
-| `fulfillment`    | 포장과 배송                                                            |
-| `search`         | Catalog의 OpenSearch read model, outbox 동기화, 재색인, 검색 Query     |
-| `recommendation` | 집계된 rec_* 테이블과 검색 index로 추천 후보 조회(GraphQL API는 이후) |
+| 모듈             | 역할                                                                    |
+| ---------------- | ----------------------------------------------------------------------- |
+| `member`         | 회원 계정, 역할, 비밀번호 hash                                          |
+| `auth`           | 로그인, 토큰 발급과 갱신(Redis), 로그인 요청 제한                       |
+| `catalog`        | 상품, Item, 옵션, 카테고리, 상품 변경 이력                              |
+| `inventory`      | 재고 예약과 재고 원장                                                   |
+| `order`          | 주문 생성, 취소, 만료, 주문용 분산락(Redlock, `infrastructure/`)        |
+| `payment`        | 결제 시도, 매입, 환불, webhook                                          |
+| `fulfillment`    | 포장과 배송                                                             |
+| `search`         | Catalog의 OpenSearch read model, outbox 동기화, 재색인, 검색 Query      |
+| `recommendation` | 집계된 rec\_\* 테이블과 검색 index로 추천 후보 조회(GraphQL API는 이후) |
 
 ## 레이어 의존 방향
 
@@ -96,17 +99,20 @@ DI 토큰을 씁니다. 예: `payment` webhook Controller는 `PAYMENT_WEBHOOK_SI
 1. **Domain 참조**: 다른 모듈의 `domain/`(Entity, enum, 순수 상수)은 ORM relation, 조회 대상, port
    시그니처와 검증에 사용할 수 있습니다. 다른 모듈 Entity의 필드는 그 필드를 소유한 모듈만 바꿉니다.
    예: `ItemEntity.stock`은 `catalog` Entity에 있지만 `inventory`가 소유하고 변경합니다. ORM 양방향
-   relation collection 동기화는 예외입니다.
+   relation collection 동기화는 예외입니다. 소유 모듈 Entity가 공개한 상태 전이 메서드 호출은 허용하고
+   필드 직접 대입은 금지합니다. 예: payment/fulfillment의 `OrderEntity.transition()`, `OrderEntity`의
+   `PaymentAttemptEntity.cancel()`/`FulfillmentEntity.cancel()`. `MemberEntity.hashedPassword`는 `member`가
+   (`MemberService.upgradePasswordHash`), 로그인 기록인 `lastLoginAt`은 `auth`가 소유합니다.
 2. **공개 Service 호출(기본)**: 제공 모듈이 `exports`로 공개한 application Service를 소비 모듈이 Nest
    `imports`로 가져와 주입합니다. 그 Service의 result 타입과 에러 class도 import할 수 있습니다.
-   예: `auth`가 `member`의 `PasswordService`를 사용합니다.
+   예: `auth`가 `member`의 `PasswordService`와 `MemberService.upgradePasswordHash`를 사용합니다.
 3. **Port(의존 역전)**: 다음 중 하나일 때 소비 모듈이 `application/*.port.ts`에 필요한 연산만 정의하고,
    소비 모듈의 `*.module.ts`에서 제공 모듈 구현에 바인딩합니다.
-   - 직접 의존하면 모듈 순환이 생기거나 의존 방향이 뒤집힐 때.
-     예: `catalog`가 `CATALOG_WRITE_EFFECTS`를 정의하고 `search`가 구현합니다. `search`는 `catalog`를 읽는
-     하위 read model이므로 `catalog`가 `search` Service를 알면 안 됩니다.
-   - 호출자 transaction에 참여하는 계약을 소비자 쪽에서 고정해야 할 때.
-     예: `order`와 `payment`의 inventory port가 `InventoryService`에 `useExisting`으로 바인딩됩니다.
+    - 직접 의존하면 모듈 순환이 생기거나 의존 방향이 뒤집힐 때.
+      예: `catalog`가 `CATALOG_WRITE_EFFECTS`를 정의하고 `search`가 구현합니다. `search`는 `catalog`를 읽는
+      하위 read model이므로 `catalog`가 `search` Service를 알면 안 됩니다.
+    - 호출자 transaction에 참여하는 계약을 소비자 쪽에서 고정해야 할 때.
+      예: `order`와 `payment`의 inventory port가 `InventoryService`에 `useExisting`으로 바인딩됩니다.
 4. **도메인 이벤트**: 결과를 기다리지 않는 후속 처리는 발행 모듈의 `application/event/*.event.ts`와
    `@nestjs/cqrs` EventBus를 사용하고, handler는 반응하는 쪽에 둡니다. 예: `member`의 `SignupEvent`를 `infra/mail` handler가 받아 메일을 보냅니다.
 5. **GraphQL 타입 재사용**: GraphQL schema는 하나이므로 `presentation/`은 다른 모듈의 GraphQL
@@ -131,7 +137,7 @@ Read model 모듈(`search`, `recommendation`)은 다른 도메인 테이블을 r
 ## 현재 모듈 의존 관계
 
 ```text
-auth           -> member (PasswordService)
+auth           -> member (PasswordService, MemberService.upgradePasswordHash)
 order          -> inventory (ORDER_INVENTORY_PORT -> InventoryService)
 payment        -> inventory (PAYMENT_INVENTORY_PORT -> InventoryService)
 catalog        -> search (CATALOG_WRITE_EFFECTS -> catalogSearchWriteEffects, 바인딩만)
