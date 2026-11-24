@@ -7,13 +7,12 @@ import { ProductCategoryEntity } from './product-category.entity.js';
 import { ProductMediaEntity } from './product-media.entity.js';
 import { ProductOptionEntity } from './product-option.entity.js';
 import type { ProductSnapshotPayload } from './product-snapshot-payload.js';
-import { ProductSnapshotEntity } from './product-snapshot.entity.js';
 import { ProductStatus } from './product-status.js';
 import { ProductTagEntity } from './product-tag.entity.js';
 
+import { ProductRuleError } from '~/api/catalog/domain/product-rule.error.js';
 import {
     PRODUCT_NAME_MAX_LENGTH,
-    ProductRuleError,
     normalizeNullableText,
     normalizeRequiredText,
     normalizeSlug,
@@ -47,7 +46,8 @@ function assertProductStatus(status: ProductStatus): ProductStatus {
  * 현재 판매 상태의 권위 원본인 Product aggregate root다.
  * Item, 옵션, 카테고리, 미디어와 태그 graph를 소유하며 감사 Snapshot은 이를 대체하지 않는다.
  * scalar 필드 정규화, 상태 값 검증과 ACTIVE 상품의 판매 가능 Item 불변식은 이 Entity가 보호하고,
- * graph 규칙은 CatalogGraph가, transaction과 권한, revision 조율은 command Service가 맡는다.
+ * graph 규칙은 CatalogGraph와 live graph 대조(resolveOptions/resolveItems)가,
+ * transaction과 권한, revision 조율은 command Service가 맡는다.
  */
 @Entity({ tableName: 'products' })
 @Index({ name: 'products_seller_id_status_idx', properties: ['seller', 'status'] })
@@ -119,9 +119,6 @@ export class ProductEntity {
 
     @OneToMany({ entity: () => ProductTagEntity, mappedBy: 'product' })
     tags = new Collection<ProductTagEntity>(this);
-
-    @OneToMany({ entity: () => ProductSnapshotEntity, mappedBy: 'product' })
-    snapshots = new Collection<ProductSnapshotEntity>(this);
 
     /** Creates a DRAFT product at revision 1 with every scalar field normalized. */
     static create({ slug, name, description, returnPolicy, seller }: CreateProduct): ProductEntity {

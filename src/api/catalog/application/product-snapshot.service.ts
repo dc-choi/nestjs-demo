@@ -1,10 +1,11 @@
 import { EntityManager, QueryOrder } from '@mikro-orm/core';
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
+import { InvalidProductSnapshotLimit } from './invalid-product-snapshot-limit.error.js';
+
 import { ProductSnapshotChangeType } from '~/api/catalog/domain/entity/product-snapshot-change-type.js';
 import { ProductSnapshotEntity } from '~/api/catalog/domain/entity/product-snapshot.entity.js';
 import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
-import { InvalidProductChange } from '~/api/catalog/domain/invalid-product-change.error.js';
 import { NotExistingProduct } from '~/api/catalog/domain/not-existing-product.error.js';
 import { ProductAccessDenied } from '~/api/catalog/domain/product-access-denied.error.js';
 import { MemberRole } from '~/api/member/domain/entity/member-role.js';
@@ -34,9 +35,7 @@ export class ProductSnapshotService {
         limit = DEFAULT_PRODUCT_SNAPSHOT_LIMIT
     ): Promise<ProductSnapshotHistoryResult[]> {
         if (!Number.isInteger(limit) || limit < 1 || limit > MAX_PRODUCT_SNAPSHOT_LIMIT) {
-            throw new BadRequestException(
-                new InvalidProductChange(`Snapshot limit은 1~${MAX_PRODUCT_SNAPSHOT_LIMIT}입니다.`)
-            );
+            throw new BadRequestException(new InvalidProductSnapshotLimit(MAX_PRODUCT_SNAPSHOT_LIMIT));
         }
 
         const product = await this.em.findOne(

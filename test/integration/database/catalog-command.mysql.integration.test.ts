@@ -168,8 +168,8 @@ async function verifyCatalogRoundTrip(em: EntityManager): Promise<bigint> {
         revision: 3,
         tags: ['keyboard', 'wireless'],
         items: [
-            { sku: blackSku, price: { amount: '88000' }, selectedOptions: expect.any(Array) },
-            { sku: whiteSku, price: { amount: '99000' }, selectedOptions: expect.any(Array) },
+            { sku: blackSku, totalPrice: '88000.000', selectedOptions: expect.any(Array) },
+            { sku: whiteSku, totalPrice: '99000.000', selectedOptions: expect.any(Array) },
         ],
         options: [{ code: 'color' }, { code: 'switch' }],
         categories: [{ id: category.id, slug: category.slug }],

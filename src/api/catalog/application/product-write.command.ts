@@ -9,43 +9,42 @@ export interface CreateProductCommand {
     readonly reason?: string | null;
 }
 
-export interface UpdateProductCommand {
+export interface ProductRevisionCommand {
     readonly productId: bigint;
     readonly expectedRevision: number;
+    readonly reason?: string | null;
+}
+
+export interface UpdateProductCommand extends ProductRevisionCommand {
     readonly slug?: string;
     readonly name?: string;
     readonly description?: string | null;
     readonly returnPolicy?: string | null;
     readonly status?: ProductStatus;
-    readonly reason?: string | null;
 }
 
-export interface DeleteProductCommand {
-    readonly productId: bigint;
-    readonly expectedRevision: number;
-    readonly reason?: string | null;
-}
+export type DeleteProductCommand = ProductRevisionCommand;
 
-export interface RestoreProductCommand extends DeleteProductCommand {
+export interface RestoreProductCommand extends ProductRevisionCommand {
     readonly sourceRevision: number;
 }
 
-export interface ReplaceProductCatalogCommand extends DeleteProductCommand {
+export interface ReplaceProductCatalogCommand extends ProductRevisionCommand {
     readonly options: readonly ReplaceProductOptionCommand[];
     readonly items: readonly ReplaceProductItemCommand[];
     readonly categoryIds: readonly bigint[];
     readonly tags: readonly string[];
 }
 
-export interface CreateProductItemCommand extends DeleteProductCommand {
+export interface CreateProductItemCommand extends ProductRevisionCommand {
     readonly item: Omit<ReplaceProductItemCommand, 'id'> & { readonly id?: never };
 }
 
-export interface UpdateProductItemCommand extends DeleteProductCommand {
+export interface UpdateProductItemCommand extends ProductRevisionCommand {
     readonly item: ReplaceProductItemCommand & { readonly id: bigint };
 }
 
-export interface DeleteProductItemCommand extends DeleteProductCommand {
+export interface DeleteProductItemCommand extends ProductRevisionCommand {
     readonly itemId: bigint;
 }
 

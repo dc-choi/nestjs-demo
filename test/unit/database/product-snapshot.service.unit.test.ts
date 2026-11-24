@@ -92,9 +92,13 @@ describe('ProductSnapshotService', () => {
         await expect(service.findHistory({ memberId: 7n, role: MemberRole.SELLER }, 42n, 10)).rejects.toBeInstanceOf(
             NotFoundException
         );
-        await expect(
-            service.findHistory({ memberId: 7n, role: MemberRole.SELLER }, 42n, MAX_PRODUCT_SNAPSHOT_LIMIT + 1)
-        ).rejects.toBeInstanceOf(BadRequestException);
+        const overLimit = service.findHistory(
+            { memberId: 7n, role: MemberRole.SELLER },
+            42n,
+            MAX_PRODUCT_SNAPSHOT_LIMIT + 1
+        );
+        await expect(overLimit).rejects.toBeInstanceOf(BadRequestException);
+        await expect(overLimit).rejects.toHaveProperty('response.type', 'INVALID_PRODUCT_CHANGE');
     });
 });
 

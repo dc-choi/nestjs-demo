@@ -101,6 +101,24 @@ Product
 `ProductSnapshot`을 join해 현재본을 찾거나, 가장 큰 revision을 읽어 현재 상태로
 사용하지 않습니다. live table 자체가 현재본입니다.
 
+### Item은 soft delete하고 같은 ID로 되살린다
+
+Item은 주문 품목과 재고 원장이 FK로 참조하고 현재 재고를 `Item.stock`에 보유하므로 물리 삭제하지 않습니다.
+모든 Catalog graph 변경(전체 교체, 복원, 개별 Item 생성/수정/삭제)은 결과 graph에 없는 기존 Item을
+`ItemEntity.retire()`로 soft delete합니다. `saleStatus`는 `DENY`가 되고 `deletedAt`은 처음 삭제한 시각을
+유지합니다. 삭제된 행의 SKU, 재고, 마지막 이름과 가격은 그대로 남지만 `sequence`와 `optionSignature`는
+unique 충돌을 피하는 staging 값으로 바뀌고 옵션 선택 행은 제거됩니다.
+
+전체 graph 교체(`replaceProductCatalog`)와 복원(`restoreProduct`)에서 입력 Item의 `id`가 같은 Product의
+soft delete된 Item을 가리키면 새 행을 만들지 않고 그 행을 `ItemEntity.revive()`로 되살립니다.
+
+- SKU와 `stock`은 기존 행의 값을 이어받습니다. 입력 SKU가 기존 SKU와 다르면 거절합니다.
+- 이름, 가격, 면세 여부, 판매 상태, 순서, 옵션 서명과 옵션 선택은 입력값으로 다시 씁니다.
+- 복원은 Snapshot의 Item ID로 이 경로를 타므로 과거 Item이 재고와 주문 이력을 유지한 채 돌아옵니다.
+  Snapshot Item ID가 이 Product의 Item 행(soft delete 포함)에 없으면 복원을 거절합니다.
+- 개별 Item 수정/삭제 command는 삭제되지 않은 Item만 대상으로 하고 Item 생성 command는 ID를 받지 않습니다.
+  따라서 soft delete된 Item을 되살리는 경로는 위 두 command뿐입니다.
+
 ## ProductSnapshot은 append-only 감사 이력이다
 
 `ProductSnapshotEntity`는 정규화된 현재 상태를 대체하지 않습니다. Product의 한 revision을
@@ -262,19 +280,21 @@ DB만으로는 Snapshot append-only, payload와 live graph의 일치, revision�
 
 ### 애플리케이션이 보장해야 하는 것
 
-| 규칙                                                 | 책임                              |
-| ---------------------------------------------------- | --------------------------------- |
-| Product 변경과 revision/Snapshot 삽입의 원자성       | `ProductCommandService`           |
-| Product scalar 정규화, 상태 값 검증, ACTIVE 판매 가능 Item 불변식, 복원 Snapshot의 Product/seller 식별 일치 | `ProductEntity` |
-| Snapshot append-only와 schemaVersion 해석            | Catalog command/이력 Service      |
-| 복원 시 현재 media 연결 보존                         | Catalog command/writer            |
-| payload에 stock 제외                                 | Snapshot projector/factory        |
-| 가격 합계, 면세, required 옵션, optionSignature 검증 | `CatalogGraph`/Catalog writer     |
-| Item/옵션/값의 Product와 옵션 소속 일치              | `CatalogGraph`/Catalog writer     |
-| soft delete 행을 일반 조회에서 제외                  | Query/Command Service             |
-| 주문 가능 Product/Item을 writer에서 조회             | `OrderService`                    |
-| Product/Item 고정 순서 잠금, Item별 합산 검사와 차감 | `OrderService`/`InventoryService` |
-| 주문 Snapshot 복사와 주문 aggregate 함께 저장        | Order rich Entity/transaction     |
+| 규칙                                                                                                        | 책임                                             |
+| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| Product 변경과 revision/Snapshot 삽입의 원자성                                                              | `ProductCommandService`                          |
+| Product scalar 정규화, 상태 값 검증, ACTIVE 판매 가능 Item 불변식, 복원 Snapshot의 Product/seller 식별 일치 | `ProductEntity`                                  |
+| Snapshot append-only와 schemaVersion 해석                                                                   | Catalog command/이력 Service                     |
+| 복원 시 현재 media 연결 보존                                                                                | Catalog command/writer                           |
+| payload에 stock 제외                                                                                        | Snapshot projector/factory                       |
+| 가격 합계, 면세, required 옵션, optionSignature 검증                                                        | `CatalogGraph`                                   |
+| Item/옵션/값의 Product와 옵션 소속 일치, 옵션/값 중복 연결 금지, 기존 Item SKU 불변                         | `CatalogGraph`, `resolveOptions`/`resolveItems`  |
+| 연결할 카테고리의 존재와 활성 여부                                                                          | Catalog writer(DB 조회)                          |
+| soft delete된 Item 되살리기와 재고 보존                                                                     | `resolveItems`, `ItemEntity.retire()`/`revive()` |
+| soft delete 행을 일반 조회에서 제외                                                                         | Query/Command Service                            |
+| 주문 가능 Product/Item을 writer에서 조회                                                                    | `OrderService`                                   |
+| Product/Item 고정 순서 잠금, Item별 합산 검사와 차감                                                        | `OrderService`/`InventoryService`                |
+| 주문 Snapshot 복사와 주문 aggregate 함께 저장                                                               | Order rich Entity/transaction                    |
 
 ## 스키마를 바꿀 때 판단 기준
 
@@ -301,6 +321,8 @@ DB만으로는 Snapshot append-only, payload와 live graph의 일치, revision�
 - [`product.service.ts`](../../src/api/catalog/application/product.service.ts): live canonical Product 조회
 - [`order.service.ts`](../../src/api/order/application/order.service.ts): live Item 검증, 재고 예약과 주문 저장
 - [`product-command.service.ts`](../../src/api/catalog/application/product-command.service.ts): revision/Snapshot/Outbox 원자 저장
+- [`catalog-graph-resolution.ts`](../../src/api/catalog/domain/catalog-graph-resolution.ts): 검증된 graph와 live 옵션/Item 행의 대조 규칙
+- [`product-catalog.writer.ts`](../../src/api/catalog/application/product-catalog.writer.ts): live graph staging, 교체와 Item soft delete/되살리기 적용
 - [`product-snapshot.service.ts`](../../src/api/catalog/application/product-snapshot.service.ts): 권한이 적용된 이력 조회
 - [`order-item-snapshot.entity.ts`](../../src/api/order/domain/entity/order-item-snapshot.entity.ts): 주문 시점 증거
 - [`entities.ts`](../../src/infra/database/entities.ts): 전체 MikroORM Entity 등록 목록

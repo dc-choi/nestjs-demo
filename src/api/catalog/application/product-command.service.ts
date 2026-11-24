@@ -22,12 +22,14 @@ import type {
     CreateProductItemCommand,
     DeleteProductCommand,
     DeleteProductItemCommand,
+    ProductRevisionCommand,
     ProductWriteResult,
     ReplaceProductCatalogCommand,
     RestoreProductCommand,
     UpdateProductCommand,
     UpdateProductItemCommand,
 } from './product-write.command.js';
+import { UnsupportedProductSnapshotSchema } from './unsupported-product-snapshot-schema.error.js';
 
 import { CatalogGraphError } from '~/api/catalog/domain/catalog-graph.error.js';
 import { ProductSnapshotChangeType } from '~/api/catalog/domain/entity/product-snapshot-change-type.js';
@@ -38,12 +40,13 @@ import { InvalidProductChange } from '~/api/catalog/domain/invalid-product-chang
 import { NotExistingProduct } from '~/api/catalog/domain/not-existing-product.error.js';
 import { ProductAccessDenied } from '~/api/catalog/domain/product-access-denied.error.js';
 import { ProductRevisionConflict } from '~/api/catalog/domain/product-revision-conflict.error.js';
+import { ProductRuleError } from '~/api/catalog/domain/product-rule.error.js';
 import {
     PRODUCT_SNAPSHOT_SCHEMA_VERSION,
     createProductSnapshotPayload,
 } from '~/api/catalog/domain/product-snapshot.factory.js';
 import { ProductWriteConflict } from '~/api/catalog/domain/product-write-conflict.error.js';
-import { PRODUCT_REASON_MAX_LENGTH, ProductRuleError } from '~/api/catalog/domain/product.rules.js';
+import { PRODUCT_REASON_MAX_LENGTH } from '~/api/catalog/domain/product.rules.js';
 import { MemberRole } from '~/api/member/domain/entity/member-role.js';
 import { MemberEntity } from '~/api/member/domain/entity/member.entity.js';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload.js';
@@ -162,7 +165,7 @@ export class ProductCommandService {
 
     private async changeCatalog(
         actor: JwtPayload,
-        command: DeleteProductCommand,
+        command: ProductRevisionCommand,
         change: (tx: EntityManager, product: ProductEntity) => Promise<void>
     ): Promise<ProductWriteResult> {
         assertPositiveRevision(command.expectedRevision, '기대 revision');
@@ -204,7 +207,7 @@ export class ProductCommandService {
             });
             if (!source) throw invalidChange('복원할 상품 revision이 없습니다.');
             if (source.schemaVersion !== PRODUCT_SNAPSHOT_SCHEMA_VERSION) {
-                throw invalidChange('지원하지 않는 Snapshot schema version입니다.');
+                throw new BadRequestException(new UnsupportedProductSnapshotSchema());
             }
 
             product.restoreFrom(source.payload.product);

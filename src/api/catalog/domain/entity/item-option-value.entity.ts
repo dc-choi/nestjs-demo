@@ -7,7 +7,7 @@ import { ProductOptionEntity } from './product-option.entity.js';
 
 /**
  * live Item이 각 ProductOption에서 선택한 값을 연결하는 현재 상태 모델이다.
- * Item, option, value는 각각 단일 FK로 안정적으로 로드하고 Product 소속은 Catalog writer가 검증한다.
+ * Item, option, value는 각각 단일 FK로 안정적으로 로드하고 Product 소속은 CatalogGraph와 resolveOptions/resolveItems가 보장한다.
  * unique(Item, option)는 Item이 같은 option에서 둘 이상의 값을 선택하지 못하게 한다.
  */
 @Entity({ tableName: 'item_option_values' })

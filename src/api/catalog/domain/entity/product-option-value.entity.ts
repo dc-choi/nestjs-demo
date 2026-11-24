@@ -6,7 +6,7 @@ import { ProductOptionEntity } from './product-option.entity.js';
 
 /**
  * 한 ProductOption에서 Item이 선택할 수 있는 현재 값이다.
- * option 안에서 code, name, sequence 중복을 막고, Item 선택의 소속 일치는 Catalog writer가 검증한다.
+ * option 안에서 code, name, sequence 중복을 막고, Item 선택의 소속 일치는 CatalogGraph와 resolveOptions가 보장한다.
  */
 @Entity({ tableName: 'product_option_values' })
 @Unique({ name: 'product_option_values_option_id_code_key', properties: ['option', 'code'] })

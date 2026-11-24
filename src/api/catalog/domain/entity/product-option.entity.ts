@@ -7,7 +7,7 @@ import { ProductEntity } from './product.entity.js';
 
 /**
  * live Product의 SKU 조합을 정의하는 옵션 축이다.
- * Product 안에서 code, name, sequence 중복을 막고, Item 선택의 소속 일치는 Catalog writer가 검증한다.
+ * Product 안에서 code, name, sequence 중복을 막고, Item 선택의 소속 일치는 CatalogGraph와 resolveOptions가 보장한다.
  */
 @Entity({ tableName: 'product_options' })
 @Unique({ name: 'product_options_product_id_code_key', properties: ['product', 'code'] })

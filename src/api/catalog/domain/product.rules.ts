@@ -1,3 +1,5 @@
+import { ProductRuleError } from './product-rule.error.js';
+
 export const PRODUCT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const PRODUCT_SLUG_MAX_LENGTH = 255;
 export const PRODUCT_NAME_MAX_LENGTH = 255;
@@ -8,6 +10,8 @@ export const PRODUCT_OPTION_CODE_MAX_LENGTH = 64;
 export const PRODUCT_ITEM_SKU_MAX_LENGTH = 255;
 export const PRODUCT_TAG_MAX_LENGTH = 64;
 export const PRODUCT_PRICE_PATTERN = /^(0|[1-9]\d{0,6})(?:\.\d{1,3})?$/;
+/** Item prices carry no currency column; every catalog price is in this currency. */
+export const PRODUCT_CURRENCY_CODE = 'KRW';
 
 export const PRODUCT_CATALOG_LIMITS = {
     options: 10,
@@ -16,9 +20,6 @@ export const PRODUCT_CATALOG_LIMITS = {
     categories: 20,
     tags: 50,
 } as const;
-
-/** A Product scalar rule was violated. */
-export class ProductRuleError extends Error {}
 
 type RuleViolation = (message: string) => Error;
 

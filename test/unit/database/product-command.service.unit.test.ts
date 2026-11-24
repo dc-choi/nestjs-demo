@@ -213,9 +213,10 @@ describe('ProductCommandService', () => {
         const harness = createHarness({ product, source });
         const service = new ProductCommandService(harness.em, catalogSearchWriteEffects);
 
-        await expect(
-            service.restore(seller, { productId: product.id, expectedRevision: 3, sourceRevision: 1 })
-        ).rejects.toThrow('지원하지 않는 Snapshot schema version입니다.');
+        const restore = service.restore(seller, { productId: product.id, expectedRevision: 3, sourceRevision: 1 });
+        await expect(restore).rejects.toThrow('지원하지 않는 Snapshot schema version입니다.');
+        await expect(restore).rejects.toBeInstanceOf(BadRequestException);
+        await expect(restore).rejects.toHaveProperty('response.type', 'INVALID_PRODUCT_CHANGE');
 
         expect(product.revision).toBe(3);
         expect(harness.persisted).toHaveLength(0);
@@ -374,6 +375,7 @@ describe('ProductCommandService', () => {
 
         const created = product.items.getItems().find(({ sku }) => sku === 'sku-new-white')!;
         expect(created).toMatchObject({ stock: 0, deletedAt: null });
+        expect(whiteItem.deletedAt).toEqual(new Date('2026-09-03T00:00:00.000Z'));
         created.stock = 9;
 
         await service.updateItem(seller, {
@@ -429,6 +431,57 @@ describe('ProductCommandService', () => {
                 ({ productRevision }) => productRevision
             )
         ).toEqual([3, 4, 5]);
+    });
+
+    it('전체 graph 교체는 같은 상품의 soft delete된 Item ID를 SKU와 재고를 유지한 채 되살린다', async () => {
+        const product = createProduct({ revision: 2 });
+        const { blackItem, whiteItem } = attachCatalogGraph(product);
+        whiteItem.retire(new Date('2026-09-03T00:00:00.000Z'));
+        const harness = createHarness({ product });
+        const service = new ProductCommandService(harness.em, catalogSearchWriteEffects);
+
+        await service.replaceCatalog(seller, {
+            productId: product.id,
+            expectedRevision: 2,
+            options: [
+                {
+                    code: 'color',
+                    name: '색상',
+                    isRequired: true,
+                    values: [
+                        { code: 'black', name: '검정' },
+                        { code: 'white', name: '하양' },
+                    ],
+                },
+            ],
+            items: [
+                { item: blackItem, valueCode: 'black' },
+                { item: whiteItem, valueCode: 'white' },
+            ].map(({ item, valueCode }) => ({
+                id: item.id,
+                name: `${valueCode} 셔츠`,
+                supplyPrice: '10000',
+                vat: '1000',
+                isTaxFree: false,
+                saleStatus: ItemSaleStatus.ALLOW,
+                selectedOptions: [{ optionCode: 'color', valueCode }],
+            })),
+            categoryIds: [],
+            tags: [],
+        });
+
+        expect(whiteItem).toMatchObject({
+            sku: 'sku-white',
+            stock: 8,
+            totalPrice: '11000.000',
+            saleStatus: ItemSaleStatus.ALLOW,
+            deletedAt: null,
+        });
+        expect(whiteItem.optionValues.getItems().map(({ value }) => value.code)).toEqual(['white']);
+        expect(persistedOf(ProductSnapshotEntity, harness.persisted).payload.items.map(({ id }) => id)).toEqual([
+            blackItem.id.toString(),
+            whiteItem.id.toString(),
+        ]);
     });
 
     it('기존 서명 형식과 무관하게 같은 옵션 조합의 Item 생성을 거부한다', async () => {

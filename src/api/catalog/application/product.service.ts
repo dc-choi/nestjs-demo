@@ -90,10 +90,7 @@ function toProductReadResult(product: CurrentProductRecord): ProductReadResult {
             id: item.id,
             sku: item.sku,
             name: item.name,
-            price: {
-                amount: normalizeDecimal(item.totalPrice),
-                currencyCode: 'KRW',
-            },
+            totalPrice: item.totalPrice,
             isTaxFree: item.isTaxFree,
             sequence: item.sequence,
             selectedOptions: item.optionValues
@@ -125,12 +122,4 @@ function toProductReadResult(product: CurrentProductRecord): ProductReadResult {
         })),
         tags: tags.map(({ value }) => value),
     };
-}
-
-function normalizeDecimal(value: string): string {
-    const [integer, fraction] = value.split('.');
-    if (fraction === undefined) return value;
-
-    const normalizedFraction = fraction.replace(/0+$/, '');
-    return normalizedFraction ? `${integer}.${normalizedFraction}` : integer;
 }

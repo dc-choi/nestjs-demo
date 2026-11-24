@@ -1,5 +1,7 @@
 import { ProductReadResult } from '~/api/catalog/application/product-read.result.js';
+import { PRODUCT_CURRENCY_CODE } from '~/api/catalog/domain/product.rules.js';
 import { ProductType } from '~/api/catalog/presentation/product.type.js';
+import { formatMoneyAmount } from '~/global/graphql/money-amount.js';
 
 export function toProductType(product: ProductReadResult): ProductType {
     return {
@@ -14,7 +16,7 @@ export function toProductType(product: ProductReadResult): ProductType {
             id: item.id.toString(),
             sku: item.sku,
             name: item.name,
-            price: item.price,
+            price: { amount: formatMoneyAmount(item.totalPrice), currencyCode: PRODUCT_CURRENCY_CODE },
             isTaxFree: item.isTaxFree,
             sequence: item.sequence,
             selectedOptions: item.selectedOptions,

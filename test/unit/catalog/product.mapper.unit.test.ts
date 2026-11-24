@@ -17,7 +17,7 @@ describe('product GraphQL mapper', () => {
                     id: 100n,
                     sku: 'sku-v7',
                     name: '검정 / L',
-                    price: { amount: '12000.5', currencyCode: 'KRW' },
+                    totalPrice: '12000.500',
                     isTaxFree: false,
                     sequence: 0,
                     selectedOptions: [
@@ -42,7 +42,7 @@ describe('product GraphQL mapper', () => {
             items: [
                 {
                     id: '100',
-                    price: { amount: '12000.5', currencyCode: 'KRW' },
+                    price: { amount: '12000.500', currencyCode: 'KRW' },
                     selectedOptions: [{ optionCode: 'color', valueCode: 'black' }],
                 },
             ],

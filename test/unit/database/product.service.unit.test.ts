@@ -70,7 +70,7 @@ describe('ProductService', () => {
             items: [
                 {
                     id: 9007199254740995n,
-                    price: { amount: '12000.5', currencyCode: 'KRW' },
+                    totalPrice: '12000.500',
                     selectedOptions: [
                         { optionCode: 'color', valueCode: 'black' },
                         { optionCode: 'size', valueCode: 'large' },

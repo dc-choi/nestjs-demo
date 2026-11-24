@@ -10,15 +10,14 @@ import type {
 import { createHash } from 'node:crypto';
 import { CatalogGraphChange } from '~/api/catalog/domain/catalog-graph-change.js';
 import {
-    CatalogGraph,
-    type CatalogItem,
-    type CatalogOption,
-    invalidGraph,
-} from '~/api/catalog/domain/catalog-graph.js';
+    type ResolvedItem,
+    type ResolvedOption,
+    resolveItems,
+    resolveOptions,
+} from '~/api/catalog/domain/catalog-graph-resolution.js';
+import { CatalogGraph, invalidGraph } from '~/api/catalog/domain/catalog-graph.js';
 import { CategoryEntity } from '~/api/catalog/domain/entity/category.entity.js';
 import { ItemOptionValueEntity } from '~/api/catalog/domain/entity/item-option-value.entity.js';
-import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status.js';
-import { ItemEntity } from '~/api/catalog/domain/entity/item.entity.js';
 import { ProductCategoryEntity } from '~/api/catalog/domain/entity/product-category.entity.js';
 import { ProductOptionValueEntity } from '~/api/catalog/domain/entity/product-option-value.entity.js';
 import { ProductOptionEntity } from '~/api/catalog/domain/entity/product-option.entity.js';
@@ -27,12 +26,6 @@ import { ProductTagEntity } from '~/api/catalog/domain/entity/product-tag.entity
 import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
 
 const MAX_UNSIGNED_INTEGER = 4_294_967_295;
-
-interface ResolvedOption {
-    readonly input: CatalogOption;
-    readonly entity: ProductOptionEntity;
-    readonly values: readonly { input: CatalogOption['values'][number]; entity: ProductOptionValueEntity }[];
-}
 
 export async function replaceProductCatalogGraph(
     em: EntityManager,
@@ -118,56 +111,6 @@ async function loadCategories(em: EntityManager, categoryIds: readonly bigint[])
     await populateCategoryAncestors(em, categories);
     const byId = new Map(categories.map((category) => [category.id, category]));
     return categoryIds.map((id) => byId.get(id)!);
-}
-
-function resolveOptions(product: ProductEntity, inputs: readonly CatalogOption[]): ResolvedOption[] {
-    const currentById = new Map(product.options.getItems().map((option) => [option.id, option]));
-    const currentByCode = new Map(product.options.getItems().map((option) => [option.code, option]));
-    const usedOptions = new Set<ProductOptionEntity>();
-
-    return inputs.map((input) => {
-        const current = input.id === undefined ? currentByCode.get(input.code) : currentById.get(input.id);
-        const option = current ?? createOption(input.id, product);
-        if (usedOptions.has(option)) throw invalidGraph('하나의 옵션을 중복해서 사용할 수 없습니다.');
-        usedOptions.add(option);
-
-        const currentValuesById = new Map(option.values.getItems().map((value) => [value.id, value]));
-        const currentValuesByCode = new Map(option.values.getItems().map((value) => [value.code, value]));
-        const usedValues = new Set<ProductOptionValueEntity>();
-        const values = input.values.map((valueInput) => {
-            const currentValue =
-                valueInput.id === undefined
-                    ? currentValuesByCode.get(valueInput.code)
-                    : currentValuesById.get(valueInput.id);
-            const value = currentValue ?? createOptionValue(valueInput.id, option);
-            if (usedValues.has(value)) throw invalidGraph('하나의 옵션 값을 중복해서 사용할 수 없습니다.');
-            usedValues.add(value);
-            return { input: valueInput, entity: value };
-        });
-
-        return { input, entity: option, values };
-    });
-}
-
-function resolveItems(
-    product: ProductEntity,
-    inputs: readonly CatalogItem[],
-    requireExistingItems: boolean
-): Array<{ input: CatalogItem; entity: ItemEntity }> {
-    const currentById = new Map(product.items.getItems().map((item) => [item.id, item]));
-
-    return inputs.map((input) => {
-        const current = input.id === undefined ? undefined : currentById.get(input.id);
-        if (input.id !== undefined && !current) throw invalidGraph('이 상품에 속하지 않는 Item이 있습니다.');
-        if (requireExistingItems && !current) {
-            throw invalidGraph('재고를 확인할 수 없는 과거 Item은 복원할 수 없습니다.');
-        }
-        if (current && input.sku !== undefined && current.sku !== input.sku) {
-            throw invalidGraph('기존 Item의 SKU는 변경할 수 없습니다.');
-        }
-
-        return { input, entity: current ?? createItem(product, input.sku) };
-    });
 }
 
 function resolveCategories(product: ProductEntity, categories: readonly CategoryEntity[]) {
@@ -385,22 +328,15 @@ function applyCategoriesAndTags(
     );
 }
 
-function applyItems(
-    em: EntityManager,
-    product: ProductEntity,
-    resolvedItems: readonly { input: CatalogItem; entity: ItemEntity }[]
-): void {
+function applyItems(em: EntityManager, product: ProductEntity, resolvedItems: readonly ResolvedItem[]): void {
     const allItems = product.items.getItems();
     const retainedItems = new Set(resolvedItems.map(({ entity }) => entity));
     const now = new Date();
-    allItems
-        .filter((item) => !retainedItems.has(item))
-        .forEach((item) => {
-            item.saleStatus = ItemSaleStatus.DENY;
-            item.deletedAt ??= now;
-        });
+    allItems.filter((item) => !retainedItems.has(item)).forEach((item) => item.retire(now));
 
     for (const { input, entity: item } of resolvedItems) {
+        // A retained ID may point at a soft-deleted row of this product; it comes back with its SKU and stock.
+        item.revive();
         Object.assign(item, {
             product,
             name: input.name,
@@ -411,7 +347,6 @@ function applyItems(
             saleStatus: input.saleStatus,
             sequence: input.sequence,
             optionSignature: input.optionSignature,
-            deletedAt: null,
         });
         if (input.sku !== undefined && item.sku === undefined) item.sku = input.sku;
         em.persist(item);
@@ -422,7 +357,7 @@ function applyItems(
 function applyItemSelections(
     em: EntityManager,
     product: ProductEntity,
-    resolvedItems: readonly { input: CatalogItem; entity: ItemEntity }[],
+    resolvedItems: readonly ResolvedItem[],
     resolvedOptions: readonly ResolvedOption[]
 ): void {
     const optionByCode = new Map(resolvedOptions.map((option) => [option.input.code, option]));
@@ -457,24 +392,6 @@ export async function populateCategoryAncestors(em: EntityManager, categories: C
         await em.populate(unpopulated, ['parent'], { refresh: true });
         level = unpopulated.flatMap(({ parent }) => (parent ? [parent] : []));
     }
-}
-
-function createOption(id: bigint | undefined, product: ProductEntity): ProductOptionEntity {
-    const option = Object.assign(new ProductOptionEntity(), { product });
-    if (id !== undefined) option.id = id;
-    return option;
-}
-
-function createOptionValue(id: bigint | undefined, option: ProductOptionEntity): ProductOptionValueEntity {
-    const value = Object.assign(new ProductOptionValueEntity(), { option });
-    if (id !== undefined) value.id = id;
-    return value;
-}
-
-function createItem(product: ProductEntity, sku?: string): ItemEntity {
-    const item = Object.assign(new ItemEntity(), { product, stock: 0, deletedAt: null });
-    if (sku !== undefined) item.sku = sku;
-    return item;
 }
 
 function hash(value: string): string {

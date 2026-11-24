@@ -16,15 +16,11 @@ export interface ProductItemReadResult {
     id: bigint;
     sku: string;
     name: string;
-    price: ProductPriceReadResult;
+    /** The stored `decimal(10,3)` string with three fraction digits, in the catalog currency. */
+    totalPrice: string;
     isTaxFree: boolean;
     sequence: number;
     selectedOptions: ProductItemOptionReadResult[];
-}
-
-export interface ProductPriceReadResult {
-    amount: string;
-    currencyCode: 'KRW';
 }
 
 export interface ProductItemOptionReadResult {

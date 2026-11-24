@@ -92,4 +92,15 @@ export class ItemEntity {
 
     @OneToMany({ entity: () => InventoryMovementEntity, mappedBy: 'item' })
     inventoryMovements = new Collection<InventoryMovementEntity>(this);
+
+    /** Soft-deletes the item, keeping its row, stock and order history. An earlier deletion time is kept. */
+    retire(now = new Date()): void {
+        this.saleStatus = ItemSaleStatus.DENY;
+        this.deletedAt ??= now;
+    }
+
+    /** Brings the item back into the live catalog; the caller sets its sale status. */
+    revive(): void {
+        this.deletedAt = null;
+    }
 }
