@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { ProductReadResult } from '~/api/catalog/application/product-read.result';
-import { toProductType } from '~/api/catalog/presentation/product.mapper';
+import { ProductReadResult } from '~/api/catalog/application/product-read.result.js';
+import { toProductType } from '~/api/catalog/presentation/product.mapper.js';
 
 describe('product GraphQL mapper', () => {
     it('canonical read result를 GraphQL 안전 타입으로 변환한다', () => {

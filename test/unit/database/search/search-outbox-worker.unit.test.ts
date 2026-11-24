@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { CatalogIndexManager } from '~/infra/search/catalog-index.manager';
-import { SearchOutboxRelay } from '~/infra/search/search-outbox.relay';
-import { SEARCH_OUTBOX_SHUTDOWN_TIMEOUT_MS, SearchOutboxWorker } from '~/infra/search/search-outbox.worker';
-import { SearchConfig } from '~/infra/search/search.config';
+import { CatalogIndexManager } from '~/infra/search/catalog-index.manager.js';
+import { SearchOutboxRelay } from '~/infra/search/search-outbox.relay.js';
+import { SEARCH_OUTBOX_SHUTDOWN_TIMEOUT_MS, SearchOutboxWorker } from '~/infra/search/search-outbox.worker.js';
+import { SearchConfig } from '~/infra/search/search.config.js';
 
 describe('Search outbox worker', () => {
     afterEach(() => vi.useRealTimers());

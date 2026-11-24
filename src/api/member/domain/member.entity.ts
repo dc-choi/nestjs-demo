@@ -1,10 +1,10 @@
 import { Collection, type Opt } from '@mikro-orm/core';
 import { Entity, Enum, OneToMany, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
 
-import { MemberRole } from './member-role';
+import { MemberRole } from './member-role.js';
 
-import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
-import { OrderEntity } from '~/api/order/domain/entity/order.entity';
+import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
+import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
 
 /**
  * 인증 주체이자 판매자와 구매자의 현재 계정 상태를 보존하는 도메인 모델이다.

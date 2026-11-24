@@ -1,6 +1,6 @@
 import { DefaultLogger, LogContext, LoggerOptions } from '@mikro-orm/core';
 
-import type { MikroOrmQueryLog, TypedLogger } from '~/global/common/logger/channel.logger';
+import type { MikroOrmQueryLog, TypedLogger } from '~/global/common/logger/channel.logger.js';
 
 export const MIKRO_ORM_SLOW_QUERY_THRESHOLD_MS = 500;
 

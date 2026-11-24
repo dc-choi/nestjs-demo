@@ -1,16 +1,16 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Resolver } from '@nestjs/graphql';
 
-import { OrderService } from '~/api/order/application/order.service';
-import { CancelOrderInput } from '~/api/order/presentation/cancel-order.input';
-import { toOrderType } from '~/api/order/presentation/order.mapper';
-import { PlaceOrderInput } from '~/api/order/presentation/place-order.input';
-import { toPlaceOrderCommand } from '~/api/order/presentation/place-order.mapper';
-import { PlaceOrderPayload } from '~/api/order/presentation/place-order.payload';
-import { parseGraphqlId } from '~/global/graphql/graphql-id.parser';
-import { Jwt } from '~/global/jwt/decorator/jwt.decorator';
-import { CommonGuard } from '~/global/jwt/guard/common.guard';
-import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
+import { OrderService } from '~/api/order/application/order.service.js';
+import { CancelOrderInput } from '~/api/order/presentation/cancel-order.input.js';
+import { toOrderType } from '~/api/order/presentation/order.mapper.js';
+import { PlaceOrderInput } from '~/api/order/presentation/place-order.input.js';
+import { toPlaceOrderCommand } from '~/api/order/presentation/place-order.mapper.js';
+import { PlaceOrderPayload } from '~/api/order/presentation/place-order.payload.js';
+import { parseGraphqlId } from '~/global/graphql/graphql-id.parser.js';
+import { Jwt } from '~/global/jwt/decorator/jwt.decorator.js';
+import { CommonGuard } from '~/global/jwt/guard/common.guard.js';
+import type { JwtPayload } from '~/global/jwt/payload/jwt.payload.js';
 
 @Resolver()
 export class OrderResolver {

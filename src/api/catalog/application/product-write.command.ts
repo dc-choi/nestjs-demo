@@ -1,5 +1,5 @@
-import type { ItemSaleStatus } from '../domain/entity/item-sale-status';
-import type { ProductStatus } from '../domain/entity/product-status';
+import type { ItemSaleStatus } from '../domain/entity/item-sale-status.js';
+import type { ProductStatus } from '../domain/entity/product-status.js';
 
 export interface CreateProductCommand {
     readonly slug: string;

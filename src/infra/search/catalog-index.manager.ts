@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 
-import { CatalogBulkError, CatalogBulkFailure } from './catalog-bulk.error';
-import { CatalogAnalyzer, catalogIndexDefinition, catalogNoriIndexDefinition } from './catalog-index.definition';
-import { OpenSearchHttpError } from './opensearch-http.error';
-import { OpenSearchHttpClient, escapeOpenSearchPathSegment } from './opensearch.client';
-import { SearchConfig } from './search.config';
+import { CatalogBulkError, CatalogBulkFailure } from './catalog-bulk.error.js';
+import { CatalogAnalyzer, catalogIndexDefinition, catalogNoriIndexDefinition } from './catalog-index.definition.js';
+import { OpenSearchHttpError } from './opensearch-http.error.js';
+import { OpenSearchHttpClient, escapeOpenSearchPathSegment } from './opensearch.client.js';
+import { SearchConfig } from './search.config.js';
 
 import { createHash } from 'node:crypto';
-import { ProductSearchDocument } from '~/api/catalog/search/domain/product-search.document';
+import { ProductSearchDocument } from '~/api/catalog/search/domain/product-search.document.js';
 
 interface AliasResponse {
     [index: string]: {

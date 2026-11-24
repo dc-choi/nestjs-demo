@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { CatalogGraph } from '~/api/catalog/domain/catalog-graph';
-import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status';
-import { ProductSearchContractError } from '~/api/catalog/search/domain/product-search-contract.error';
-import { ProductSearchSort } from '~/api/catalog/search/domain/product-search-sort';
+import { CatalogGraph } from '~/api/catalog/domain/catalog-graph.js';
+import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status.js';
+import { ProductSearchContractError } from '~/api/catalog/search/domain/product-search-contract.error.js';
+import { ProductSearchSort } from '~/api/catalog/search/domain/product-search-sort.js';
 import {
     assertSearchCursorFingerprint,
     canonicalizeProductSearchInput,
     decodeSearchCursor,
     encodeSearchCursor,
     fingerprintProductSearchInput,
-} from '~/api/catalog/search/domain/product-search.query';
-import { buildOpenSearchProductRequest } from '~/infra/search/product-search-query.compiler';
+} from '~/api/catalog/search/domain/product-search.query.js';
+import { buildOpenSearchProductRequest } from '~/infra/search/product-search-query.compiler.js';
 
 describe('Product search query contract', () => {
     it('canonicalizes whitespace, decimals and option order before fingerprinting', () => {

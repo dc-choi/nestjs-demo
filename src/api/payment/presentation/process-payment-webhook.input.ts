@@ -1,10 +1,10 @@
 import { Field, InputType } from '@nestjs/graphql';
 
-import { ReceivePaymentWebhookInput } from './receive-payment-webhook.input';
+import { ReceivePaymentWebhookInput } from './receive-payment-webhook.input.js';
 
 import { IsEnum, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
-import { MONEY_PATTERN } from '~/api/payment/domain/payment-money';
-import { PaymentWebhookOutcome } from '~/api/payment/presentation/payment.enum';
+import { MONEY_PATTERN } from '~/api/payment/domain/payment-money.js';
+import { PaymentWebhookOutcome } from '~/api/payment/presentation/payment.enum.js';
 
 @InputType()
 export class ProcessPaymentWebhookInput extends ReceivePaymentWebhookInput {

@@ -1,8 +1,8 @@
 import { Field, InputType } from '@nestjs/graphql';
 
 import { IsString, Matches } from 'class-validator';
-import { PRODUCT_OPTION_CODE_PATTERN } from '~/api/catalog/domain/product.rules';
-import { invalidValue } from '~/global/common/message/error.message';
+import { PRODUCT_OPTION_CODE_PATTERN } from '~/api/catalog/domain/product.rules.js';
+import { invalidValue } from '~/global/common/message/error.message.js';
 
 @InputType()
 export class ReplaceProductItemOptionInput {

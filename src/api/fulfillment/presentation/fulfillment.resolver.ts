@@ -1,16 +1,16 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Resolver } from '@nestjs/graphql';
 
-import { FulfillmentService } from '~/api/fulfillment/application/fulfillment.service';
-import { CreateFulfillmentInput } from '~/api/fulfillment/presentation/create-fulfillment.input';
-import { FulfillmentIdInput } from '~/api/fulfillment/presentation/fulfillment-id.input';
-import { toFulfillmentPayload } from '~/api/fulfillment/presentation/fulfillment.mapper';
-import { FulfillmentPayload } from '~/api/fulfillment/presentation/fulfillment.payload';
-import { ShipFulfillmentInput } from '~/api/fulfillment/presentation/ship-fulfillment.input';
-import { parseGraphqlId } from '~/global/graphql/graphql-id.parser';
-import { Jwt } from '~/global/jwt/decorator/jwt.decorator';
-import { AdminGuard } from '~/global/jwt/guard/admin.guard';
-import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
+import { FulfillmentService } from '~/api/fulfillment/application/fulfillment.service.js';
+import { CreateFulfillmentInput } from '~/api/fulfillment/presentation/create-fulfillment.input.js';
+import { FulfillmentIdInput } from '~/api/fulfillment/presentation/fulfillment-id.input.js';
+import { toFulfillmentPayload } from '~/api/fulfillment/presentation/fulfillment.mapper.js';
+import { FulfillmentPayload } from '~/api/fulfillment/presentation/fulfillment.payload.js';
+import { ShipFulfillmentInput } from '~/api/fulfillment/presentation/ship-fulfillment.input.js';
+import { parseGraphqlId } from '~/global/graphql/graphql-id.parser.js';
+import { Jwt } from '~/global/jwt/decorator/jwt.decorator.js';
+import { AdminGuard } from '~/global/jwt/guard/admin.guard.js';
+import type { JwtPayload } from '~/global/jwt/payload/jwt.payload.js';
 
 @Resolver()
 export class FulfillmentResolver {

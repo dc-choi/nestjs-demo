@@ -1,14 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
 
-import { ProductSearchCursorExpiredError } from '~/api/catalog/search/application/product-search-cursor-expired.error';
-import { PRODUCT_SEARCH_CURSOR_SECRET } from '~/api/catalog/search/application/product-search-cursor-secret';
-import { ProductSearchUnavailableError } from '~/api/catalog/search/application/product-search-unavailable.error';
+import { ProductSearchCursorExpiredError } from '~/api/catalog/search/application/product-search-cursor-expired.error.js';
+import { PRODUCT_SEARCH_CURSOR_SECRET } from '~/api/catalog/search/application/product-search-cursor-secret.js';
+import { ProductSearchUnavailableError } from '~/api/catalog/search/application/product-search-unavailable.error.js';
 import {
     PRODUCT_SEARCH_PORT,
     ProductSearchConnection,
-    ProductSearchPort,
-} from '~/api/catalog/search/application/product-search.port';
-import { ProductSearchContractError } from '~/api/catalog/search/domain/product-search-contract.error';
+    type ProductSearchPort,
+} from '~/api/catalog/search/application/product-search.port.js';
+import { ProductSearchContractError } from '~/api/catalog/search/domain/product-search-contract.error.js';
 import {
     ProductSearchInput,
     assertSearchCursorFingerprint,
@@ -16,7 +16,7 @@ import {
     decodeSearchCursor,
     encodeSearchCursor,
     fingerprintProductSearchInput,
-} from '~/api/catalog/search/domain/product-search.query';
+} from '~/api/catalog/search/domain/product-search.query.js';
 
 @Injectable()
 export class ProductSearchService {

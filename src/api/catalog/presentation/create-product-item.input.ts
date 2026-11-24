@@ -1,7 +1,7 @@
 import { Field, InputType } from '@nestjs/graphql';
 
-import { CreateProductItemDataInput } from './create-product-item-data.input';
-import { ProductItemWriteInput } from './product-item-write.input';
+import { CreateProductItemDataInput } from './create-product-item-data.input.js';
+import { ProductItemWriteInput } from './product-item-write.input.js';
 
 import { Type } from 'class-transformer';
 import { ValidateNested } from 'class-validator';

@@ -11,24 +11,24 @@ import {
 } from '@nestjs/common';
 
 import { createHash, randomUUIDv7 } from 'node:crypto';
-import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status';
-import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
-import { ProductStatus } from '~/api/catalog/domain/entity/product-status';
-import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
-import { MemberRole } from '~/api/member/domain/member-role';
-import { MemberEntity } from '~/api/member/domain/member.entity';
-import type { CancelOrderCommand } from '~/api/order/application/cancel-order.command';
-import { lockOrderDependents } from '~/api/order/application/order-dependents.lock';
-import { ORDER_INVENTORY_PORT, type OrderInventoryPort } from '~/api/order/application/order-inventory.port';
-import type { PlaceOrderCommand } from '~/api/order/application/place-order.command';
-import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
-import { OrderEntity } from '~/api/order/domain/entity/order.entity';
-import { OrderCancellationConflict } from '~/api/order/domain/order-cancellation-conflict.error';
-import { NotExistingItem } from '~/global/common/error/not-existing-item.error';
-import { DistributedLockOptions, DistributedLockService } from '~/global/common/lock/distributed-lock.service';
-import { compareBigInt } from '~/global/common/utils/bigint';
-import { isPositiveMysqlSignedInt } from '~/global/common/utils/mysql-number';
-import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
+import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status.js';
+import { ItemEntity } from '~/api/catalog/domain/entity/item.entity.js';
+import { ProductStatus } from '~/api/catalog/domain/entity/product-status.js';
+import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
+import { MemberRole } from '~/api/member/domain/member-role.js';
+import { MemberEntity } from '~/api/member/domain/member.entity.js';
+import type { CancelOrderCommand } from '~/api/order/application/cancel-order.command.js';
+import { lockOrderDependents } from '~/api/order/application/order-dependents.lock.js';
+import { ORDER_INVENTORY_PORT, type OrderInventoryPort } from '~/api/order/application/order-inventory.port.js';
+import type { PlaceOrderCommand } from '~/api/order/application/place-order.command.js';
+import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js';
+import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
+import { OrderCancellationConflict } from '~/api/order/domain/order-cancellation-conflict.error.js';
+import { NotExistingItem } from '~/global/common/error/not-existing-item.error.js';
+import { DistributedLockOptions, DistributedLockService } from '~/global/common/lock/distributed-lock.service.js';
+import { compareBigInt } from '~/global/common/utils/bigint.js';
+import { isPositiveMysqlSignedInt } from '~/global/common/utils/mysql-number.js';
+import type { JwtPayload } from '~/global/jwt/payload/jwt.payload.js';
 
 const ORDER_LOCK_OPTIONS: DistributedLockOptions = {
     ttl: 30_000,

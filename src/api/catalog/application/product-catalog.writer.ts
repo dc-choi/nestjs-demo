@@ -5,21 +5,26 @@ import type {
     DeleteProductItemCommand,
     ReplaceProductCatalogCommand,
     UpdateProductItemCommand,
-} from './product-write.command';
+} from './product-write.command.js';
 
 import { createHash } from 'node:crypto';
-import { CatalogGraph, type CatalogItem, type CatalogOption, invalidGraph } from '~/api/catalog/domain/catalog-graph';
-import { CatalogGraphChange } from '~/api/catalog/domain/catalog-graph-change';
-import { CategoryEntity } from '~/api/catalog/domain/entity/category.entity';
-import { ItemOptionValueEntity } from '~/api/catalog/domain/entity/item-option-value.entity';
-import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status';
-import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
-import { ProductCategoryEntity } from '~/api/catalog/domain/entity/product-category.entity';
-import { ProductOptionValueEntity } from '~/api/catalog/domain/entity/product-option-value.entity';
-import { ProductOptionEntity } from '~/api/catalog/domain/entity/product-option.entity';
-import type { ProductSnapshotPayload } from '~/api/catalog/domain/entity/product-snapshot-payload';
-import { ProductTagEntity } from '~/api/catalog/domain/entity/product-tag.entity';
-import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
+import { CatalogGraphChange } from '~/api/catalog/domain/catalog-graph-change.js';
+import {
+    CatalogGraph,
+    type CatalogItem,
+    type CatalogOption,
+    invalidGraph,
+} from '~/api/catalog/domain/catalog-graph.js';
+import { CategoryEntity } from '~/api/catalog/domain/entity/category.entity.js';
+import { ItemOptionValueEntity } from '~/api/catalog/domain/entity/item-option-value.entity.js';
+import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status.js';
+import { ItemEntity } from '~/api/catalog/domain/entity/item.entity.js';
+import { ProductCategoryEntity } from '~/api/catalog/domain/entity/product-category.entity.js';
+import { ProductOptionValueEntity } from '~/api/catalog/domain/entity/product-option-value.entity.js';
+import { ProductOptionEntity } from '~/api/catalog/domain/entity/product-option.entity.js';
+import type { ProductSnapshotPayload } from '~/api/catalog/domain/entity/product-snapshot-payload.js';
+import { ProductTagEntity } from '~/api/catalog/domain/entity/product-tag.entity.js';
+import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
 
 const MAX_UNSIGNED_INTEGER = 4_294_967_295;
 

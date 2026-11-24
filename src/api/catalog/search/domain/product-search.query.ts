@@ -1,8 +1,8 @@
-import { ProductSearchContractError } from './product-search-contract.error';
-import { ProductSearchSort } from './product-search-sort';
+import { ProductSearchContractError } from './product-search-contract.error.js';
+import { ProductSearchSort } from './product-search-sort.js';
 
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
-import { PRODUCT_ITEM_SKU_MAX_LENGTH } from '~/api/catalog/domain/product.rules';
+import { PRODUCT_ITEM_SKU_MAX_LENGTH } from '~/api/catalog/domain/product.rules.js';
 
 export interface ProductOptionFilter {
     optionCode: string;

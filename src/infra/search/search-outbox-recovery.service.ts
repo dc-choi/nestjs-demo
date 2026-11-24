@@ -1,7 +1,7 @@
 import { EntityManager, MikroORM } from '@mikro-orm/mysql';
 import { Injectable } from '@nestjs/common';
 
-import { toBigInt, toNonNegativeInteger, toNullableString } from '~/global/common/utils/mysql-row';
+import { toBigInt, toNonNegativeInteger, toNullableString } from '~/global/common/utils/mysql-row.js';
 
 const MAX_INSPECTION_LIMIT = 100;
 const MAX_RETRY_IDS = 100;

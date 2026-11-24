@@ -1,4 +1,4 @@
-import { PasswordKdfSaturatedError } from '~/api/member/application/password-kdf-saturated.error';
+import { PasswordKdfSaturatedError } from '~/api/member/application/password-kdf-saturated.error.js';
 
 export const DEFAULT_PASSWORD_KDF_CONCURRENCY = 1;
 

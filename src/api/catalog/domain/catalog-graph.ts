@@ -1,6 +1,6 @@
-import { CatalogGraphError } from './catalog-graph.error';
-import { ItemSaleStatus } from './entity/item-sale-status';
-import type { ProductSnapshotPayload } from './entity/product-snapshot-payload';
+import { CatalogGraphError } from './catalog-graph.error.js';
+import { ItemSaleStatus } from './entity/item-sale-status.js';
+import type { ProductSnapshotPayload } from './entity/product-snapshot-payload.js';
 import {
     PRODUCT_CATALOG_LIMITS,
     PRODUCT_ITEM_SKU_MAX_LENGTH,
@@ -10,7 +10,7 @@ import {
     PRODUCT_PRICE_PATTERN,
     PRODUCT_TAG_MAX_LENGTH,
     normalizeRequiredText as normalizeText,
-} from './product.rules';
+} from './product.rules.js';
 
 import { createHash } from 'node:crypto';
 

@@ -1,11 +1,11 @@
 import { MODULE_METADATA } from '@nestjs/common/constants';
 
 import { describe, expect, it } from 'vitest';
-import { ApplicationModule } from '~/application.module';
-import { searchMaintenanceEnvValidationSchema } from '~/global/config/env/search-maintenance-env.validation';
-import { DatabaseModule } from '~/infra/database/database.module';
-import { SearchModule } from '~/infra/search/search.module';
-import { SearchMaintenanceAppModule } from '~/search-maintenance-app.module';
+import { ApplicationModule } from '~/application.module.js';
+import { searchMaintenanceEnvValidationSchema } from '~/global/config/env/search-maintenance-env.validation.js';
+import { DatabaseModule } from '~/infra/database/database.module.js';
+import { SearchModule } from '~/infra/search/search.module.js';
+import { SearchMaintenanceAppModule } from '~/search-maintenance-app.module.js';
 
 const databaseEnv = {
     MYSQL_HOST: '127.0.0.1',

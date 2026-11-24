@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 
-import { invalidValue } from '~/global/common/message/error.message';
+import { invalidValue } from '~/global/common/message/error.message.js';
 
 /** GraphQL `ID` strings that map to signed 64-bit MySQL primary keys: positive decimal, no sign or padding. */
 export const GRAPHQL_ID_PATTERN = /^[1-9]\d*$/;

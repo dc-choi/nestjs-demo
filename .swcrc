@@ -2,11 +2,7 @@
   "$schema": "https://swc.rs/schema.json",
   "sourceMaps": true,
   "module": {
-    "type": "commonjs",
-    "strict": true,
-    "strictMode": true,
-    "noInterop": false,
-    "importInterop": "swc"
+    "type": "nodenext"
   },
   "jsc": {
     "externalHelpers": false,

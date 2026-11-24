@@ -1,6 +1,6 @@
-import type { ItemSaleStatus } from './item-sale-status';
-import type { ProductMediaRole } from './product-media-role';
-import type { ProductStatus } from './product-status';
+import type { ItemSaleStatus } from './item-sale-status.js';
+import type { ProductMediaRole } from './product-media-role.js';
+import type { ProductStatus } from './product-status.js';
 
 export interface ProductSnapshotPayload {
     product: {

@@ -1,4 +1,4 @@
-import type { EnvConfig } from '~/global/config/env/env.config';
+import type { EnvConfig } from '~/global/config/env/env.config.js';
 
 export type MikroOrmEnvironment = Pick<
     EnvConfig,

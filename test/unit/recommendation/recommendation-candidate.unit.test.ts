@@ -7,16 +7,16 @@ import {
     RecommendationCandidateService,
     buildInterestQuery,
     buildPopularQuery,
-} from '~/api/recommendation/application/recommendation-candidate.service';
-import { RecommendationUnavailableError } from '~/api/recommendation/application/recommendation-unavailable.error';
+} from '~/api/recommendation/application/recommendation-candidate.service.js';
+import { RecommendationUnavailableError } from '~/api/recommendation/application/recommendation-unavailable.error.js';
 import {
     PopularityRow,
     RecommendationProfile,
     RecommendationProfileReader,
-} from '~/api/recommendation/infrastructure/recommendation-profile.reader';
-import { OpenSearchHttpError } from '~/infra/search/opensearch-http.error';
-import { OpenSearchHttpClient } from '~/infra/search/opensearch.client';
-import { SearchConfig } from '~/infra/search/search.config';
+} from '~/api/recommendation/infrastructure/recommendation-profile.reader.js';
+import { OpenSearchHttpError } from '~/infra/search/opensearch-http.error.js';
+import { OpenSearchHttpClient } from '~/infra/search/opensearch.client.js';
+import { SearchConfig } from '~/infra/search/search.config.js';
 
 const ids = (from: number, count: number) => Array.from({ length: count }, (_, index) => String(from + index));
 const doc = (productId: string): CandidateDocument => ({

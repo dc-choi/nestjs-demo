@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
-import { RecommendationCandidateService } from '~/api/recommendation/application/recommendation-candidate.service';
-import { RecommendationModule } from '~/api/recommendation/recommendation.module';
-import { SearchMaintenanceAppModule } from '~/search-maintenance-app.module';
+import { RecommendationCandidateService } from '~/api/recommendation/application/recommendation-candidate.service.js';
+import { RecommendationModule } from '~/api/recommendation/recommendation.module.js';
+import { SearchMaintenanceAppModule } from '~/search-maintenance-app.module.js';
 
 // Config, logging, MySQL and OpenSearch only; no HTTP server.
 @Module({ imports: [SearchMaintenanceAppModule, RecommendationModule] })

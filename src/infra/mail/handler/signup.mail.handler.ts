@@ -3,10 +3,10 @@ import { Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
 
-import { SignupEvent } from '~/api/member/application/event/signup.event';
-import { type TypedLogger, type VerbosePayload } from '~/global/common/logger/channel.logger';
-import { VERBOSE_LOGGER } from '~/global/common/logger/verbose-logger.symbol';
-import { EnvConfig } from '~/global/config/env/env.config';
+import { SignupEvent } from '~/api/member/application/event/signup.event.js';
+import { type TypedLogger, type VerbosePayload } from '~/global/common/logger/channel.logger.js';
+import { VERBOSE_LOGGER } from '~/global/common/logger/verbose-logger.symbol.js';
+import { EnvConfig } from '~/global/config/env/env.config.js';
 
 @EventsHandler(SignupEvent)
 export class SignupMailHandler implements IEventHandler<SignupEvent> {

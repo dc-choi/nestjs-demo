@@ -1,12 +1,12 @@
 import { EntityManager, MikroORM } from '@mikro-orm/mysql';
 import { Injectable } from '@nestjs/common';
 
-import { CatalogMaintenanceError } from './catalog-maintenance.error';
-import { CatalogSearchWorker } from './catalog-search.worker';
-import { SearchConfig } from './search.config';
+import { CatalogMaintenanceError } from './catalog-maintenance.error.js';
+import { CatalogSearchWorker } from './catalog-search.worker.js';
+import { SearchConfig } from './search.config.js';
 
 import { randomUUID } from 'node:crypto';
-import { toBigInt, toNonNegativeInteger } from '~/global/common/utils/mysql-row';
+import { toBigInt, toNonNegativeInteger } from '~/global/common/utils/mysql-row.js';
 
 interface ClaimedOutboxRow {
     id: bigint;

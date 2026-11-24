@@ -1,13 +1,13 @@
 import { Args, Context, Mutation, Resolver } from '@nestjs/graphql';
 
-import { AuthService } from '../application/auth.service';
-import { LoginRateLimiter } from '../application/login-rate-limiter';
-import { LoginInput } from './login.input';
-import { LoginPayload } from './login.payload';
-import { RefreshTokenInput } from './refresh-token.input';
-import { RefreshTokenPayload } from './refresh-token.payload';
+import { AuthService } from '../application/auth.service.js';
+import { LoginRateLimiter } from '../application/login-rate-limiter.js';
+import { LoginInput } from './login.input.js';
+import { LoginPayload } from './login.payload.js';
+import { RefreshTokenInput } from './refresh-token.input.js';
+import { RefreshTokenPayload } from './refresh-token.payload.js';
 
-import { GraphqlHttpContext } from '~/global/graphql/graphql-context';
+import type { GraphqlHttpContext } from '~/global/graphql/graphql-context.js';
 
 @Resolver()
 export class AuthResolver {

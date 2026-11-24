@@ -3,12 +3,12 @@ import { MySqlDriver, type Options as MySqlOptions } from '@mikro-orm/mysql';
 import { MikroOrmModuleOptions } from '@mikro-orm/nestjs';
 import { ConfigService } from '@nestjs/config';
 
-import type { MikroOrmEnvironment } from './database-environment';
-import { databaseEntities } from './entities';
-import { MIKRO_ORM_SLOW_QUERY_THRESHOLD_MS, createMikroOrmLogger } from './mikro-orm.logger';
+import type { MikroOrmEnvironment } from './database-environment.js';
+import { databaseEntities } from './entities.js';
+import { MIKRO_ORM_SLOW_QUERY_THRESHOLD_MS, createMikroOrmLogger } from './mikro-orm.logger.js';
 
-import type { MikroOrmQueryLog, TypedLogger } from '~/global/common/logger/channel.logger';
-import { EnvConfig } from '~/global/config/env/env.config';
+import type { MikroOrmQueryLog, TypedLogger } from '~/global/common/logger/channel.logger.js';
+import { EnvConfig } from '~/global/config/env/env.config.js';
 
 export const createMikroOrmCoreOptions = (
     env: MikroOrmEnvironment,

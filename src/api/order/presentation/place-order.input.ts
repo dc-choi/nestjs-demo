@@ -2,8 +2,8 @@ import { Field, InputType } from '@nestjs/graphql';
 
 import { Type } from 'class-transformer';
 import { ArrayMinSize, IsNotEmpty, IsString, MaxLength, ValidateNested } from 'class-validator';
-import { PlaceOrderItemInput } from '~/api/order/presentation/place-order-item.input';
-import { emptyValue } from '~/global/common/message/error.message';
+import { PlaceOrderItemInput } from '~/api/order/presentation/place-order-item.input.js';
+import { emptyValue } from '~/global/common/message/error.message.js';
 
 @InputType()
 export class PlaceOrderInput {

@@ -1,6 +1,6 @@
 import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
 
-import { InventoryMovementType as InventoryMovementKind } from '~/api/inventory/presentation/inventory-reservation-status.enum';
+import { InventoryMovementType as InventoryMovementKind } from '~/api/inventory/presentation/inventory-reservation-status.enum.js';
 
 @ObjectType('InventoryMovement')
 export class InventoryMovementType {

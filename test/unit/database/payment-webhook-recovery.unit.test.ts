@@ -7,16 +7,16 @@ import {
 import { NotFoundException } from '@nestjs/common';
 
 import { describe, expect, it, vi } from 'vitest';
-import { OrderEntity } from '~/api/order/domain/entity/order.entity';
-import type { PaymentInventoryPort } from '~/api/payment/application/payment-inventory.port';
-import { PaymentWebhookRecoveryRelay } from '~/api/payment/application/payment-webhook-recovery.relay';
-import { PaymentWebhookService } from '~/api/payment/application/payment-webhook.service';
-import { PaymentService } from '~/api/payment/application/payment.service';
-import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity';
-import { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity';
-import { PaymentWebhookEventStatus } from '~/api/payment/domain/payment-webhook-event-status';
-import { PaymentWebhookEventEntity } from '~/api/payment/domain/payment-webhook-event.entity';
-import { PaymentWebhookOutcome } from '~/api/payment/domain/payment-webhook-outcome';
+import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
+import type { PaymentInventoryPort } from '~/api/payment/application/payment-inventory.port.js';
+import { PaymentWebhookRecoveryRelay } from '~/api/payment/application/payment-webhook-recovery.relay.js';
+import { PaymentWebhookService } from '~/api/payment/application/payment-webhook.service.js';
+import { PaymentService } from '~/api/payment/application/payment.service.js';
+import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity.js';
+import { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity.js';
+import { PaymentWebhookEventStatus } from '~/api/payment/domain/payment-webhook-event-status.js';
+import { PaymentWebhookEventEntity } from '~/api/payment/domain/payment-webhook-event.entity.js';
+import { PaymentWebhookOutcome } from '~/api/payment/domain/payment-webhook-outcome.js';
 
 const NOW = new Date('2026-09-05T00:00:00.000Z');
 const verifiedCommand = {

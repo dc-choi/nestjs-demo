@@ -1,7 +1,7 @@
 import { Field, ObjectType } from '@nestjs/graphql';
 
-import { PaymentTransactionRecordType } from './payment-transaction-record.type';
-import { PaymentWebhookEventType } from './payment-webhook-event.type';
+import { PaymentTransactionRecordType } from './payment-transaction-record.type.js';
+import { PaymentWebhookEventType } from './payment-webhook-event.type.js';
 
 @ObjectType()
 export class PaymentWebhookPayload {

@@ -1,4 +1,4 @@
-import type { CanonicalProductSearchInput, SearchSortValue } from '~/api/catalog/search/domain/product-search.query';
+import type { CanonicalProductSearchInput, SearchSortValue } from '~/api/catalog/search/domain/product-search.query.js';
 
 export const PRODUCT_SEARCH_PORT = Symbol('PRODUCT_SEARCH_PORT');
 

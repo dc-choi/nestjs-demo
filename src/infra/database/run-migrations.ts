@@ -1,7 +1,7 @@
 import { MikroORM, MySqlDriver } from '@mikro-orm/mysql';
 
-import { readMikroOrmEnvironment } from './database-environment';
-import { createMigrationMikroOrmOptions } from './migration.config';
+import { readMikroOrmEnvironment } from './database-environment.js';
+import { createMigrationMikroOrmOptions } from './migration.config.js';
 
 import 'dotenv/config';
 

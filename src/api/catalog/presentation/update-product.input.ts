@@ -7,10 +7,10 @@ import {
     PRODUCT_SLUG_MAX_LENGTH,
     PRODUCT_SLUG_PATTERN,
     PRODUCT_TEXT_MAX_LENGTH,
-} from '~/api/catalog/domain/product.rules';
-import { ProductStatus } from '~/api/catalog/presentation/product-status.enum';
-import { invalidMax, invalidMin, invalidValue } from '~/global/common/message/error.message';
-import { GRAPHQL_ID_MAX_LENGTH, GRAPHQL_ID_PATTERN } from '~/global/graphql/graphql-id.parser';
+} from '~/api/catalog/domain/product.rules.js';
+import { ProductStatus } from '~/api/catalog/presentation/product-status.enum.js';
+import { invalidMax, invalidMin, invalidValue } from '~/global/common/message/error.message.js';
+import { GRAPHQL_ID_MAX_LENGTH, GRAPHQL_ID_PATTERN } from '~/global/graphql/graphql-id.parser.js';
 
 @InputType()
 export class UpdateProductInput {

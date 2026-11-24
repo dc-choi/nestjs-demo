@@ -1,7 +1,7 @@
 import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
 
-import { SelectedOrderOptionType } from '~/api/order/presentation/selected-order-option.type';
-import { MoneyType } from '~/global/graphql/money.type';
+import { SelectedOrderOptionType } from '~/api/order/presentation/selected-order-option.type.js';
+import { MoneyType } from '~/global/graphql/money.type.js';
 
 @ObjectType('OrderedItemSnapshot')
 export class OrderedItemSnapshotType {

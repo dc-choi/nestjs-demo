@@ -1,9 +1,9 @@
 import { Collection, type Opt, type Rel } from '@mikro-orm/core';
 import { Entity, ManyToOne, OneToMany, PrimaryKey, Property, Unique } from '@mikro-orm/decorators/legacy';
 
-import { ItemOptionValueEntity } from './item-option-value.entity';
-import { ProductOptionValueEntity } from './product-option-value.entity';
-import { ProductEntity } from './product.entity';
+import { ItemOptionValueEntity } from './item-option-value.entity.js';
+import { ProductOptionValueEntity } from './product-option-value.entity.js';
+import { ProductEntity } from './product.entity.js';
 
 /**
  * live Product의 SKU 조합을 정의하는 옵션 축이다.

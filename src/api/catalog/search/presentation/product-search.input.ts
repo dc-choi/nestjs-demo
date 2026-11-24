@@ -1,9 +1,9 @@
 import { Field, InputType, Int, registerEnumType } from '@nestjs/graphql';
 
-import { DecimalScalar } from './decimal.scalar';
-import { ProductOptionFilterInput } from './product-option-filter.input';
+import { DecimalScalar } from './decimal.scalar.js';
+import { ProductOptionFilterInput } from './product-option-filter.input.js';
 
-import { ProductSearchSort } from '~/api/catalog/search/domain/product-search-sort';
+import { ProductSearchSort } from '~/api/catalog/search/domain/product-search-sort.js';
 
 registerEnumType(ProductSearchSort, { name: 'ProductSearchSort' });
 

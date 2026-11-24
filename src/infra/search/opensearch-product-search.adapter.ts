@@ -1,20 +1,20 @@
 import { Injectable, Logger } from '@nestjs/common';
 
-import { buildOpenSearchProductRequest } from './product-search-query.compiler';
+import { buildOpenSearchProductRequest } from './product-search-query.compiler.js';
 
-import { ProductSearchCursorExpiredError } from '~/api/catalog/search/application/product-search-cursor-expired.error';
-import { ProductSearchUnavailableError } from '~/api/catalog/search/application/product-search-unavailable.error';
+import { ProductSearchCursorExpiredError } from '~/api/catalog/search/application/product-search-cursor-expired.error.js';
+import { ProductSearchUnavailableError } from '~/api/catalog/search/application/product-search-unavailable.error.js';
 import {
     ProductSearchBackendRequest,
     ProductSearchPage,
     ProductSearchPort,
-} from '~/api/catalog/search/application/product-search.port';
-import { ProductSearchItemDocument } from '~/api/catalog/search/domain/product-search.document';
-import { SearchSortValue } from '~/api/catalog/search/domain/product-search.query';
-import { getCurrentRequestId } from '~/global/common/context/request-context';
-import { OpenSearchHttpError } from '~/infra/search/opensearch-http.error';
-import { OpenSearchHttpClient, escapeOpenSearchPathSegment } from '~/infra/search/opensearch.client';
-import { SearchConfig } from '~/infra/search/search.config';
+} from '~/api/catalog/search/application/product-search.port.js';
+import { ProductSearchItemDocument } from '~/api/catalog/search/domain/product-search.document.js';
+import { SearchSortValue } from '~/api/catalog/search/domain/product-search.query.js';
+import { getCurrentRequestId } from '~/global/common/context/request-context.js';
+import { OpenSearchHttpError } from '~/infra/search/opensearch-http.error.js';
+import { OpenSearchHttpClient, escapeOpenSearchPathSegment } from '~/infra/search/opensearch.client.js';
+import { SearchConfig } from '~/infra/search/search.config.js';
 
 interface OpenSearchProductHit {
     _source?: {

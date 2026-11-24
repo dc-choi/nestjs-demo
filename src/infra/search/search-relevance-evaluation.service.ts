@@ -1,10 +1,13 @@
 import { Injectable } from '@nestjs/common';
 
-import { OpenSearchHttpClient, escapeOpenSearchPathSegment } from './opensearch.client';
-import { buildOpenSearchProductRequest } from './product-search-query.compiler';
+import { OpenSearchHttpClient, escapeOpenSearchPathSegment } from './opensearch.client.js';
+import { buildOpenSearchProductRequest } from './product-search-query.compiler.js';
 
 import { performance } from 'node:perf_hooks';
-import { ProductSearchInput, canonicalizeProductSearchInput } from '~/api/catalog/search/domain/product-search.query';
+import {
+    ProductSearchInput,
+    canonicalizeProductSearchInput,
+} from '~/api/catalog/search/domain/product-search.query.js';
 
 export interface RelevanceEvaluationQuery {
     id: string;

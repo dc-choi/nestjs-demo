@@ -1,12 +1,12 @@
 import { ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
-import { JwtPayload } from '../payload/jwt.payload';
+import { JwtPayload } from '../payload/jwt.payload.js';
 
 import { Request, Response } from 'express';
-import type { MemberRole } from '~/api/member/domain/member-role';
-import { Unauthorized } from '~/global/common/error/unauthorized.error';
-import { getRequestFromContext, getResponseFromContext } from '~/global/graphql/graphql-context';
+import type { MemberRole } from '~/api/member/domain/member-role.js';
+import { Unauthorized } from '~/global/common/error/unauthorized.error.js';
+import { getRequestFromContext, getResponseFromContext } from '~/global/graphql/graphql-context.js';
 
 @Injectable()
 export abstract class JwtAuthGuard extends AuthGuard('jwt') {

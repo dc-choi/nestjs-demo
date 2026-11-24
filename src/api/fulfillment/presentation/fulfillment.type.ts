@@ -1,7 +1,7 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
 
-import { FulfillmentItemType } from '~/api/fulfillment/presentation/fulfillment-item.type';
-import { FulfillmentStatus } from '~/api/fulfillment/presentation/fulfillment-status.enum';
+import { FulfillmentItemType } from '~/api/fulfillment/presentation/fulfillment-item.type.js';
+import { FulfillmentStatus } from '~/api/fulfillment/presentation/fulfillment-status.enum.js';
 
 @ObjectType('Fulfillment')
 export class FulfillmentType {

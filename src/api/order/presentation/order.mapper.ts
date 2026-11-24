@@ -1,7 +1,7 @@
-import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
-import { OrderEntity } from '~/api/order/domain/entity/order.entity';
-import { OrderItemType } from '~/api/order/presentation/order-item.type';
-import { OrderType } from '~/api/order/presentation/order.type';
+import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js';
+import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
+import { OrderItemType } from '~/api/order/presentation/order-item.type.js';
+import { OrderType } from '~/api/order/presentation/order.type.js';
 
 export function toOrderType(order: OrderEntity): OrderType {
     if (order.id == null || order.createdAt == null) {

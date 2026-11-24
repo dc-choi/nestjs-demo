@@ -4,8 +4,8 @@ import { readFile } from 'node:fs/promises';
 import {
     RelevanceEvaluationFixture,
     SearchRelevanceEvaluationService,
-} from '~/infra/search/search-relevance-evaluation.service';
-import { SearchMaintenanceAppModule } from '~/search-maintenance-app.module';
+} from '~/infra/search/search-relevance-evaluation.service.js';
+import { SearchMaintenanceAppModule } from '~/search-maintenance-app.module.js';
 
 async function main(): Promise<void> {
     const args = parseArguments(process.argv.slice(2));

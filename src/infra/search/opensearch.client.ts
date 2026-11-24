@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
-import { OpenSearchHttpError } from './opensearch-http.error';
-import { SearchConfig } from './search.config';
+import { OpenSearchHttpError } from './opensearch-http.error.js';
+import { SearchConfig } from './search.config.js';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 type QueryValue = string | number | boolean;

@@ -1,8 +1,8 @@
 import { MikroORM } from '@mikro-orm/mysql';
 import { Injectable } from '@nestjs/common';
 
-import { RecommendationUnavailableError } from '~/api/recommendation/application/recommendation-unavailable.error';
-import { toNonNegativeInteger, toRequiredString } from '~/global/common/utils/mysql-row';
+import { RecommendationUnavailableError } from '~/api/recommendation/application/recommendation-unavailable.error.js';
+import { toNonNegativeInteger, toRequiredString } from '~/global/common/utils/mysql-row.js';
 
 export const PROFILE_CATEGORY_LIMIT = 5;
 export const PROFILE_TAG_LIMIT = 10;

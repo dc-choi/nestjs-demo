@@ -1,12 +1,12 @@
 import type { LoggerOptions } from '@mikro-orm/core';
 
 import { describe, expect, it, vi } from 'vitest';
-import type { MikroOrmQueryLog } from '~/global/common/logger/channel.logger';
+import type { MikroOrmQueryLog } from '~/global/common/logger/channel.logger.js';
 import {
     MIKRO_ORM_SLOW_QUERY_THRESHOLD_MS,
     createMikroOrmLogger,
     writeMikroOrmQueryLog,
-} from '~/infra/database/mikro-orm.logger';
+} from '~/infra/database/mikro-orm.logger.js';
 
 describe('MikroOrmLogger', () => {
     const options = {

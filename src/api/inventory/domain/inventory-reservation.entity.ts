@@ -1,9 +1,9 @@
 import type { Opt, Rel } from '@mikro-orm/core';
 import { Entity, Enum, Index, OneToOne, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
 
-import { InventoryReservationStatus } from '~/api/inventory/domain/inventory-reservation-status';
-import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
-import { isPositiveMysqlSignedInt } from '~/global/common/utils/mysql-number';
+import { InventoryReservationStatus } from '~/api/inventory/domain/inventory-reservation-status.js';
+import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js';
+import { isPositiveMysqlSignedInt } from '~/global/common/utils/mysql-number.js';
 
 /**
  * 결제 대기 중 `ItemEntity.stock`에서 선차감한 수량의 생명주기를 나타낸다.

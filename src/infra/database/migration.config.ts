@@ -1,9 +1,10 @@
 import type { MigrationsOptions, SeederOptions } from '@mikro-orm/core';
 import { Migrator } from '@mikro-orm/migrations';
+import type { Options as MySqlOptions } from '@mikro-orm/mysql';
 
-import { createMikroOrmCoreOptions } from './mikro-orm.config';
+import { createMikroOrmCoreOptions } from './mikro-orm.config.js';
 
-import type { MikroOrmEnvironment } from '~/infra/database/database-environment';
+import type { MikroOrmEnvironment } from '~/infra/database/database-environment.js';
 
 export const migrationsOptions: MigrationsOptions = {
     tableName: 'mikro_orm_migrations',
@@ -26,7 +27,9 @@ export const seederOptions: SeederOptions = {
     emit: 'ts',
 };
 
-export function createMigrationMikroOrmOptions(environment: MikroOrmEnvironment) {
+export function createMigrationMikroOrmOptions(
+    environment: MikroOrmEnvironment
+): MySqlOptions & Required<Pick<MySqlOptions, 'extensions'>> {
     return {
         ...createMikroOrmCoreOptions(environment),
         replicas: [],

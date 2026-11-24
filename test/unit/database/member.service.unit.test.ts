@@ -3,12 +3,12 @@ import { ConflictException, ServiceUnavailableException } from '@nestjs/common';
 import { EventBus } from '@nestjs/cqrs';
 
 import { describe, expect, it, vi } from 'vitest';
-import { SignupEvent } from '~/api/member/application/event/signup.event';
-import { MemberService } from '~/api/member/application/member.service';
-import { PasswordKdfSaturatedError } from '~/api/member/application/password-kdf-saturated.error';
-import { PasswordService } from '~/api/member/application/password.service';
-import { MemberRole } from '~/api/member/domain/member-role';
-import { MemberEntity } from '~/api/member/domain/member.entity';
+import { SignupEvent } from '~/api/member/application/event/signup.event.js';
+import { MemberService } from '~/api/member/application/member.service.js';
+import { PasswordKdfSaturatedError } from '~/api/member/application/password-kdf-saturated.error.js';
+import { PasswordService } from '~/api/member/application/password.service.js';
+import { MemberRole } from '~/api/member/domain/member-role.js';
+import { MemberEntity } from '~/api/member/domain/member.entity.js';
 
 describe('MemberService', () => {
     const command = {

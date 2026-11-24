@@ -1,6 +1,6 @@
 import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
 
-import { ProductStatus } from '~/api/catalog/presentation/product-status.enum';
+import { ProductStatus } from '~/api/catalog/presentation/product-status.enum.js';
 
 @ObjectType()
 export class ProductMutationPayload {

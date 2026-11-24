@@ -1,8 +1,8 @@
 import { NestFactory } from '@nestjs/core';
 
-import { CatalogAnalyzer } from '~/infra/search/catalog-index.definition';
-import { CatalogRebuildService } from '~/infra/search/catalog-rebuild.service';
-import { SearchMaintenanceAppModule } from '~/search-maintenance-app.module';
+import { CatalogAnalyzer } from '~/infra/search/catalog-index.definition.js';
+import { CatalogRebuildService } from '~/infra/search/catalog-rebuild.service.js';
+import { SearchMaintenanceAppModule } from '~/search-maintenance-app.module.js';
 
 async function main(): Promise<void> {
     const options = parseArguments(process.argv.slice(2));

@@ -1,4 +1,4 @@
-import type { SearchMaintenanceEnvConfig } from './search-maintenance-env.config';
+import type { SearchMaintenanceEnvConfig } from './search-maintenance-env.config.js';
 
 import Joi from 'joi';
 

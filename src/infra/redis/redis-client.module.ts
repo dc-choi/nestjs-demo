@@ -1,10 +1,10 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
-import Redis from 'ioredis';
-import { EnvConfig } from '~/global/config/env/env.config';
-import { REDIS_CLIENT } from '~/infra/redis/redis-client.symbol';
-import { RedisConnectionLifecycle } from '~/infra/redis/redis-connection.lifecycle';
+import { Redis } from 'ioredis';
+import { EnvConfig } from '~/global/config/env/env.config.js';
+import { REDIS_CLIENT } from '~/infra/redis/redis-client.symbol.js';
+import { RedisConnectionLifecycle } from '~/infra/redis/redis-connection.lifecycle.js';
 
 const redisClientProvider = {
     provide: REDIS_CLIENT,

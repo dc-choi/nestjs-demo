@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { PasswordKdfAdmission } from './password-kdf.admission';
+import { PasswordKdfAdmission } from './password-kdf.admission.js';
 
 import { createHmac, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
-import { EnvConfig } from '~/global/config/env/env.config';
+import { EnvConfig } from '~/global/config/env/env.config.js';
 
 const PASSWORD_HASH_VERSION = 'scrypt-v1';
 const SALT_BYTES = 16;

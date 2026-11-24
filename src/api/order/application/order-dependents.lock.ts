@@ -1,7 +1,7 @@
 import { EntityManager, LockMode } from '@mikro-orm/core';
 
-import type { OrderEntity } from '~/api/order/domain/entity/order.entity';
-import { compareBigInt } from '~/global/common/utils/bigint';
+import type { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
+import { compareBigInt } from '~/global/common/utils/bigint.js';
 
 /**
  * Locks everything a cancellation-style use case mutates under an order, in the one fixed order every

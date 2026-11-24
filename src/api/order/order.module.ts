@@ -1,17 +1,17 @@
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { Module } from '@nestjs/common';
 
-import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
-import { InventoryService } from '~/api/inventory/application/inventory.service';
-import { InventoryReservationEntity } from '~/api/inventory/domain/inventory-reservation.entity';
-import { InventoryModule } from '~/api/inventory/inventory.module';
-import { MemberEntity } from '~/api/member/domain/member.entity';
-import { OrderExpirationService } from '~/api/order/application/order-expiration.service';
-import { ORDER_INVENTORY_PORT } from '~/api/order/application/order-inventory.port';
-import { OrderService } from '~/api/order/application/order.service';
-import { OrderEntity } from '~/api/order/domain/entity/order.entity';
-import { OrderExpirationResolver } from '~/api/order/presentation/order-expiration.resolver';
-import { OrderResolver } from '~/api/order/presentation/place-order.resolver';
+import { ItemEntity } from '~/api/catalog/domain/entity/item.entity.js';
+import { InventoryService } from '~/api/inventory/application/inventory.service.js';
+import { InventoryReservationEntity } from '~/api/inventory/domain/inventory-reservation.entity.js';
+import { InventoryModule } from '~/api/inventory/inventory.module.js';
+import { MemberEntity } from '~/api/member/domain/member.entity.js';
+import { OrderExpirationService } from '~/api/order/application/order-expiration.service.js';
+import { ORDER_INVENTORY_PORT } from '~/api/order/application/order-inventory.port.js';
+import { OrderService } from '~/api/order/application/order.service.js';
+import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
+import { OrderExpirationResolver } from '~/api/order/presentation/order-expiration.resolver.js';
+import { OrderResolver } from '~/api/order/presentation/place-order.resolver.js';
 
 @Module({
     imports: [

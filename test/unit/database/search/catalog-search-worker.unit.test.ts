@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { CatalogProductProjectionSource } from '~/api/catalog/search/domain/product-search.document';
-import { CatalogBulkError } from '~/infra/search/catalog-bulk.error';
-import { CatalogIndexManager } from '~/infra/search/catalog-index.manager';
-import { CatalogMaintenanceService } from '~/infra/search/catalog-maintenance.service';
-import { CatalogProjectionReader } from '~/infra/search/catalog-projection.reader';
-import { CatalogSearchWorker } from '~/infra/search/catalog-search.worker';
-import { OpenSearchHttpClient } from '~/infra/search/opensearch.client';
-import { SearchConfig } from '~/infra/search/search.config';
+import { CatalogProductProjectionSource } from '~/api/catalog/search/domain/product-search.document.js';
+import { CatalogBulkError } from '~/infra/search/catalog-bulk.error.js';
+import { CatalogIndexManager } from '~/infra/search/catalog-index.manager.js';
+import { CatalogMaintenanceService } from '~/infra/search/catalog-maintenance.service.js';
+import { CatalogProjectionReader } from '~/infra/search/catalog-projection.reader.js';
+import { CatalogSearchWorker } from '~/infra/search/catalog-search.worker.js';
+import { OpenSearchHttpClient } from '~/infra/search/opensearch.client.js';
+import { SearchConfig } from '~/infra/search/search.config.js';
 
 const target = { indexName: 'catalog-v1', writeAlias: 'catalog-v1-projection' };
 

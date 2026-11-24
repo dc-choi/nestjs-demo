@@ -1,13 +1,13 @@
 import { Cascade, Collection, type Opt, type Rel } from '@mikro-orm/core';
 import { Entity, Index, ManyToOne, OneToMany, OneToOne, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
 
-import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
-import { FulfillmentItemEntity } from '~/api/fulfillment/domain/fulfillment-item.entity';
-import { InventoryReservationEntity } from '~/api/inventory/domain/inventory-reservation.entity';
-import { assertOrderMoneyFits, multiplyDecimal } from '~/api/order/domain/decimal';
-import { OrderItemSnapshotEntity } from '~/api/order/domain/entity/order-item-snapshot.entity';
-import { OrderEntity } from '~/api/order/domain/entity/order.entity';
-import { isPositiveMysqlSignedInt } from '~/global/common/utils/mysql-number';
+import { ItemEntity } from '~/api/catalog/domain/entity/item.entity.js';
+import { FulfillmentItemEntity } from '~/api/fulfillment/domain/fulfillment-item.entity.js';
+import { InventoryReservationEntity } from '~/api/inventory/domain/inventory-reservation.entity.js';
+import { assertOrderMoneyFits, multiplyDecimal } from '~/api/order/domain/decimal.js';
+import { OrderItemSnapshotEntity } from '~/api/order/domain/entity/order-item-snapshot.entity.js';
+import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
+import { isPositiveMysqlSignedInt } from '~/global/common/utils/mysql-number.js';
 
 interface CreateOrderItem {
     readonly quantity: number;

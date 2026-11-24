@@ -1,6 +1,6 @@
 import { Field, InputType } from '@nestjs/graphql';
 
-import { FulfillmentIdInput } from './fulfillment-id.input';
+import { FulfillmentIdInput } from './fulfillment-id.input.js';
 
 import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
 

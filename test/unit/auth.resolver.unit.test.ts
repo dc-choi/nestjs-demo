@@ -1,11 +1,11 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 import { describe, expect, it, vi } from 'vitest';
-import { AuthService } from '~/api/auth/application/auth.service';
-import { LoginRateLimiter } from '~/api/auth/application/login-rate-limiter';
-import { AuthResolver } from '~/api/auth/presentation/auth.resolver';
-import { LoginRateLimited } from '~/global/common/error/login-rate-limited.error';
-import { GraphqlHttpContext } from '~/global/graphql/graphql-context';
+import { AuthService } from '~/api/auth/application/auth.service.js';
+import { LoginRateLimiter } from '~/api/auth/application/login-rate-limiter.js';
+import { AuthResolver } from '~/api/auth/presentation/auth.resolver.js';
+import { LoginRateLimited } from '~/global/common/error/login-rate-limited.error.js';
+import { GraphqlHttpContext } from '~/global/graphql/graphql-context.js';
 
 describe('AuthResolver', () => {
     const input = { email: 'member@example.com', password: 'password' };

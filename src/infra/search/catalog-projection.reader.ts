@@ -7,7 +7,7 @@ import {
     CatalogItemProjectionSource,
     CatalogMediaProjectionSource,
     CatalogProductProjectionSource,
-} from '~/api/catalog/search/domain/product-search.document';
+} from '~/api/catalog/search/domain/product-search.document.js';
 
 interface ProductRow {
     product_id: unknown;

@@ -1,6 +1,6 @@
 import { Field, ObjectType } from '@nestjs/graphql';
 
-import { OrderType } from '~/api/order/presentation/order.type';
+import { OrderType } from '~/api/order/presentation/order.type.js';
 
 @ObjectType()
 export class PlaceOrderPayload {

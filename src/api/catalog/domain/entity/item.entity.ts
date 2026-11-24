@@ -1,13 +1,13 @@
 import { Collection, type Opt, type Rel } from '@mikro-orm/core';
 import { Entity, Enum, Index, ManyToOne, OneToMany, PrimaryKey, Property, Unique } from '@mikro-orm/decorators/legacy';
 
-import { ItemOptionValueEntity } from './item-option-value.entity';
-import { ItemSaleStatus } from './item-sale-status';
-import { ProductEntity } from './product.entity';
+import { ItemOptionValueEntity } from './item-option-value.entity.js';
+import { ItemSaleStatus } from './item-sale-status.js';
+import { ProductEntity } from './product.entity.js';
 
 import { randomUUIDv7 } from 'node:crypto';
-import { InventoryMovementEntity } from '~/api/inventory/domain/inventory-movement.entity';
-import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
+import { InventoryMovementEntity } from '~/api/inventory/domain/inventory-movement.entity.js';
+import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js';
 
 /**
  * Product 아래의 실제 판매 단위로 현재 가격, 세금, 판매 가능 상태와 재고를 보유한다.

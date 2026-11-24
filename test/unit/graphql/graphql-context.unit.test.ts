@@ -3,7 +3,7 @@ import { GqlExecutionContext } from '@nestjs/graphql';
 
 import { Request, Response } from 'express';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getRequestFromContext, getResponseFromContext, isGraphqlContext } from '~/global/graphql/graphql-context';
+import { getRequestFromContext, getResponseFromContext, isGraphqlContext } from '~/global/graphql/graphql-context.js';
 
 describe('GraphQL context helpers', () => {
     afterEach(() => {

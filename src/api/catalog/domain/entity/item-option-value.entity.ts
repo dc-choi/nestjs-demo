@@ -1,9 +1,9 @@
 import type { Rel } from '@mikro-orm/core';
 import { Entity, Index, ManyToOne, PrimaryKey, Property, Unique } from '@mikro-orm/decorators/legacy';
 
-import { ItemEntity } from './item.entity';
-import { ProductOptionValueEntity } from './product-option-value.entity';
-import { ProductOptionEntity } from './product-option.entity';
+import { ItemEntity } from './item.entity.js';
+import { ProductOptionValueEntity } from './product-option-value.entity.js';
+import { ProductOptionEntity } from './product-option.entity.js';
 
 /**
  * live Item이 각 ProductOption에서 선택한 값을 연결하는 현재 상태 모델이다.

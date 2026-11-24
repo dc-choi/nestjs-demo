@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 
-import { SearchOutboxRelay } from '~/infra/search/search-outbox.relay';
-import { SearchMaintenanceAppModule } from '~/search-maintenance-app.module';
+import { SearchOutboxRelay } from '~/infra/search/search-outbox.relay.js';
+import { SearchMaintenanceAppModule } from '~/search-maintenance-app.module.js';
 
 async function main(): Promise<void> {
     const app = await NestFactory.createApplicationContext(SearchMaintenanceAppModule, { logger: ['error', 'warn'] });

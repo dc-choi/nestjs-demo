@@ -1,7 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 
 import { describe, expect, it } from 'vitest';
-import { parseGraphqlId } from '~/global/graphql/graphql-id.parser';
+import { parseGraphqlId } from '~/global/graphql/graphql-id.parser.js';
 
 describe('parseGraphqlId', () => {
     it('GraphQL ID 문자열을 bigint로 변환한다', () => {

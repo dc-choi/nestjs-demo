@@ -3,8 +3,8 @@ import { MySqlDriver } from '@mikro-orm/mysql';
 import type { ConfigService } from '@nestjs/config';
 
 import { describe, expect, it } from 'vitest';
-import type { EnvConfig } from '~/global/config/env/env.config';
-import { createMikroOrmOptions } from '~/infra/database/mikro-orm.config';
+import type { EnvConfig } from '~/global/config/env/env.config.js';
+import { createMikroOrmOptions } from '~/infra/database/mikro-orm.config.js';
 
 describe('MikroORM config', () => {
     it('27개 엔티티와 writer/replica 운영 기본값을 명시한다', () => {

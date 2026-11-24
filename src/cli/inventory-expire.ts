@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 
-import { OrderExpirationService } from '~/api/order/application/order-expiration.service';
-import { MaintenanceAppModule } from '~/maintenance-app.module';
+import { OrderExpirationService } from '~/api/order/application/order-expiration.service.js';
+import { MaintenanceAppModule } from '~/maintenance-app.module.js';
 
 async function main(): Promise<void> {
     const limit = parseLimit(process.argv.slice(2));

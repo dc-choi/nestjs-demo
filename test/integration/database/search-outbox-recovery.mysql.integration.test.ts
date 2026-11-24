@@ -6,17 +6,17 @@ import { randomUUID } from 'node:crypto';
 import {
     readMySqlIntegrationConnection,
     seedCatalogMaintenance,
-} from 'test/integration/database/mysql-integration.config';
+} from 'test/integration/database/mysql-integration.config.js';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
-import { MemberRole } from '~/api/member/domain/member-role';
-import { MemberEntity } from '~/api/member/domain/member.entity';
-import { databaseEntities } from '~/infra/database/entities';
-import { SearchOutboxRecoveryService } from '~/infra/search/search-outbox-recovery.service';
-import { SearchOutboxRelay } from '~/infra/search/search-outbox.relay';
-import { SearchProjectionOutboxStatus } from '~/infra/search/search-projection-outbox-status';
-import { SearchProjectionOutboxEntity } from '~/infra/search/search-projection-outbox.entity';
-import { SearchConfig } from '~/infra/search/search.config';
+import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
+import { MemberRole } from '~/api/member/domain/member-role.js';
+import { MemberEntity } from '~/api/member/domain/member.entity.js';
+import { databaseEntities } from '~/infra/database/entities.js';
+import { SearchOutboxRecoveryService } from '~/infra/search/search-outbox-recovery.service.js';
+import { SearchOutboxRelay } from '~/infra/search/search-outbox.relay.js';
+import { SearchProjectionOutboxStatus } from '~/infra/search/search-projection-outbox-status.js';
+import { SearchProjectionOutboxEntity } from '~/infra/search/search-projection-outbox.entity.js';
+import { SearchConfig } from '~/infra/search/search.config.js';
 
 const describeMySql = process.env.MYSQL_INTEGRATION === '1' ? describe : describe.skip;
 

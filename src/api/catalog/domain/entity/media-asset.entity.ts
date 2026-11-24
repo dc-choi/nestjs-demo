@@ -1,7 +1,7 @@
 import { Collection, type Opt } from '@mikro-orm/core';
 import { Entity, Index, OneToMany, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
 
-import { ProductMediaEntity } from './product-media.entity';
+import { ProductMediaEntity } from './product-media.entity.js';
 
 /**
  * 객체 스토리지 파일을 식별하는 공유 자산과 업로드 당시 metadata를 보존한다.

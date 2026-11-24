@@ -1,8 +1,8 @@
 import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
 
-import { ProductItemOptionType } from './product-item-option.type';
+import { ProductItemOptionType } from './product-item-option.type.js';
 
-import { MoneyType } from '~/global/graphql/money.type';
+import { MoneyType } from '~/global/graphql/money.type.js';
 
 @ObjectType('ProductItem')
 export class ProductItemType {

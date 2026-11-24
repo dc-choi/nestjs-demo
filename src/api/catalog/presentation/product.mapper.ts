@@ -1,5 +1,5 @@
-import { ProductReadResult } from '~/api/catalog/application/product-read.result';
-import { ProductType } from '~/api/catalog/presentation/product.type';
+import { ProductReadResult } from '~/api/catalog/application/product-read.result.js';
+import { ProductType } from '~/api/catalog/presentation/product.type.js';
 
 export function toProductType(product: ProductReadResult): ProductType {
     return {

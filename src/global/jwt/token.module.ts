@@ -2,10 +2,10 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 
-import { JwtStrategy } from './strategy/jwt.strategy';
-import { TokenProvider } from './token.provider';
+import { JwtStrategy } from './strategy/jwt.strategy.js';
+import { TokenProvider } from './token.provider.js';
 
-import { EnvConfig } from '~/global/config/env/env.config';
+import { EnvConfig } from '~/global/config/env/env.config.js';
 
 @Module({
     imports: [

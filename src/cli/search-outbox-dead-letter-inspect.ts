@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 
-import { SearchOutboxRecoveryService } from '~/infra/search/search-outbox-recovery.service';
-import { SearchMaintenanceAppModule } from '~/search-maintenance-app.module';
+import { SearchOutboxRecoveryService } from '~/infra/search/search-outbox-recovery.service.js';
+import { SearchMaintenanceAppModule } from '~/search-maintenance-app.module.js';
 
 async function main(): Promise<void> {
     const options = parseArguments(process.argv.slice(2));

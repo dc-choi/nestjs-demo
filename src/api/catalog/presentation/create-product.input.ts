@@ -7,8 +7,8 @@ import {
     PRODUCT_SLUG_MAX_LENGTH,
     PRODUCT_SLUG_PATTERN,
     PRODUCT_TEXT_MAX_LENGTH,
-} from '~/api/catalog/domain/product.rules';
-import { emptyValue, invalidMax, invalidValue } from '~/global/common/message/error.message';
+} from '~/api/catalog/domain/product.rules.js';
+import { emptyValue, invalidMax, invalidValue } from '~/global/common/message/error.message.js';
 
 @InputType()
 export class CreateProductInput {

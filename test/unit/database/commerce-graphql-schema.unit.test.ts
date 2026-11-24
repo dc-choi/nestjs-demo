@@ -3,14 +3,14 @@ import { GraphQLSchemaBuilderModule, GraphQLSchemaFactory } from '@nestjs/graphq
 
 import { GraphQLObjectType } from 'graphql';
 import { describe, expect, it } from 'vitest';
-import { ProductResolver } from '~/api/catalog/presentation/product.resolver';
-import { DecimalScalar } from '~/api/catalog/search/presentation/decimal.scalar';
-import { ProductSearchResolver } from '~/api/catalog/search/presentation/product-search.resolver';
-import { FulfillmentResolver } from '~/api/fulfillment/presentation/fulfillment.resolver';
-import { InventoryResolver } from '~/api/inventory/presentation/inventory.resolver';
-import { OrderExpirationResolver } from '~/api/order/presentation/order-expiration.resolver';
-import { OrderResolver } from '~/api/order/presentation/place-order.resolver';
-import { PaymentResolver } from '~/api/payment/presentation/payment.resolver';
+import { ProductResolver } from '~/api/catalog/presentation/product.resolver.js';
+import { DecimalScalar } from '~/api/catalog/search/presentation/decimal.scalar.js';
+import { ProductSearchResolver } from '~/api/catalog/search/presentation/product-search.resolver.js';
+import { FulfillmentResolver } from '~/api/fulfillment/presentation/fulfillment.resolver.js';
+import { InventoryResolver } from '~/api/inventory/presentation/inventory.resolver.js';
+import { OrderExpirationResolver } from '~/api/order/presentation/order-expiration.resolver.js';
+import { OrderResolver } from '~/api/order/presentation/place-order.resolver.js';
+import { PaymentResolver } from '~/api/payment/presentation/payment.resolver.js';
 
 describe('commerce GraphQL schema', () => {
     it('재고, 주문 취소, 결제와 배송 mutation 계약을 생성한다', async () => {

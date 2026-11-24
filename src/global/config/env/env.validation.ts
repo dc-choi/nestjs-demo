@@ -1,4 +1,4 @@
-import type { EnvConfig } from './env.config';
+import type { EnvConfig } from './env.config.js';
 
 import Joi from 'joi';
 

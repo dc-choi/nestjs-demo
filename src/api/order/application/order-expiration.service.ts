@@ -11,18 +11,18 @@ import {
 } from '@nestjs/common';
 
 import { createHash } from 'node:crypto';
-import type { InventoryTransitionResult } from '~/api/inventory/application/inventory-transition.result';
-import type { InventoryMovementEntity } from '~/api/inventory/domain/inventory-movement.entity';
-import { InventoryReservationStatus } from '~/api/inventory/domain/inventory-reservation-status';
-import { InventoryReservationEntity } from '~/api/inventory/domain/inventory-reservation.entity';
-import { MemberRole } from '~/api/member/domain/member-role';
-import { lockOrderDependents } from '~/api/order/application/order-dependents.lock';
-import { ORDER_INVENTORY_PORT, type OrderInventoryPort } from '~/api/order/application/order-inventory.port';
-import { OrderActorType } from '~/api/order/domain/entity/order-actor-type';
-import { OrderStatus } from '~/api/order/domain/entity/order-status';
-import { OrderEntity } from '~/api/order/domain/entity/order.entity';
-import { OrderCancellationConflict } from '~/api/order/domain/order-cancellation-conflict.error';
-import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
+import type { InventoryTransitionResult } from '~/api/inventory/application/inventory-transition.result.js';
+import type { InventoryMovementEntity } from '~/api/inventory/domain/inventory-movement.entity.js';
+import { InventoryReservationStatus } from '~/api/inventory/domain/inventory-reservation-status.js';
+import { InventoryReservationEntity } from '~/api/inventory/domain/inventory-reservation.entity.js';
+import { MemberRole } from '~/api/member/domain/member-role.js';
+import { lockOrderDependents } from '~/api/order/application/order-dependents.lock.js';
+import { ORDER_INVENTORY_PORT, type OrderInventoryPort } from '~/api/order/application/order-inventory.port.js';
+import { OrderActorType } from '~/api/order/domain/entity/order-actor-type.js';
+import { OrderStatus } from '~/api/order/domain/entity/order-status.js';
+import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
+import { OrderCancellationConflict } from '~/api/order/domain/order-cancellation-conflict.error.js';
+import type { JwtPayload } from '~/global/jwt/payload/jwt.payload.js';
 
 export interface OrderExpirationBatchResult {
     readonly selectedOrders: number;

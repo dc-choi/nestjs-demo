@@ -1,12 +1,12 @@
 import { Collection } from '@mikro-orm/core';
 
 import { describe, expect, it } from 'vitest';
-import { CatalogGraph } from '~/api/catalog/domain/catalog-graph';
-import { CatalogGraphChange } from '~/api/catalog/domain/catalog-graph-change';
-import { CatalogGraphError } from '~/api/catalog/domain/catalog-graph.error';
-import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status';
-import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
-import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
+import { CatalogGraphChange } from '~/api/catalog/domain/catalog-graph-change.js';
+import { CatalogGraphError } from '~/api/catalog/domain/catalog-graph.error.js';
+import { CatalogGraph } from '~/api/catalog/domain/catalog-graph.js';
+import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status.js';
+import { ItemEntity } from '~/api/catalog/domain/entity/item.entity.js';
+import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
 
 describe('CatalogGraph', () => {
     it('normalizes a valid graph and derives a stable option signature and total price', () => {

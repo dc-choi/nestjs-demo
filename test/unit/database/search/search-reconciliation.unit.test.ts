@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { projectCatalogProduct } from '~/api/catalog/search/domain/catalog-projector';
-import { CatalogProductProjectionSource } from '~/api/catalog/search/domain/product-search.document';
-import { CatalogIndexManager } from '~/infra/search/catalog-index.manager';
-import { CatalogMaintenanceService } from '~/infra/search/catalog-maintenance.service';
-import { CatalogProjectionReader } from '~/infra/search/catalog-projection.reader';
-import { CatalogSearchWorker } from '~/infra/search/catalog-search.worker';
-import { SearchReconciliationService } from '~/infra/search/search-reconciliation.service';
-import { SearchConfig } from '~/infra/search/search.config';
+import { projectCatalogProduct } from '~/api/catalog/search/domain/catalog-projector.js';
+import { CatalogProductProjectionSource } from '~/api/catalog/search/domain/product-search.document.js';
+import { CatalogIndexManager } from '~/infra/search/catalog-index.manager.js';
+import { CatalogMaintenanceService } from '~/infra/search/catalog-maintenance.service.js';
+import { CatalogProjectionReader } from '~/infra/search/catalog-projection.reader.js';
+import { CatalogSearchWorker } from '~/infra/search/catalog-search.worker.js';
+import { SearchReconciliationService } from '~/infra/search/search-reconciliation.service.js';
+import { SearchConfig } from '~/infra/search/search.config.js';
 
 const target = { indexName: 'catalog-v1', writeAlias: 'catalog-v1-projection' };
 

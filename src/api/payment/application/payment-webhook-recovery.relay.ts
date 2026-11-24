@@ -2,8 +2,8 @@ import { EntityManager, MikroORM } from '@mikro-orm/mysql';
 import { Injectable } from '@nestjs/common';
 
 import { randomUUID } from 'node:crypto';
-import { PaymentWebhookService } from '~/api/payment/application/payment-webhook.service';
-import { toBigInt, toNonNegativeInteger, toRequiredString } from '~/global/common/utils/mysql-row';
+import { PaymentWebhookService } from '~/api/payment/application/payment-webhook.service.js';
+import { toBigInt, toNonNegativeInteger, toRequiredString } from '~/global/common/utils/mysql-row.js';
 
 const MAX_RECOVERY_ATTEMPTS = 10;
 const LEASE_MILLISECONDS = 30_000;

@@ -4,10 +4,10 @@ import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { Global, Injectable, Module, OnModuleInit } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
-import { createMikroOrmOptions } from './mikro-orm.config';
+import { createMikroOrmOptions } from './mikro-orm.config.js';
 
-import { SQL_LOGGER } from '~/global/common/logger/sql-logger.symbol';
-import { LoggingModule } from '~/global/config/logger/logging.module';
+import { SQL_LOGGER } from '~/global/common/logger/sql-logger.symbol.js';
+import { LoggingModule } from '~/global/config/logger/logging.module.js';
 
 @Injectable()
 class DatabaseConnectionLifecycle implements OnModuleInit {

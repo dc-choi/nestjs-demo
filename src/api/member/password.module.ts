@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 
-import { PasswordKdfAdmission } from './application/password-kdf.admission';
-import { PasswordService } from './application/password.service';
+import { PasswordKdfAdmission } from './application/password-kdf.admission.js';
+import { PasswordService } from './application/password.service.js';
 
 @Module({
     providers: [

@@ -1,6 +1,6 @@
 import type { EntityManager } from '@mikro-orm/core';
 
-import type { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
+import type { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
 
 export const CATALOG_WRITE_EFFECTS = Symbol('CATALOG_WRITE_EFFECTS');
 

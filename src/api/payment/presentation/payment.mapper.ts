@@ -1,8 +1,8 @@
-import type { PaymentResult, PaymentWebhookResult } from '~/api/payment/application/payment-result';
-import type { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity';
-import type { PaymentTransactionRecordType } from '~/api/payment/presentation/payment-transaction-record.type';
-import type { PaymentWebhookPayload } from '~/api/payment/presentation/payment-webhook.payload';
-import type { PaymentPayload } from '~/api/payment/presentation/payment.payload';
+import type { PaymentResult, PaymentWebhookResult } from '~/api/payment/application/payment-result.js';
+import type { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity.js';
+import type { PaymentTransactionRecordType } from '~/api/payment/presentation/payment-transaction-record.type.js';
+import type { PaymentWebhookPayload } from '~/api/payment/presentation/payment-webhook.payload.js';
+import type { PaymentPayload } from '~/api/payment/presentation/payment.payload.js';
 
 export function toPaymentPayload({ attempt, transaction }: PaymentResult): PaymentPayload {
     if (attempt.id == null) throw new Error('저장되지 않은 결제 시도입니다.');

@@ -1,7 +1,7 @@
-import { CatalogGraph, type CatalogGraphInput, type CatalogItemInput, invalidGraph } from './catalog-graph';
-import { ProductEntity } from './entity/product.entity';
+import { CatalogGraph, type CatalogGraphInput, type CatalogItemInput, invalidGraph } from './catalog-graph.js';
+import { ProductEntity } from './entity/product.entity.js';
 
-import { compareBigInt } from '~/global/common/utils/bigint';
+import { compareBigInt } from '~/global/common/utils/bigint.js';
 
 /**
  * Mutable-intent operations begin from live ORM state, which may itself need

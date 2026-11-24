@@ -1,9 +1,9 @@
 import type { Opt, Rel } from '@mikro-orm/core';
 import { Entity, Enum, Index, ManyToOne, PrimaryKey, Property, Unique } from '@mikro-orm/decorators/legacy';
 
-import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
-import { InventoryMovementType } from '~/api/inventory/domain/inventory-movement-type';
-import { isMysqlSignedInt, isNonNegativeMysqlSignedInt } from '~/global/common/utils/mysql-number';
+import { ItemEntity } from '~/api/catalog/domain/entity/item.entity.js';
+import { InventoryMovementType } from '~/api/inventory/domain/inventory-movement-type.js';
+import { isMysqlSignedInt, isNonNegativeMysqlSignedInt } from '~/global/common/utils/mysql-number.js';
 
 /**
  * `ItemEntity.stock` 변경 근거와 변경 직후 잔액을 보존하는 추가 전용 원장이다.

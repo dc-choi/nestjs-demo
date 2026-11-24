@@ -1,9 +1,9 @@
 import { Field, ID, InputType, Int } from '@nestjs/graphql';
 
 import { IsInt, IsOptional, IsString, Matches, MaxLength, Min } from 'class-validator';
-import { PRODUCT_REASON_MAX_LENGTH } from '~/api/catalog/domain/product.rules';
-import { invalidMax, invalidMin, invalidValue } from '~/global/common/message/error.message';
-import { GRAPHQL_ID_MAX_LENGTH, GRAPHQL_ID_PATTERN } from '~/global/graphql/graphql-id.parser';
+import { PRODUCT_REASON_MAX_LENGTH } from '~/api/catalog/domain/product.rules.js';
+import { invalidMax, invalidMin, invalidValue } from '~/global/common/message/error.message.js';
+import { GRAPHQL_ID_MAX_LENGTH, GRAPHQL_ID_PATTERN } from '~/global/graphql/graphql-id.parser.js';
 
 @InputType()
 export class RestoreProductInput {

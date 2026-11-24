@@ -1,7 +1,7 @@
 import { Field, ObjectType } from '@nestjs/graphql';
 
-import { ProductSearchNodeType } from './product-search-node.type';
-import { ProductSearchPageInfoType } from './product-search-page-info.type';
+import { ProductSearchNodeType } from './product-search-node.type.js';
+import { ProductSearchPageInfoType } from './product-search-page-info.type.js';
 
 @ObjectType('ProductSearchConnection')
 export class ProductSearchConnectionType {

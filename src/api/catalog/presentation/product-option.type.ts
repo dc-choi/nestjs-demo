@@ -1,6 +1,6 @@
 import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
 
-import { ProductOptionValueType } from './product-option-value.type';
+import { ProductOptionValueType } from './product-option-value.type.js';
 
 @ObjectType('ProductOption')
 export class ProductOptionType {

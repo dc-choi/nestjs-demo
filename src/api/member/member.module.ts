@@ -2,10 +2,10 @@ import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 
-import { MemberService } from './application/member.service';
-import { MemberEntity } from './domain/member.entity';
-import { PasswordModule } from './password.module';
-import { MemberResolver } from './presentation/member.resolver';
+import { MemberService } from './application/member.service.js';
+import { MemberEntity } from './domain/member.entity.js';
+import { PasswordModule } from './password.module.js';
+import { MemberResolver } from './presentation/member.resolver.js';
 
 @Module({
     imports: [CqrsModule, MikroOrmModule.forFeature([MemberEntity]), PasswordModule],

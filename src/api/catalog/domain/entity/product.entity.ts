@@ -1,15 +1,15 @@
 import { Collection, type Opt, type Rel } from '@mikro-orm/core';
 import { Entity, Enum, Index, ManyToOne, OneToMany, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
 
-import { ItemSaleStatus } from './item-sale-status';
-import { ItemEntity } from './item.entity';
-import { ProductCategoryEntity } from './product-category.entity';
-import { ProductMediaEntity } from './product-media.entity';
-import { ProductOptionEntity } from './product-option.entity';
-import type { ProductSnapshotPayload } from './product-snapshot-payload';
-import { ProductSnapshotEntity } from './product-snapshot.entity';
-import { ProductStatus } from './product-status';
-import { ProductTagEntity } from './product-tag.entity';
+import { ItemSaleStatus } from './item-sale-status.js';
+import { ItemEntity } from './item.entity.js';
+import { ProductCategoryEntity } from './product-category.entity.js';
+import { ProductMediaEntity } from './product-media.entity.js';
+import { ProductOptionEntity } from './product-option.entity.js';
+import type { ProductSnapshotPayload } from './product-snapshot-payload.js';
+import { ProductSnapshotEntity } from './product-snapshot.entity.js';
+import { ProductStatus } from './product-status.js';
+import { ProductTagEntity } from './product-tag.entity.js';
 
 import {
     PRODUCT_NAME_MAX_LENGTH,
@@ -17,8 +17,8 @@ import {
     normalizeNullableText,
     normalizeRequiredText,
     normalizeSlug,
-} from '~/api/catalog/domain/product.rules';
-import { MemberEntity } from '~/api/member/domain/member.entity';
+} from '~/api/catalog/domain/product.rules.js';
+import { MemberEntity } from '~/api/member/domain/member.entity.js';
 
 export interface CreateProduct {
     readonly slug: string;

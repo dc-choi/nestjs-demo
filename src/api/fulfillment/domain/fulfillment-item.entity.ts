@@ -1,9 +1,9 @@
 import { Collection, type Rel } from '@mikro-orm/core';
 import { Entity, Index, ManyToOne, PrimaryKey, Property, Unique } from '@mikro-orm/decorators/legacy';
 
-import { FulfillmentEntity } from '~/api/fulfillment/domain/fulfillment.entity';
-import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
-import { isPositiveMysqlSignedInt } from '~/global/common/utils/mysql-number';
+import { FulfillmentEntity } from '~/api/fulfillment/domain/fulfillment.entity.js';
+import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js';
+import { isPositiveMysqlSignedInt } from '~/global/common/utils/mysql-number.js';
 
 /**
  * 주문 품목 수량 중 한 배송에 배정된 몫이다.

@@ -1,9 +1,9 @@
 import { type Opt, type Rel } from '@mikro-orm/core';
 import { Entity, Index, ManyToOne, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
 
-import { SearchProjectionOutboxEntity } from './search-projection-outbox.entity';
+import { SearchProjectionOutboxEntity } from './search-projection-outbox.entity.js';
 
-import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
+import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
 
 @Entity({ tableName: 'search_projection_outbox_retry_history' })
 @Index({ name: 'search_projection_outbox_retry_history_outbox_created_idx', properties: ['outbox', 'createdAt'] })

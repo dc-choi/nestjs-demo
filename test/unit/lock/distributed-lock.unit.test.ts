@@ -2,7 +2,7 @@ import { Logger } from '@nestjs/common';
 
 import Redlock from 'redlock';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DistributedLockService } from '~/global/common/lock/distributed-lock.service';
+import { DistributedLockService } from '~/global/common/lock/distributed-lock.service.js';
 
 describe('DistributedLockService', () => {
     beforeEach(() => {

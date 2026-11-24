@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 
-import { OpenSearchHttpError } from './opensearch-http.error';
-import { OpenSearchHttpClient } from './opensearch.client';
-import { SearchConfig } from './search.config';
+import { OpenSearchHttpError } from './opensearch-http.error.js';
+import { OpenSearchHttpClient } from './opensearch.client.js';
+import { SearchConfig } from './search.config.js';
 
 interface InfoResponse {
     version?: { number?: string };

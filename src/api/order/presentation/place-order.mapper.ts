@@ -1,6 +1,6 @@
-import { PlaceOrderCommand } from '~/api/order/application/place-order.command';
-import { PlaceOrderInput } from '~/api/order/presentation/place-order.input';
-import { parseGraphqlId } from '~/global/graphql/graphql-id.parser';
+import { PlaceOrderCommand } from '~/api/order/application/place-order.command.js';
+import { PlaceOrderInput } from '~/api/order/presentation/place-order.input.js';
+import { parseGraphqlId } from '~/global/graphql/graphql-id.parser.js';
 
 export function toPlaceOrderCommand(input: PlaceOrderInput): PlaceOrderCommand {
     return {

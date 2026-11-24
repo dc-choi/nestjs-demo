@@ -8,7 +8,7 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 
-import { CATALOG_WRITE_EFFECTS, type CatalogWriteEffects } from './catalog-write-effects.port';
+import { CATALOG_WRITE_EFFECTS, type CatalogWriteEffects } from './catalog-write-effects.port.js';
 import {
     createProductItem,
     deleteProductItem,
@@ -16,7 +16,7 @@ import {
     replaceProductCatalogGraph,
     restoreProductCatalogGraph,
     updateProductItem,
-} from './product-catalog.writer';
+} from './product-catalog.writer.js';
 import type {
     CreateProductCommand,
     CreateProductItemCommand,
@@ -27,26 +27,26 @@ import type {
     RestoreProductCommand,
     UpdateProductCommand,
     UpdateProductItemCommand,
-} from './product-write.command';
+} from './product-write.command.js';
 
-import { CatalogGraphError } from '~/api/catalog/domain/catalog-graph.error';
-import { ProductSnapshotChangeType } from '~/api/catalog/domain/entity/product-snapshot-change-type';
-import { ProductSnapshotEntity } from '~/api/catalog/domain/entity/product-snapshot.entity';
-import { ProductStatus } from '~/api/catalog/domain/entity/product-status';
-import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
-import { InvalidProductChange } from '~/api/catalog/domain/invalid-product-change.error';
-import { NotExistingProduct } from '~/api/catalog/domain/not-existing-product.error';
-import { ProductAccessDenied } from '~/api/catalog/domain/product-access-denied.error';
-import { ProductRevisionConflict } from '~/api/catalog/domain/product-revision-conflict.error';
+import { CatalogGraphError } from '~/api/catalog/domain/catalog-graph.error.js';
+import { ProductSnapshotChangeType } from '~/api/catalog/domain/entity/product-snapshot-change-type.js';
+import { ProductSnapshotEntity } from '~/api/catalog/domain/entity/product-snapshot.entity.js';
+import { ProductStatus } from '~/api/catalog/domain/entity/product-status.js';
+import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
+import { InvalidProductChange } from '~/api/catalog/domain/invalid-product-change.error.js';
+import { NotExistingProduct } from '~/api/catalog/domain/not-existing-product.error.js';
+import { ProductAccessDenied } from '~/api/catalog/domain/product-access-denied.error.js';
+import { ProductRevisionConflict } from '~/api/catalog/domain/product-revision-conflict.error.js';
 import {
     PRODUCT_SNAPSHOT_SCHEMA_VERSION,
     createProductSnapshotPayload,
-} from '~/api/catalog/domain/product-snapshot.factory';
-import { ProductWriteConflict } from '~/api/catalog/domain/product-write-conflict.error';
-import { PRODUCT_REASON_MAX_LENGTH, ProductRuleError } from '~/api/catalog/domain/product.rules';
-import { MemberRole } from '~/api/member/domain/member-role';
-import { MemberEntity } from '~/api/member/domain/member.entity';
-import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
+} from '~/api/catalog/domain/product-snapshot.factory.js';
+import { ProductWriteConflict } from '~/api/catalog/domain/product-write-conflict.error.js';
+import { PRODUCT_REASON_MAX_LENGTH, ProductRuleError } from '~/api/catalog/domain/product.rules.js';
+import { MemberRole } from '~/api/member/domain/member-role.js';
+import { MemberEntity } from '~/api/member/domain/member.entity.js';
+import type { JwtPayload } from '~/global/jwt/payload/jwt.payload.js';
 
 const snapshotPopulate = [
     'seller',

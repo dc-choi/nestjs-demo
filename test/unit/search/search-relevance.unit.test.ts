@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ndcgAtK, recallAtK } from '~/infra/search/search-relevance-evaluation.service';
+import { ndcgAtK, recallAtK } from '~/infra/search/search-relevance-evaluation.service.js';
 
 describe('Search relevance metrics', () => {
     it('computes fixed-k ranking quality and recall', () => {

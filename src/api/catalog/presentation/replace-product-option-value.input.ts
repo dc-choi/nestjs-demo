@@ -5,8 +5,8 @@ import {
     PRODUCT_NAME_MAX_LENGTH,
     PRODUCT_OPTION_CODE_MAX_LENGTH,
     PRODUCT_OPTION_CODE_PATTERN,
-} from '~/api/catalog/domain/product.rules';
-import { emptyValue, invalidMax, invalidValue } from '~/global/common/message/error.message';
+} from '~/api/catalog/domain/product.rules.js';
+import { emptyValue, invalidMax, invalidValue } from '~/global/common/message/error.message.js';
 
 @InputType()
 export class ReplaceProductOptionValueInput {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readMikroOrmEnvironment } from '~/infra/database/database-environment';
+import { readMikroOrmEnvironment } from '~/infra/database/database-environment.js';
 
 const environment = {
     ENV: 'test',

@@ -1,8 +1,8 @@
-import { CategoryEntity } from './entity/category.entity';
-import type { ProductSnapshotPayload } from './entity/product-snapshot-payload';
-import { ProductEntity } from './entity/product.entity';
+import { CategoryEntity } from './entity/category.entity.js';
+import type { ProductSnapshotPayload } from './entity/product-snapshot-payload.js';
+import { ProductEntity } from './entity/product.entity.js';
 
-import { compareBigInt } from '~/global/common/utils/bigint';
+import { compareBigInt } from '~/global/common/utils/bigint.js';
 
 export const PRODUCT_SNAPSHOT_SCHEMA_VERSION = 1;
 

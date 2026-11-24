@@ -1,9 +1,9 @@
 import { Field, InputType } from '@nestjs/graphql';
 
-import { CapturePaymentInput } from './capture-payment.input';
+import { CapturePaymentInput } from './capture-payment.input.js';
 
 import { Matches } from 'class-validator';
-import { MONEY_PATTERN } from '~/api/payment/domain/payment-money';
+import { MONEY_PATTERN } from '~/api/payment/domain/payment-money.js';
 
 @InputType()
 export class RefundPaymentInput extends CapturePaymentInput {

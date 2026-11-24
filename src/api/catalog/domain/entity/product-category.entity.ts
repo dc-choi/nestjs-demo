@@ -1,8 +1,8 @@
 import { PrimaryKeyProp, type Rel } from '@mikro-orm/core';
 import { Entity, Index, ManyToOne, Property, Unique } from '@mikro-orm/decorators/legacy';
 
-import { CategoryEntity } from './category.entity';
-import { ProductEntity } from './product.entity';
+import { CategoryEntity } from './category.entity.js';
+import { ProductEntity } from './product.entity.js';
 
 /**
  * live Product와 공유 Category를 연결하는 현재 분류 배치다.

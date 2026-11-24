@@ -1,8 +1,8 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
 
-import { OrderItemType } from '~/api/order/presentation/order-item.type';
-import { OrderStatus } from '~/api/order/presentation/order-status.enum';
-import { MoneyType } from '~/global/graphql/money.type';
+import { OrderItemType } from '~/api/order/presentation/order-item.type.js';
+import { OrderStatus } from '~/api/order/presentation/order-status.enum.js';
+import { MoneyType } from '~/global/graphql/money.type.js';
 
 @ObjectType('Order')
 export class OrderType {

@@ -3,9 +3,9 @@ import { ConfigModule } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 
 import { describe, expect, it } from 'vitest';
-import { PasswordKdfSaturatedError } from '~/api/member/application/password-kdf-saturated.error';
-import { PasswordService } from '~/api/member/application/password.service';
-import { PasswordModule } from '~/api/member/password.module';
+import { PasswordKdfSaturatedError } from '~/api/member/application/password-kdf-saturated.error.js';
+import { PasswordService } from '~/api/member/application/password.service.js';
+import { PasswordModule } from '~/api/member/password.module.js';
 
 @Injectable()
 class SignupPasswordConsumer {

@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 
-import { SearchReconciliationService } from '~/infra/search/search-reconciliation.service';
-import { SearchMaintenanceAppModule } from '~/search-maintenance-app.module';
+import { SearchReconciliationService } from '~/infra/search/search-reconciliation.service.js';
+import { SearchMaintenanceAppModule } from '~/search-maintenance-app.module.js';
 
 async function main(): Promise<void> {
     const repair = process.argv.slice(2).includes('--repair');

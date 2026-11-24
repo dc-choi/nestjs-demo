@@ -7,32 +7,32 @@ import { createHash, createHmac } from 'node:crypto';
 import {
     readMySqlIntegrationConnection,
     seedCatalogMaintenance,
-} from 'test/integration/database/mysql-integration.config';
+} from 'test/integration/database/mysql-integration.config.js';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
-import { InventoryService } from '~/api/inventory/application/inventory.service';
-import { InventoryMovementEntity } from '~/api/inventory/domain/inventory-movement.entity';
-import { InventoryReservationEntity } from '~/api/inventory/domain/inventory-reservation.entity';
-import { MemberEntity } from '~/api/member/domain/member.entity';
-import { OrderService } from '~/api/order/application/order.service';
-import { OrderEntity } from '~/api/order/domain/entity/order.entity';
-import { PaymentWebhookRecoveryRelay } from '~/api/payment/application/payment-webhook-recovery.relay';
-import { PaymentWebhookService } from '~/api/payment/application/payment-webhook.service';
-import { PaymentService } from '~/api/payment/application/payment.service';
-import { PaymentAttemptStatus } from '~/api/payment/domain/payment-attempt-status';
-import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity';
-import { PaymentTransactionType } from '~/api/payment/domain/payment-transaction-type';
-import { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity';
-import { PaymentWebhookEventStatus } from '~/api/payment/domain/payment-webhook-event-status';
-import { PaymentWebhookEventEntity } from '~/api/payment/domain/payment-webhook-event.entity';
-import { PaymentWebhookOutcome } from '~/api/payment/domain/payment-webhook-outcome';
-import { HmacPaymentWebhookSignatureVerifier } from '~/api/payment/infrastructure/payment-webhook-signature.verifier';
-import { PaymentWebhookController } from '~/api/payment/presentation/payment-webhook.controller';
-import type { DistributedLockService } from '~/global/common/lock/distributed-lock.service';
-import type { EnvConfig } from '~/global/config/env/env.config';
-import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
-import { databaseEntities } from '~/infra/database/entities';
-import { DatabaseSeeder } from '~/infra/database/seeders/DatabaseSeeder';
+import { ItemEntity } from '~/api/catalog/domain/entity/item.entity.js';
+import { InventoryService } from '~/api/inventory/application/inventory.service.js';
+import { InventoryMovementEntity } from '~/api/inventory/domain/inventory-movement.entity.js';
+import { InventoryReservationEntity } from '~/api/inventory/domain/inventory-reservation.entity.js';
+import { MemberEntity } from '~/api/member/domain/member.entity.js';
+import { OrderService } from '~/api/order/application/order.service.js';
+import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
+import { PaymentWebhookRecoveryRelay } from '~/api/payment/application/payment-webhook-recovery.relay.js';
+import { PaymentWebhookService } from '~/api/payment/application/payment-webhook.service.js';
+import { PaymentService } from '~/api/payment/application/payment.service.js';
+import { PaymentAttemptStatus } from '~/api/payment/domain/payment-attempt-status.js';
+import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity.js';
+import { PaymentTransactionType } from '~/api/payment/domain/payment-transaction-type.js';
+import { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity.js';
+import { PaymentWebhookEventStatus } from '~/api/payment/domain/payment-webhook-event-status.js';
+import { PaymentWebhookEventEntity } from '~/api/payment/domain/payment-webhook-event.entity.js';
+import { PaymentWebhookOutcome } from '~/api/payment/domain/payment-webhook-outcome.js';
+import { HmacPaymentWebhookSignatureVerifier } from '~/api/payment/infrastructure/payment-webhook-signature.verifier.js';
+import { PaymentWebhookController } from '~/api/payment/presentation/payment-webhook.controller.js';
+import type { DistributedLockService } from '~/global/common/lock/distributed-lock.service.js';
+import type { EnvConfig } from '~/global/config/env/env.config.js';
+import type { JwtPayload } from '~/global/jwt/payload/jwt.payload.js';
+import { databaseEntities } from '~/infra/database/entities.js';
+import { DatabaseSeeder } from '~/infra/database/seeders/DatabaseSeeder.js';
 
 const describeWebhookRecovery = process.env.MYSQL_INTEGRATION === '1' ? describe : describe.skip;
 

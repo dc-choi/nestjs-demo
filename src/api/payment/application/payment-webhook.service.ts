@@ -4,18 +4,18 @@ import { InjectRepository } from '@mikro-orm/nestjs';
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { createHash } from 'node:crypto';
-import type { PaymentWebhookRecoveryResult, PaymentWebhookResult } from '~/api/payment/application/payment-result';
-import { PaymentWebhookPrerequisitePending } from '~/api/payment/application/payment-webhook-prerequisite-pending.error';
+import type { PaymentWebhookRecoveryResult, PaymentWebhookResult } from '~/api/payment/application/payment-result.js';
+import { PaymentWebhookPrerequisitePending } from '~/api/payment/application/payment-webhook-prerequisite-pending.error.js';
 import type {
     ProcessPaymentWebhookCommand,
     ReceivePaymentWebhookCommand,
     VerifiedPaymentWebhookCommand,
-} from '~/api/payment/application/payment.command';
-import { PaymentService } from '~/api/payment/application/payment.service';
-import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity';
-import { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity';
-import { PaymentWebhookEventStatus } from '~/api/payment/domain/payment-webhook-event-status';
-import { PaymentWebhookEventEntity } from '~/api/payment/domain/payment-webhook-event.entity';
+} from '~/api/payment/application/payment.command.js';
+import { PaymentService } from '~/api/payment/application/payment.service.js';
+import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity.js';
+import { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity.js';
+import { PaymentWebhookEventStatus } from '~/api/payment/domain/payment-webhook-event-status.js';
+import { PaymentWebhookEventEntity } from '~/api/payment/domain/payment-webhook-event.entity.js';
 
 interface ProcessWebhookOptions {
     readonly rejectFailedEvent?: boolean;

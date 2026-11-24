@@ -1,7 +1,7 @@
 import { Migrator } from '@mikro-orm/migrations';
 
 import { describe, expect, it } from 'vitest';
-import { createMigrationMikroOrmOptions, migrationsOptions, seederOptions } from '~/infra/database/migration.config';
+import { createMigrationMikroOrmOptions, migrationsOptions, seederOptions } from '~/infra/database/migration.config.js';
 
 const environment = {
     ENV: 'test',

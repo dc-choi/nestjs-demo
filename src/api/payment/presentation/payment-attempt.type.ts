@@ -1,9 +1,9 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
 
-import { PaymentTransactionRecordType } from './payment-transaction-record.type';
+import { PaymentTransactionRecordType } from './payment-transaction-record.type.js';
 
-import { PaymentAttemptStatus } from '~/api/payment/presentation/payment.enum';
-import { MoneyType } from '~/global/graphql/money.type';
+import { PaymentAttemptStatus } from '~/api/payment/presentation/payment.enum.js';
+import { MoneyType } from '~/global/graphql/money.type.js';
 
 @ObjectType('PaymentAttempt')
 export class PaymentAttemptType {

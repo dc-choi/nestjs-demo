@@ -1,19 +1,19 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
-import { CatalogIndexManager } from './catalog-index.manager';
-import { CatalogMaintenanceService } from './catalog-maintenance.service';
-import { CatalogProjectionReader } from './catalog-projection.reader';
-import { CatalogRebuildService } from './catalog-rebuild.service';
-import { CatalogSearchWorker } from './catalog-search.worker';
-import { OpenSearchProductSearchAdapter } from './opensearch-product-search.adapter';
-import { OpenSearchHttpClient } from './opensearch.client';
-import { SearchHealthService } from './search-health.service';
-import { SearchOutboxRecoveryService } from './search-outbox-recovery.service';
-import { SearchOutboxRelay } from './search-outbox.relay';
-import { SearchReconciliationService } from './search-reconciliation.service';
-import { SearchRelevanceEvaluationService } from './search-relevance-evaluation.service';
-import { SearchConfig } from './search.config';
+import { CatalogIndexManager } from './catalog-index.manager.js';
+import { CatalogMaintenanceService } from './catalog-maintenance.service.js';
+import { CatalogProjectionReader } from './catalog-projection.reader.js';
+import { CatalogRebuildService } from './catalog-rebuild.service.js';
+import { CatalogSearchWorker } from './catalog-search.worker.js';
+import { OpenSearchProductSearchAdapter } from './opensearch-product-search.adapter.js';
+import { OpenSearchHttpClient } from './opensearch.client.js';
+import { SearchHealthService } from './search-health.service.js';
+import { SearchOutboxRecoveryService } from './search-outbox-recovery.service.js';
+import { SearchOutboxRelay } from './search-outbox.relay.js';
+import { SearchReconciliationService } from './search-reconciliation.service.js';
+import { SearchRelevanceEvaluationService } from './search-relevance-evaluation.service.js';
+import { SearchConfig } from './search.config.js';
 
 const infrastructureProviders = [
     SearchOutboxRecoveryService,

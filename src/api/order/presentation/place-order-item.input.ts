@@ -1,9 +1,9 @@
 import { Field, ID, InputType, Int } from '@nestjs/graphql';
 
 import { IsNotEmpty, IsNumber, Matches, Max, MaxLength, Min } from 'class-validator';
-import { emptyValue, invalidMax, invalidMin, invalidValue } from '~/global/common/message/error.message';
-import { MYSQL_SIGNED_INT_MAX } from '~/global/common/utils/mysql-number';
-import { GRAPHQL_ID_MAX_LENGTH, GRAPHQL_ID_PATTERN } from '~/global/graphql/graphql-id.parser';
+import { emptyValue, invalidMax, invalidMin, invalidValue } from '~/global/common/message/error.message.js';
+import { MYSQL_SIGNED_INT_MAX } from '~/global/common/utils/mysql-number.js';
+import { GRAPHQL_ID_MAX_LENGTH, GRAPHQL_ID_PATTERN } from '~/global/graphql/graphql-id.parser.js';
 
 @InputType()
 export class PlaceOrderItemInput {

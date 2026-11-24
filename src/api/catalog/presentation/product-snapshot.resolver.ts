@@ -5,12 +5,12 @@ import {
     DEFAULT_PRODUCT_SNAPSHOT_LIMIT,
     ProductSnapshotHistoryResult,
     ProductSnapshotService,
-} from '~/api/catalog/application/product-snapshot.service';
-import { ProductSnapshotType } from '~/api/catalog/presentation/product-snapshot.type';
-import { parseGraphqlId } from '~/global/graphql/graphql-id.parser';
-import { Jwt } from '~/global/jwt/decorator/jwt.decorator';
-import { SellerGuard } from '~/global/jwt/guard/seller.guard';
-import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
+} from '~/api/catalog/application/product-snapshot.service.js';
+import { ProductSnapshotType } from '~/api/catalog/presentation/product-snapshot.type.js';
+import { parseGraphqlId } from '~/global/graphql/graphql-id.parser.js';
+import { Jwt } from '~/global/jwt/decorator/jwt.decorator.js';
+import { SellerGuard } from '~/global/jwt/guard/seller.guard.js';
+import type { JwtPayload } from '~/global/jwt/payload/jwt.payload.js';
 
 @Resolver(() => ProductSnapshotType)
 export class ProductSnapshotResolver {

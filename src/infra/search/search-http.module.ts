@@ -1,19 +1,19 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { SearchHealthController } from './search-health.controller';
-import { SearchOutboxWorker } from './search-outbox.worker';
-import { SearchModule } from './search.module';
+import { SearchHealthController } from './search-health.controller.js';
+import { SearchOutboxWorker } from './search-outbox.worker.js';
+import { SearchModule } from './search.module.js';
 
 import {
     PRODUCT_SEARCH_CURSOR_SECRET,
     resolveProductSearchCursorSecret,
-} from '~/api/catalog/search/application/product-search-cursor-secret';
-import { PRODUCT_SEARCH_PORT } from '~/api/catalog/search/application/product-search.port';
-import { ProductSearchService } from '~/api/catalog/search/application/product-search.service';
-import { DecimalScalar } from '~/api/catalog/search/presentation/decimal.scalar';
-import { ProductSearchResolver } from '~/api/catalog/search/presentation/product-search.resolver';
-import { OpenSearchProductSearchAdapter } from '~/infra/search/opensearch-product-search.adapter';
+} from '~/api/catalog/search/application/product-search-cursor-secret.js';
+import { PRODUCT_SEARCH_PORT } from '~/api/catalog/search/application/product-search.port.js';
+import { ProductSearchService } from '~/api/catalog/search/application/product-search.service.js';
+import { DecimalScalar } from '~/api/catalog/search/presentation/decimal.scalar.js';
+import { ProductSearchResolver } from '~/api/catalog/search/presentation/product-search.resolver.js';
+import { OpenSearchProductSearchAdapter } from '~/infra/search/opensearch-product-search.adapter.js';
 
 @Module({
     imports: [SearchModule],

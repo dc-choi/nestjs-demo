@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 
-import { CatalogBulkError } from './catalog-bulk.error';
-import { CatalogIndexManager, CatalogWriteTarget } from './catalog-index.manager';
-import { CatalogMaintenanceService } from './catalog-maintenance.service';
-import { CatalogProjectionReader } from './catalog-projection.reader';
+import { CatalogBulkError } from './catalog-bulk.error.js';
+import { CatalogIndexManager, CatalogWriteTarget } from './catalog-index.manager.js';
+import { CatalogMaintenanceService } from './catalog-maintenance.service.js';
+import { CatalogProjectionReader } from './catalog-projection.reader.js';
 
-import { projectCatalogProduct } from '~/api/catalog/search/domain/catalog-projector';
-import { MAX_PRODUCT_REVISION } from '~/api/catalog/search/domain/product-search.document';
+import { projectCatalogProduct } from '~/api/catalog/search/domain/catalog-projector.js';
+import { MAX_PRODUCT_REVISION } from '~/api/catalog/search/domain/product-search.document.js';
 
 @Injectable()
 export class CatalogSearchWorker {

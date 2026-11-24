@@ -2,8 +2,8 @@ import { HttpException } from '@nestjs/common';
 
 import { GraphQLFormattedError } from 'graphql';
 import { describe, expect, it } from 'vitest';
-import { runWithRequestContext } from '~/global/common/context/request-context';
-import { formatGraphqlError } from '~/global/graphql/graphql-error.formatter';
+import { runWithRequestContext } from '~/global/common/context/request-context.js';
+import { formatGraphqlError } from '~/global/graphql/graphql-error.formatter.js';
 
 describe('formatGraphqlError', () => {
     it('도메인 오류의 코드와 메시지를 사용하고 requestId만 확장 정보에 남긴다', () => {

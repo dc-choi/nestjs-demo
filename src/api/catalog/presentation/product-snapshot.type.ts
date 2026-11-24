@@ -1,6 +1,6 @@
 import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
 
-import { ProductSnapshotChangeType } from '~/api/catalog/presentation/product-snapshot-change-type.enum';
+import { ProductSnapshotChangeType } from '~/api/catalog/presentation/product-snapshot-change-type.enum.js';
 
 @ObjectType('ProductSnapshot')
 export class ProductSnapshotType {

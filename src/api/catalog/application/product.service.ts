@@ -2,12 +2,12 @@ import { type EntityRepository, IsolationLevel, LoadStrategy, type Loaded, Popul
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 
-import { ItemSaleStatus } from '../domain/entity/item-sale-status';
-import { ProductStatus } from '../domain/entity/product-status';
-import { ProductEntity } from '../domain/entity/product.entity';
-import { ProductReadResult } from './product-read.result';
+import { ItemSaleStatus } from '../domain/entity/item-sale-status.js';
+import { ProductStatus } from '../domain/entity/product-status.js';
+import { ProductEntity } from '../domain/entity/product.entity.js';
+import { ProductReadResult } from './product-read.result.js';
 
-import { compareBigInt } from '~/global/common/utils/bigint';
+import { compareBigInt } from '~/global/common/utils/bigint.js';
 
 const currentProductPopulate = [
     'items',

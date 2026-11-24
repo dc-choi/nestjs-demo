@@ -1,14 +1,14 @@
 import { Field, InputType } from '@nestjs/graphql';
 
 import { IsEmail, IsNotEmpty, IsString, Matches, MaxLength } from 'class-validator';
-import { emptyValue, invalidMax, invalidValue } from '~/global/common/message/error.message';
+import { emptyValue, invalidMax, invalidValue } from '~/global/common/message/error.message.js';
 import {
     EMAIL_MAX_LENGTH,
     NAME_MAX_LENGTH,
     PASSWORD_MAX_LENGTH,
     PHONE_MAX_LENGTH,
-} from '~/global/common/utils/maxLength';
-import { NAME_REGEXP, PASSWORD_REGEXP, PHONE_REGEXP } from '~/global/common/utils/regExpPattern';
+} from '~/global/common/utils/maxLength.js';
+import { NAME_REGEXP, PASSWORD_REGEXP, PHONE_REGEXP } from '~/global/common/utils/regExpPattern.js';
 
 @InputType()
 export class SignupInput {

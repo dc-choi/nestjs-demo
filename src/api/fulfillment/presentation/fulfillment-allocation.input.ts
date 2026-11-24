@@ -1,8 +1,8 @@
 import { Field, ID, InputType, Int } from '@nestjs/graphql';
 
 import { IsNumber, Matches, Max, MaxLength, Min } from 'class-validator';
-import { MYSQL_SIGNED_INT_MAX } from '~/global/common/utils/mysql-number';
-import { GRAPHQL_ID_MAX_LENGTH, GRAPHQL_ID_PATTERN } from '~/global/graphql/graphql-id.parser';
+import { MYSQL_SIGNED_INT_MAX } from '~/global/common/utils/mysql-number.js';
+import { GRAPHQL_ID_MAX_LENGTH, GRAPHQL_ID_PATTERN } from '~/global/graphql/graphql-id.parser.js';
 
 @InputType()
 export class FulfillmentAllocationInput {

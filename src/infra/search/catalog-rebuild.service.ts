@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 
-import { CatalogAnalyzer, createCatalogIndexName } from './catalog-index.definition';
-import { CatalogAliasTargets, CatalogIndexManager } from './catalog-index.manager';
-import { CatalogMaintenanceService } from './catalog-maintenance.service';
-import { CatalogProjectionReader } from './catalog-projection.reader';
-import { SearchReconciliationService } from './search-reconciliation.service';
-import { SearchConfig } from './search.config';
+import { CatalogAnalyzer, createCatalogIndexName } from './catalog-index.definition.js';
+import { CatalogAliasTargets, CatalogIndexManager } from './catalog-index.manager.js';
+import { CatalogMaintenanceService } from './catalog-maintenance.service.js';
+import { CatalogProjectionReader } from './catalog-projection.reader.js';
+import { SearchReconciliationService } from './search-reconciliation.service.js';
+import { SearchConfig } from './search.config.js';
 
-import { projectCatalogProduct } from '~/api/catalog/search/domain/catalog-projector';
-import { ProductSearchDocument } from '~/api/catalog/search/domain/product-search.document';
+import { projectCatalogProduct } from '~/api/catalog/search/domain/catalog-projector.js';
+import { ProductSearchDocument } from '~/api/catalog/search/domain/product-search.document.js';
 
 export interface CatalogRebuildResult {
     indexName: string;

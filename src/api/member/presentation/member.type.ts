@@ -1,6 +1,6 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
 
-import { MemberRole } from './member-role.enum';
+import { MemberRole } from './member-role.enum.js';
 
 @ObjectType('Member')
 export class MemberType {

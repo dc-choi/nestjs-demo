@@ -2,12 +2,15 @@ import { EntityManager, QueryOrder } from '@mikro-orm/core';
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { MAX_PRODUCT_SNAPSHOT_LIMIT, ProductSnapshotService } from '~/api/catalog/application/product-snapshot.service';
-import { ProductSnapshotChangeType } from '~/api/catalog/domain/entity/product-snapshot-change-type';
-import { ProductSnapshotEntity } from '~/api/catalog/domain/entity/product-snapshot.entity';
-import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
-import { MemberRole } from '~/api/member/domain/member-role';
-import { MemberEntity } from '~/api/member/domain/member.entity';
+import {
+    MAX_PRODUCT_SNAPSHOT_LIMIT,
+    ProductSnapshotService,
+} from '~/api/catalog/application/product-snapshot.service.js';
+import { ProductSnapshotChangeType } from '~/api/catalog/domain/entity/product-snapshot-change-type.js';
+import { ProductSnapshotEntity } from '~/api/catalog/domain/entity/product-snapshot.entity.js';
+import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
+import { MemberRole } from '~/api/member/domain/member-role.js';
+import { MemberEntity } from '~/api/member/domain/member.entity.js';
 
 describe('ProductSnapshotService', () => {
     const findOne = vi.fn<EntityManager['findOne']>();

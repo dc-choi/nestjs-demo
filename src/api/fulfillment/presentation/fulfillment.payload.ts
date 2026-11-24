@@ -1,6 +1,6 @@
 import { Field, ObjectType } from '@nestjs/graphql';
 
-import { FulfillmentType } from './fulfillment.type';
+import { FulfillmentType } from './fulfillment.type.js';
 
 @ObjectType()
 export class FulfillmentPayload {

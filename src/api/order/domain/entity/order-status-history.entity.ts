@@ -1,9 +1,9 @@
 import type { Opt, Rel } from '@mikro-orm/core';
 import { Entity, Enum, Index, ManyToOne, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
 
-import { OrderActorType } from '~/api/order/domain/entity/order-actor-type';
-import { OrderStatus } from '~/api/order/domain/entity/order-status';
-import { OrderEntity } from '~/api/order/domain/entity/order.entity';
+import { OrderActorType } from '~/api/order/domain/entity/order-actor-type.js';
+import { OrderStatus } from '~/api/order/domain/entity/order-status.js';
+import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
 
 /**
  * 주문 상태 전이의 추가 전용 감사 기록이다.

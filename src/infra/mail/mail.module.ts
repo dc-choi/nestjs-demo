@@ -4,11 +4,11 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 
-import { SignupMailHandler } from './handler/signup.mail.handler';
+import { SignupMailHandler } from './handler/signup.mail.handler.js';
 
 import { join } from 'node:path';
-import { EnvConfig } from '~/global/config/env/env.config';
-import { LoggingModule } from '~/global/config/logger/logging.module';
+import { EnvConfig } from '~/global/config/env/env.config.js';
+import { LoggingModule } from '~/global/config/logger/logging.module.js';
 
 @Module({
     imports: [
@@ -31,8 +31,8 @@ import { LoggingModule } from '~/global/config/logger/logging.module';
                         from: 'Choi Dond Chul',
                     },
                     template: {
-                        // __dirname 기준으로 source, Nest build, SWC build에서 같은 상대 위치를 사용한다.
-                        dir: join(__dirname, '../../global/templates'),
+                        // import.meta.dirname 기준으로 source, Nest build, SWC build에서 같은 상대 위치를 사용한다.
+                        dir: join(import.meta.dirname, '../../global/templates'),
                         adapter: new HandlebarsAdapter(),
                         options: {
                             strict: true,

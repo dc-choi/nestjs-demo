@@ -2,12 +2,12 @@ import type { EntityRepository } from '@mikro-orm/core';
 import { ServiceUnavailableException } from '@nestjs/common';
 
 import { describe, expect, it, vi } from 'vitest';
-import { AuthService } from '~/api/auth/application/auth.service';
-import { PasswordKdfSaturatedError } from '~/api/member/application/password-kdf-saturated.error';
-import { PasswordService } from '~/api/member/application/password.service';
-import { MemberRole } from '~/api/member/domain/member-role';
-import { MemberEntity } from '~/api/member/domain/member.entity';
-import { TokenProvider } from '~/global/jwt/token.provider';
+import { AuthService } from '~/api/auth/application/auth.service.js';
+import { PasswordKdfSaturatedError } from '~/api/member/application/password-kdf-saturated.error.js';
+import { PasswordService } from '~/api/member/application/password.service.js';
+import { MemberRole } from '~/api/member/domain/member-role.js';
+import { MemberEntity } from '~/api/member/domain/member.entity.js';
+import { TokenProvider } from '~/global/jwt/token.provider.js';
 
 describe('AuthService', () => {
     it('KDF 동시 처리 한도 초과를 ServiceUnavailable으로 반환한다', async () => {

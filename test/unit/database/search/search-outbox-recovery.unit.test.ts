@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { SearchOutboxRecoveryService } from '~/infra/search/search-outbox-recovery.service';
+import { SearchOutboxRecoveryService } from '~/infra/search/search-outbox-recovery.service.js';
 
 describe('Search outbox recovery', () => {
     it('reads a bounded DEAD_LETTER view without mutating it', async () => {

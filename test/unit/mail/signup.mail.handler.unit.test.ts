@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { SignupEvent } from '~/api/member/application/event/signup.event';
-import { SignupMailHandler } from '~/infra/mail/handler/signup.mail.handler';
+import { SignupEvent } from '~/api/member/application/event/signup.event.js';
+import { SignupMailHandler } from '~/infra/mail/handler/signup.mail.handler.js';
 
 describe('SignupMailHandler', () => {
     it('selects signup-alert recipients from its own mail configuration', () => {

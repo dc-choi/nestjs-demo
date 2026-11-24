@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
-import { Migration20260904140344_initial_schema } from '~/infra/database/migrations/Migration20260904140344_initial_schema';
+import { Migration20260904140344_initial_schema } from '~/infra/database/migrations/Migration20260904140344_initial_schema.js';
 
 describe('initial migration', () => {
     it('drops every created table in foreign-key-safe reverse order', () => {

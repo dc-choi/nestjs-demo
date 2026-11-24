@@ -1,9 +1,9 @@
 import { Collection, type Opt, type Rel } from '@mikro-orm/core';
 import { Entity, Enum, Index, ManyToOne, PrimaryKey, Property, Unique } from '@mikro-orm/decorators/legacy';
 
-import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity';
-import { PaymentWebhookEventStatus } from '~/api/payment/domain/payment-webhook-event-status';
-import { PaymentWebhookOutcome } from '~/api/payment/domain/payment-webhook-outcome';
+import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity.js';
+import { PaymentWebhookEventStatus } from '~/api/payment/domain/payment-webhook-event-status.js';
+import { PaymentWebhookOutcome } from '~/api/payment/domain/payment-webhook-outcome.js';
 
 /**
  * provider webhook의 중복 수신과 처리 결과를 추적하는 inbox 기록이다.

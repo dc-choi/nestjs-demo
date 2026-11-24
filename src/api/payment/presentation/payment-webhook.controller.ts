@@ -7,7 +7,7 @@ import {
     Inject,
     Param,
     Post,
-    RawBodyRequest,
+    type RawBodyRequest,
     Req,
     UnauthorizedException,
 } from '@nestjs/common';
@@ -15,10 +15,10 @@ import {
 import { IsEnum, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
 import { Request } from 'express';
 import { createHash } from 'node:crypto';
-import { PaymentWebhookService } from '~/api/payment/application/payment-webhook.service';
-import { PaymentWebhookOutcome } from '~/api/payment/domain/payment-webhook-outcome';
-import { PAYMENT_WEBHOOK_SIGNATURE_VERIFIER } from '~/api/payment/infrastructure/payment-webhook-signature-verifier.symbol';
-import { PaymentWebhookSignatureVerifier } from '~/api/payment/infrastructure/payment-webhook-signature.verifier';
+import { PaymentWebhookService } from '~/api/payment/application/payment-webhook.service.js';
+import { PaymentWebhookOutcome } from '~/api/payment/domain/payment-webhook-outcome.js';
+import { PAYMENT_WEBHOOK_SIGNATURE_VERIFIER } from '~/api/payment/infrastructure/payment-webhook-signature-verifier.symbol.js';
+import type { PaymentWebhookSignatureVerifier } from '~/api/payment/infrastructure/payment-webhook-signature.verifier.js';
 
 class PaymentWebhookHttpBody {
     @IsOptional()

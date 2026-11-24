@@ -1,11 +1,11 @@
 import { type Opt, type Rel } from '@mikro-orm/core';
 import { Entity, Enum, Index, ManyToOne, PrimaryKey, Property, Unique } from '@mikro-orm/decorators/legacy';
 
-import { ProductSnapshotChangeType } from './product-snapshot-change-type';
-import type { ProductSnapshotPayload } from './product-snapshot-payload';
-import { ProductEntity } from './product.entity';
+import { ProductSnapshotChangeType } from './product-snapshot-change-type.js';
+import type { ProductSnapshotPayload } from './product-snapshot-payload.js';
+import { ProductEntity } from './product.entity.js';
 
-import { MemberEntity } from '~/api/member/domain/member.entity';
+import { MemberEntity } from '~/api/member/domain/member.entity.js';
 
 /**
  * live Product graph의 revision별 전체 상태를 보존하는 append-only 감사 이력이다.

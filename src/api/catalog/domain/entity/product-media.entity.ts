@@ -1,9 +1,9 @@
 import { type Opt, type Rel } from '@mikro-orm/core';
 import { Entity, Enum, Index, ManyToOne, PrimaryKey, Property, Unique } from '@mikro-orm/decorators/legacy';
 
-import { MediaAssetEntity } from './media-asset.entity';
-import { ProductMediaRole } from './product-media-role';
-import { ProductEntity } from './product.entity';
+import { MediaAssetEntity } from './media-asset.entity.js';
+import { ProductMediaRole } from './product-media-role.js';
+import { ProductEntity } from './product.entity.js';
 
 /**
  * live Product에 공유 MediaAsset의 역할, 대체 문구와 노출 순서를 부여하는 연결 모델이다.

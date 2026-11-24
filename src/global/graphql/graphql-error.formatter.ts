@@ -2,10 +2,10 @@ import type { ApolloServerPlugin } from '@apollo/server' with { 'resolution-mode
 import { unwrapResolverError } from '@apollo/server/errors';
 import { HttpException, type LoggerService } from '@nestjs/common';
 
-import { GraphqlHttpContext } from './graphql-context';
+import { GraphqlHttpContext } from './graphql-context.js';
 
 import { GraphQLFormattedError } from 'graphql';
-import { getCurrentRequestId } from '~/global/common/context/request-context';
+import { getCurrentRequestId } from '~/global/common/context/request-context.js';
 
 const INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR';
 

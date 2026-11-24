@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 
-import { RecommendationCandidateService } from './application/recommendation-candidate.service';
-import { RecommendationProfileReader } from './infrastructure/recommendation-profile.reader';
+import { RecommendationCandidateService } from './application/recommendation-candidate.service.js';
+import { RecommendationProfileReader } from './infrastructure/recommendation-profile.reader.js';
 
-import { SearchModule } from '~/infra/search/search.module';
+import { SearchModule } from '~/infra/search/search.module.js';
 
 /** Internal candidate retrieval. The GraphQL recommendation API is a later stage. */
 @Module({

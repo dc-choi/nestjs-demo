@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { GraphQLError, getOperationAST, parse } from 'graphql';
 import { EventEmitter } from 'node:events';
 import { describe, expect, it, vi } from 'vitest';
-import { createGraphqlRequestLoggingPlugin } from '~/global/graphql/graphql-request-logging.plugin';
+import { createGraphqlRequestLoggingPlugin } from '~/global/graphql/graphql-request-logging.plugin.js';
 
 describe('createGraphqlRequestLoggingPlugin', () => {
     it('허용된 요청 메타데이터만 기록하고 query, variables, response를 남기지 않는다', async () => {

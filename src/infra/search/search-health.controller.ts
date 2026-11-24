@@ -1,6 +1,6 @@
 import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
 
-import { type SearchHealthResult, SearchHealthService } from './search-health.service';
+import { type SearchHealthResult, SearchHealthService } from './search-health.service.js';
 
 @Controller('health/search')
 export class SearchHealthController {

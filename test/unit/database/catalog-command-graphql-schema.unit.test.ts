@@ -4,8 +4,8 @@ import { GraphQLSchemaBuilderModule, GraphQLSchemaFactory } from '@nestjs/graphq
 import type { GraphQLInputObjectType, GraphQLObjectType } from 'graphql';
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
-import { ProductCommandResolver } from '~/api/catalog/presentation/product-command.resolver';
-import { ProductSnapshotResolver } from '~/api/catalog/presentation/product-snapshot.resolver';
+import { ProductCommandResolver } from '~/api/catalog/presentation/product-command.resolver.js';
+import { ProductSnapshotResolver } from '~/api/catalog/presentation/product-snapshot.resolver.js';
 
 // Nest's schema builder loads GraphQL through CommonJS, outside Vitest's module realm.
 const { coerceInputValue } = createRequire(`${process.cwd()}/package.json`)('graphql') as typeof import('graphql');

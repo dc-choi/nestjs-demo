@@ -1,23 +1,23 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Resolver } from '@nestjs/graphql';
 
-import { PaymentWebhookService } from '~/api/payment/application/payment-webhook.service';
-import { PaymentService } from '~/api/payment/application/payment.service';
-import { CapturePaymentInput } from '~/api/payment/presentation/capture-payment.input';
-import { CreatePaymentAttemptInput } from '~/api/payment/presentation/create-payment-attempt.input';
-import { FailPaymentWebhookInput } from '~/api/payment/presentation/fail-payment-webhook.input';
-import { FailPaymentInput } from '~/api/payment/presentation/fail-payment.input';
-import { PaymentWebhookPayload } from '~/api/payment/presentation/payment-webhook.payload';
-import { toPaymentPayload, toPaymentWebhookPayload } from '~/api/payment/presentation/payment.mapper';
-import { PaymentPayload } from '~/api/payment/presentation/payment.payload';
-import { ProcessPaymentWebhookInput } from '~/api/payment/presentation/process-payment-webhook.input';
-import { ReceivePaymentWebhookInput } from '~/api/payment/presentation/receive-payment-webhook.input';
-import { RefundPaymentInput } from '~/api/payment/presentation/refund-payment.input';
-import { parseGraphqlId } from '~/global/graphql/graphql-id.parser';
-import { Jwt } from '~/global/jwt/decorator/jwt.decorator';
-import { AdminGuard } from '~/global/jwt/guard/admin.guard';
-import { CommonGuard } from '~/global/jwt/guard/common.guard';
-import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
+import { PaymentWebhookService } from '~/api/payment/application/payment-webhook.service.js';
+import { PaymentService } from '~/api/payment/application/payment.service.js';
+import { CapturePaymentInput } from '~/api/payment/presentation/capture-payment.input.js';
+import { CreatePaymentAttemptInput } from '~/api/payment/presentation/create-payment-attempt.input.js';
+import { FailPaymentWebhookInput } from '~/api/payment/presentation/fail-payment-webhook.input.js';
+import { FailPaymentInput } from '~/api/payment/presentation/fail-payment.input.js';
+import { PaymentWebhookPayload } from '~/api/payment/presentation/payment-webhook.payload.js';
+import { toPaymentPayload, toPaymentWebhookPayload } from '~/api/payment/presentation/payment.mapper.js';
+import { PaymentPayload } from '~/api/payment/presentation/payment.payload.js';
+import { ProcessPaymentWebhookInput } from '~/api/payment/presentation/process-payment-webhook.input.js';
+import { ReceivePaymentWebhookInput } from '~/api/payment/presentation/receive-payment-webhook.input.js';
+import { RefundPaymentInput } from '~/api/payment/presentation/refund-payment.input.js';
+import { parseGraphqlId } from '~/global/graphql/graphql-id.parser.js';
+import { Jwt } from '~/global/jwt/decorator/jwt.decorator.js';
+import { AdminGuard } from '~/global/jwt/guard/admin.guard.js';
+import { CommonGuard } from '~/global/jwt/guard/common.guard.js';
+import type { JwtPayload } from '~/global/jwt/payload/jwt.payload.js';
 
 @Resolver()
 export class PaymentResolver {

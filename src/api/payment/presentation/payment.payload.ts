@@ -1,7 +1,7 @@
 import { Field, ObjectType } from '@nestjs/graphql';
 
-import { PaymentAttemptType } from './payment-attempt.type';
-import { PaymentTransactionRecordType } from './payment-transaction-record.type';
+import { PaymentAttemptType } from './payment-attempt.type.js';
+import { PaymentTransactionRecordType } from './payment-transaction-record.type.js';
 
 @ObjectType()
 export class PaymentPayload {

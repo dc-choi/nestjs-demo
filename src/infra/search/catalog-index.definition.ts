@@ -1,4 +1,4 @@
-import { CATALOG_SEARCH_SCHEMA_VERSION } from '~/api/catalog/search/domain/product-search.document';
+import { CATALOG_SEARCH_SCHEMA_VERSION } from '~/api/catalog/search/domain/product-search.document.js';
 
 export const CATALOG_INDEX_FAMILY = `catalog-products-v${String(CATALOG_SEARCH_SCHEMA_VERSION).padStart(3, '0')}`;
 export const CATALOG_NORI_INDEX_FAMILY = 'catalog-products-v002';

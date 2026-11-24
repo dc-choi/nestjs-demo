@@ -1,10 +1,10 @@
 import { Global, Module } from '@nestjs/common';
 
-import Redis from 'ioredis';
+import { Redis } from 'ioredis';
 import Redlock from 'redlock';
-import { DistributedLockService } from '~/global/common/lock/distributed-lock.service';
-import { RED_LOCK } from '~/global/common/lock/distributed-lock.symbol';
-import { REDIS_CLIENT } from '~/infra/redis/redis-client.symbol';
+import { DistributedLockService } from '~/global/common/lock/distributed-lock.service.js';
+import { RED_LOCK } from '~/global/common/lock/distributed-lock.symbol.js';
+import { REDIS_CLIENT } from '~/infra/redis/redis-client.symbol.js';
 
 @Global()
 @Module({

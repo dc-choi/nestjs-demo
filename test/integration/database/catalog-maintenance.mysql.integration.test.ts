@@ -1,16 +1,16 @@
 import { ReflectMetadataProvider } from '@mikro-orm/decorators/legacy';
 import { MikroORM } from '@mikro-orm/mysql';
 
-import { readMySqlIntegrationConnection, seedCatalogMaintenance } from './mysql-integration.config';
+import { readMySqlIntegrationConnection, seedCatalogMaintenance } from './mysql-integration.config.js';
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { ProductCommandService } from '~/api/catalog/application/product-command.service';
-import { MemberRole } from '~/api/member/domain/member-role';
-import { databaseEntities } from '~/infra/database/entities';
-import { CatalogMaintenanceEntity } from '~/infra/search/catalog-maintenance.entity';
-import { CatalogMaintenanceError } from '~/infra/search/catalog-maintenance.error';
-import { CatalogMaintenanceService } from '~/infra/search/catalog-maintenance.service';
-import { catalogSearchWriteEffects } from '~/infra/search/catalog-write-effects';
+import { ProductCommandService } from '~/api/catalog/application/product-command.service.js';
+import { MemberRole } from '~/api/member/domain/member-role.js';
+import { databaseEntities } from '~/infra/database/entities.js';
+import { CatalogMaintenanceEntity } from '~/infra/search/catalog-maintenance.entity.js';
+import { CatalogMaintenanceError } from '~/infra/search/catalog-maintenance.error.js';
+import { CatalogMaintenanceService } from '~/infra/search/catalog-maintenance.service.js';
+import { catalogSearchWriteEffects } from '~/infra/search/catalog-write-effects.js';
 
 const describeMySql = process.env.MYSQL_INTEGRATION === '1' ? describe : describe.skip;
 

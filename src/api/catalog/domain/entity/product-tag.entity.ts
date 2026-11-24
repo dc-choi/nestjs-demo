@@ -1,7 +1,7 @@
 import { PrimaryKeyProp, type Rel } from '@mikro-orm/core';
 import { Entity, Index, ManyToOne, PrimaryKey, Property, Unique } from '@mikro-orm/decorators/legacy';
 
-import { ProductEntity } from './product.entity';
+import { ProductEntity } from './product.entity.js';
 
 /**
  * live Product에 분류와 별개의 현재 태그 및 노출 순서를 부여하는 연결 모델이다.

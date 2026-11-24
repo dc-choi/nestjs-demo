@@ -1,5 +1,5 @@
-import { ProductSearchSort } from '~/api/catalog/search/domain/product-search-sort';
-import { CanonicalProductSearchInput, SearchSortValue } from '~/api/catalog/search/domain/product-search.query';
+import { ProductSearchSort } from '~/api/catalog/search/domain/product-search-sort.js';
+import { CanonicalProductSearchInput, SearchSortValue } from '~/api/catalog/search/domain/product-search.query.js';
 
 export function buildOpenSearchProductRequest(
     input: CanonicalProductSearchInput,

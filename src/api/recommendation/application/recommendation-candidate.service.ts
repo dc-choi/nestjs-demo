@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 
-import { RecommendationUnavailableError } from './recommendation-unavailable.error';
+import { RecommendationUnavailableError } from './recommendation-unavailable.error.js';
 
 import {
     PopularityRow,
     RecommendationProfile,
     RecommendationProfileReader,
-} from '~/api/recommendation/infrastructure/recommendation-profile.reader';
-import { OpenSearchHttpClient, escapeOpenSearchPathSegment } from '~/infra/search/opensearch.client';
-import { SearchConfig } from '~/infra/search/search.config';
+} from '~/api/recommendation/infrastructure/recommendation-profile.reader.js';
+import { OpenSearchHttpClient, escapeOpenSearchPathSegment } from '~/infra/search/opensearch.client.js';
+import { SearchConfig } from '~/infra/search/search.config.js';
 
 export const CANDIDATE_LIMIT = 200;
 export const INTEREST_CANDIDATE_LIMIT = 150;

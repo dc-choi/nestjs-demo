@@ -7,7 +7,7 @@ export default defineConfig({
         swc.vite({
             swcrc: false,
             configFile: false,
-            module: { type: 'es6' },
+            module: { type: 'nodenext' },
             jsc: {
                 target: 'esnext',
                 parser: { syntax: 'typescript', decorators: true },

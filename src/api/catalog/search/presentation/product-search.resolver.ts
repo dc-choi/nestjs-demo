@@ -1,13 +1,13 @@
 import { BadRequestException, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { Args, Query, Resolver } from '@nestjs/graphql';
 
-import { ProductSearchUnavailableError } from '~/api/catalog/search/application/product-search-unavailable.error';
-import { ProductSearchConnection } from '~/api/catalog/search/application/product-search.port';
-import { ProductSearchService } from '~/api/catalog/search/application/product-search.service';
-import { ProductSearchContractError } from '~/api/catalog/search/domain/product-search-contract.error';
-import { ProductSearchConnectionType } from '~/api/catalog/search/presentation/product-search-connection.type';
-import { ProductSearchInputType } from '~/api/catalog/search/presentation/product-search.input';
-import { getCurrentRequestId } from '~/global/common/context/request-context';
+import { ProductSearchUnavailableError } from '~/api/catalog/search/application/product-search-unavailable.error.js';
+import { ProductSearchConnection } from '~/api/catalog/search/application/product-search.port.js';
+import { ProductSearchService } from '~/api/catalog/search/application/product-search.service.js';
+import { ProductSearchContractError } from '~/api/catalog/search/domain/product-search-contract.error.js';
+import { ProductSearchConnectionType } from '~/api/catalog/search/presentation/product-search-connection.type.js';
+import { ProductSearchInputType } from '~/api/catalog/search/presentation/product-search.input.js';
+import { getCurrentRequestId } from '~/global/common/context/request-context.js';
 
 @Resolver(() => ProductSearchConnectionType)
 export class ProductSearchResolver {

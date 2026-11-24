@@ -1,7 +1,7 @@
 import { Collection, type Opt, type Rel } from '@mikro-orm/core';
 import { Entity, Index, ManyToOne, OneToMany, PrimaryKey, Property, Unique } from '@mikro-orm/decorators/legacy';
 
-import { ProductCategoryEntity } from './product-category.entity';
+import { ProductCategoryEntity } from './product-category.entity.js';
 
 /**
  * 여러 상품이 공유하는 현재 카탈로그의 자기 참조 분류 노드다.

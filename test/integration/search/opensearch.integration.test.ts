@@ -1,15 +1,15 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { ProductSearchService } from '~/api/catalog/search/application/product-search.service';
-import { ProductSearchDocument } from '~/api/catalog/search/domain/product-search.document';
-import { CatalogBulkError } from '~/infra/search/catalog-bulk.error';
-import { createCatalogIndexName } from '~/infra/search/catalog-index.definition';
-import { CatalogIndexManager } from '~/infra/search/catalog-index.manager';
-import { OpenSearchProductSearchAdapter } from '~/infra/search/opensearch-product-search.adapter';
-import { OpenSearchHttpClient } from '~/infra/search/opensearch.client';
-import { SearchHealthService } from '~/infra/search/search-health.service';
-import { SearchRelevanceEvaluationService } from '~/infra/search/search-relevance-evaluation.service';
-import { SearchConfig } from '~/infra/search/search.config';
+import { ProductSearchService } from '~/api/catalog/search/application/product-search.service.js';
+import { ProductSearchDocument } from '~/api/catalog/search/domain/product-search.document.js';
+import { CatalogBulkError } from '~/infra/search/catalog-bulk.error.js';
+import { createCatalogIndexName } from '~/infra/search/catalog-index.definition.js';
+import { CatalogIndexManager } from '~/infra/search/catalog-index.manager.js';
+import { OpenSearchProductSearchAdapter } from '~/infra/search/opensearch-product-search.adapter.js';
+import { OpenSearchHttpClient } from '~/infra/search/opensearch.client.js';
+import { SearchHealthService } from '~/infra/search/search-health.service.js';
+import { SearchRelevanceEvaluationService } from '~/infra/search/search-relevance-evaluation.service.js';
+import { SearchConfig } from '~/infra/search/search.config.js';
 
 const describeOpenSearch = process.env.OPENSEARCH_INTEGRATION === '1' ? describe : describe.skip;
 

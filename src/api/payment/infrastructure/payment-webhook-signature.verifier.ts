@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import type { EnvConfig } from '~/global/config/env/env.config';
+import type { EnvConfig } from '~/global/config/env/env.config.js';
 
 export interface VerifyPaymentWebhookSignature {
     readonly provider: string;

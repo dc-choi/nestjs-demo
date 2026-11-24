@@ -1,8 +1,8 @@
 import { validateSync } from 'class-validator';
 
 import { describe, expect, it } from 'vitest';
-import { LoginInput } from '~/api/auth/presentation/login.input';
-import { SignupInput } from '~/api/member/presentation/signup.input';
+import { LoginInput } from '~/api/auth/presentation/login.input.js';
+import { SignupInput } from '~/api/member/presentation/signup.input.js';
 
 const validEmails = ['alice+shop@example.com', 'alice@example.technology'];
 const invalidEmails = ['alice..shop@example.com', 'alice@-example.com'];

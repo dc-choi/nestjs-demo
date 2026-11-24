@@ -1,9 +1,9 @@
 import type { LoggerService } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
-import { AppModule } from './app.module';
+import { AppModule } from './app.module.js';
 
-import { APPLICATION_LOGGER } from '~/global/common/logger/application-logger.symbol';
+import { APPLICATION_LOGGER } from '~/global/common/logger/application-logger.symbol.js';
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule, { rawBody: true, bufferLogs: true });

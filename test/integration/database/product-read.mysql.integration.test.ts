@@ -6,21 +6,21 @@ import { randomUUID } from 'node:crypto';
 import {
     readMySqlIntegrationConnection,
     seedCatalogMaintenance,
-} from 'test/integration/database/mysql-integration.config';
+} from 'test/integration/database/mysql-integration.config.js';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ProductCommandService } from '~/api/catalog/application/product-command.service';
-import type { ReplaceProductCatalogCommand } from '~/api/catalog/application/product-write.command';
-import { ProductService } from '~/api/catalog/application/product.service';
-import { CategoryEntity } from '~/api/catalog/domain/entity/category.entity';
-import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status';
-import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
-import { ProductStatus } from '~/api/catalog/domain/entity/product-status';
-import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
-import { MemberRole } from '~/api/member/domain/member-role';
-import { MemberEntity } from '~/api/member/domain/member.entity';
-import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
-import { databaseEntities } from '~/infra/database/entities';
-import { catalogSearchWriteEffects } from '~/infra/search/catalog-write-effects';
+import { ProductCommandService } from '~/api/catalog/application/product-command.service.js';
+import type { ReplaceProductCatalogCommand } from '~/api/catalog/application/product-write.command.js';
+import { ProductService } from '~/api/catalog/application/product.service.js';
+import { CategoryEntity } from '~/api/catalog/domain/entity/category.entity.js';
+import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status.js';
+import { ItemEntity } from '~/api/catalog/domain/entity/item.entity.js';
+import { ProductStatus } from '~/api/catalog/domain/entity/product-status.js';
+import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
+import { MemberRole } from '~/api/member/domain/member-role.js';
+import { MemberEntity } from '~/api/member/domain/member.entity.js';
+import type { JwtPayload } from '~/global/jwt/payload/jwt.payload.js';
+import { databaseEntities } from '~/infra/database/entities.js';
+import { catalogSearchWriteEffects } from '~/infra/search/catalog-write-effects.js';
 
 const describeMySql = process.env.MYSQL_INTEGRATION === '1' ? describe : describe.skip;
 

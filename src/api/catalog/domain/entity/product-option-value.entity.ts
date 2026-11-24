@@ -1,8 +1,8 @@
 import { Collection, type Rel } from '@mikro-orm/core';
 import { Entity, ManyToOne, OneToMany, PrimaryKey, Property, Unique } from '@mikro-orm/decorators/legacy';
 
-import { ItemOptionValueEntity } from './item-option-value.entity';
-import { ProductOptionEntity } from './product-option.entity';
+import { ItemOptionValueEntity } from './item-option-value.entity.js';
+import { ProductOptionEntity } from './product-option.entity.js';
 
 /**
  * 한 ProductOption에서 Item이 선택할 수 있는 현재 값이다.

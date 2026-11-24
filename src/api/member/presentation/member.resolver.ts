@@ -1,12 +1,12 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
-import { MemberService } from '../application/member.service';
-import { MemberType } from './member.type';
-import { SignupInput } from './signup.input';
-import { SignupPayload } from './signup.payload';
+import { MemberService } from '../application/member.service.js';
+import { MemberType } from './member.type.js';
+import { SignupInput } from './signup.input.js';
+import { SignupPayload } from './signup.payload.js';
 
-import { AdminGuard } from '~/global/jwt/guard/admin.guard';
+import { AdminGuard } from '~/global/jwt/guard/admin.guard.js';
 
 @Resolver()
 export class MemberResolver {

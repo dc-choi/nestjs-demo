@@ -10,31 +10,31 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 
-import { FulfillmentStatus } from '~/api/fulfillment/domain/fulfillment-status';
-import { InventoryReservationStatus } from '~/api/inventory/domain/inventory-reservation-status';
-import { MemberRole } from '~/api/member/domain/member-role';
-import { OrderActorType } from '~/api/order/domain/entity/order-actor-type';
-import { OrderStatus } from '~/api/order/domain/entity/order-status';
-import { OrderEntity } from '~/api/order/domain/entity/order.entity';
-import { PAYMENT_INVENTORY_PORT, type PaymentInventoryPort } from '~/api/payment/application/payment-inventory.port';
-import type { PaymentResult } from '~/api/payment/application/payment-result';
-import { PaymentWebhookPrerequisitePending } from '~/api/payment/application/payment-webhook-prerequisite-pending.error';
+import { FulfillmentStatus } from '~/api/fulfillment/domain/fulfillment-status.js';
+import { InventoryReservationStatus } from '~/api/inventory/domain/inventory-reservation-status.js';
+import { MemberRole } from '~/api/member/domain/member-role.js';
+import { OrderActorType } from '~/api/order/domain/entity/order-actor-type.js';
+import { OrderStatus } from '~/api/order/domain/entity/order-status.js';
+import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
+import { PAYMENT_INVENTORY_PORT, type PaymentInventoryPort } from '~/api/payment/application/payment-inventory.port.js';
+import type { PaymentResult } from '~/api/payment/application/payment-result.js';
+import { PaymentWebhookPrerequisitePending } from '~/api/payment/application/payment-webhook-prerequisite-pending.error.js';
 import type {
     CapturePaymentCommand,
     CreatePaymentAttemptCommand,
     FailPaymentCommand,
     ProcessPaymentWebhookCommand,
     RefundPaymentCommand,
-} from '~/api/payment/application/payment.command';
-import { PaymentAttemptStatus } from '~/api/payment/domain/payment-attempt-status';
-import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity';
-import { assertPositiveMoney, compareMoney, sumMoney } from '~/api/payment/domain/payment-money';
-import { PaymentTransactionStatus } from '~/api/payment/domain/payment-transaction-status';
-import { PaymentTransactionType } from '~/api/payment/domain/payment-transaction-type';
-import { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity';
-import { PaymentWebhookOutcome } from '~/api/payment/domain/payment-webhook-outcome';
-import { compareBigInt } from '~/global/common/utils/bigint';
-import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
+} from '~/api/payment/application/payment.command.js';
+import { PaymentAttemptStatus } from '~/api/payment/domain/payment-attempt-status.js';
+import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity.js';
+import { assertPositiveMoney, compareMoney, sumMoney } from '~/api/payment/domain/payment-money.js';
+import { PaymentTransactionStatus } from '~/api/payment/domain/payment-transaction-status.js';
+import { PaymentTransactionType } from '~/api/payment/domain/payment-transaction-type.js';
+import { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity.js';
+import { PaymentWebhookOutcome } from '~/api/payment/domain/payment-webhook-outcome.js';
+import { compareBigInt } from '~/global/common/utils/bigint.js';
+import type { JwtPayload } from '~/global/jwt/payload/jwt.payload.js';
 
 const BLOCKING_FULL_REFUND_FULFILLMENT_STATUSES: readonly FulfillmentStatus[] = [
     FulfillmentStatus.PENDING,

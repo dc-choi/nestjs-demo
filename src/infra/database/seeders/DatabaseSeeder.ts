@@ -2,21 +2,21 @@ import { type EntityManager, LockMode } from '@mikro-orm/core';
 import { Seeder } from '@mikro-orm/seeder';
 import { ConfigService } from '@nestjs/config';
 
-import { ProductCommandService } from '~/api/catalog/application/product-command.service';
-import { CategoryEntity } from '~/api/catalog/domain/entity/category.entity';
-import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status';
-import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
-import { ProductStatus } from '~/api/catalog/domain/entity/product-status';
-import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
-import { InventoryMovementType } from '~/api/inventory/domain/inventory-movement-type';
-import { InventoryMovementEntity } from '~/api/inventory/domain/inventory-movement.entity';
-import { PasswordKdfAdmission } from '~/api/member/application/password-kdf.admission';
-import { PasswordService } from '~/api/member/application/password.service';
-import { MemberRole } from '~/api/member/domain/member-role';
-import { MemberEntity } from '~/api/member/domain/member.entity';
-import type { EnvConfig } from '~/global/config/env/env.config';
-import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
-import { catalogSearchWriteEffects } from '~/infra/search/catalog-write-effects';
+import { ProductCommandService } from '~/api/catalog/application/product-command.service.js';
+import { CategoryEntity } from '~/api/catalog/domain/entity/category.entity.js';
+import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status.js';
+import { ItemEntity } from '~/api/catalog/domain/entity/item.entity.js';
+import { ProductStatus } from '~/api/catalog/domain/entity/product-status.js';
+import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
+import { InventoryMovementType } from '~/api/inventory/domain/inventory-movement-type.js';
+import { InventoryMovementEntity } from '~/api/inventory/domain/inventory-movement.entity.js';
+import { PasswordKdfAdmission } from '~/api/member/application/password-kdf.admission.js';
+import { PasswordService } from '~/api/member/application/password.service.js';
+import { MemberRole } from '~/api/member/domain/member-role.js';
+import { MemberEntity } from '~/api/member/domain/member.entity.js';
+import type { EnvConfig } from '~/global/config/env/env.config.js';
+import type { JwtPayload } from '~/global/jwt/payload/jwt.payload.js';
+import { catalogSearchWriteEffects } from '~/infra/search/catalog-write-effects.js';
 
 const DEMO_PRODUCT_SLUG = 'demo-wireless-keyboard';
 const initialStockBySku = new Map([

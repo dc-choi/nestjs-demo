@@ -1,21 +1,21 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Resolver } from '@nestjs/graphql';
 
-import { ProductCommandService } from '~/api/catalog/application/product-command.service';
-import type { ProductWriteResult } from '~/api/catalog/application/product-write.command';
-import { CreateProductItemInput } from '~/api/catalog/presentation/create-product-item.input';
-import { CreateProductInput } from '~/api/catalog/presentation/create-product.input';
-import { DeleteProductItemInput } from '~/api/catalog/presentation/delete-product-item.input';
-import { DeleteProductInput } from '~/api/catalog/presentation/delete-product.input';
-import { ProductMutationPayload } from '~/api/catalog/presentation/product-mutation.payload';
-import { ReplaceProductCatalogInput } from '~/api/catalog/presentation/replace-product-catalog.input';
-import { RestoreProductInput } from '~/api/catalog/presentation/restore-product.input';
-import { UpdateProductItemInput } from '~/api/catalog/presentation/update-product-item.input';
-import { UpdateProductInput } from '~/api/catalog/presentation/update-product.input';
-import { parseGraphqlId } from '~/global/graphql/graphql-id.parser';
-import { Jwt } from '~/global/jwt/decorator/jwt.decorator';
-import { SellerGuard } from '~/global/jwt/guard/seller.guard';
-import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
+import { ProductCommandService } from '~/api/catalog/application/product-command.service.js';
+import type { ProductWriteResult } from '~/api/catalog/application/product-write.command.js';
+import { CreateProductItemInput } from '~/api/catalog/presentation/create-product-item.input.js';
+import { CreateProductInput } from '~/api/catalog/presentation/create-product.input.js';
+import { DeleteProductItemInput } from '~/api/catalog/presentation/delete-product-item.input.js';
+import { DeleteProductInput } from '~/api/catalog/presentation/delete-product.input.js';
+import { ProductMutationPayload } from '~/api/catalog/presentation/product-mutation.payload.js';
+import { ReplaceProductCatalogInput } from '~/api/catalog/presentation/replace-product-catalog.input.js';
+import { RestoreProductInput } from '~/api/catalog/presentation/restore-product.input.js';
+import { UpdateProductItemInput } from '~/api/catalog/presentation/update-product-item.input.js';
+import { UpdateProductInput } from '~/api/catalog/presentation/update-product.input.js';
+import { parseGraphqlId } from '~/global/graphql/graphql-id.parser.js';
+import { Jwt } from '~/global/jwt/decorator/jwt.decorator.js';
+import { SellerGuard } from '~/global/jwt/guard/seller.guard.js';
+import type { JwtPayload } from '~/global/jwt/payload/jwt.payload.js';
 
 @Resolver()
 export class ProductCommandResolver {

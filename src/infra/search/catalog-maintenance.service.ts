@@ -2,8 +2,8 @@ import { EntityManager, LockMode } from '@mikro-orm/core';
 import { MikroORM } from '@mikro-orm/mysql';
 import { Injectable } from '@nestjs/common';
 
-import { CatalogMaintenanceEntity } from './catalog-maintenance.entity';
-import { CatalogMaintenanceError } from './catalog-maintenance.error';
+import { CatalogMaintenanceEntity } from './catalog-maintenance.entity.js';
+import { CatalogMaintenanceError } from './catalog-maintenance.error.js';
 
 import { randomUUID } from 'node:crypto';
 

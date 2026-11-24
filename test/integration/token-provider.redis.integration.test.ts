@@ -1,10 +1,10 @@
 import type { JwtService } from '@nestjs/jwt';
 
-import Redis from 'ioredis';
+import { Redis } from 'ioredis';
 import { createHash, randomUUIDv7 } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { MemberRole } from '~/api/member/domain/member-role';
-import { TokenProvider } from '~/global/jwt/token.provider';
+import { MemberRole } from '~/api/member/domain/member-role.js';
+import { TokenProvider } from '~/global/jwt/token.provider.js';
 
 const enabled = process.env.REDIS_INTEGRATION === '1';
 const describeRedis = enabled ? describe : describe.skip;

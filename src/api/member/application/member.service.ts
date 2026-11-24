@@ -3,16 +3,16 @@ import { InjectRepository } from '@mikro-orm/nestjs';
 import { BadRequestException, ConflictException, Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { EventBus } from '@nestjs/cqrs';
 
-import { SignupEvent } from './event/signup.event';
+import { SignupEvent } from './event/signup.event.js';
 
-import { PasswordKdfSaturatedError } from '~/api/member/application/password-kdf-saturated.error';
-import { PasswordService } from '~/api/member/application/password.service';
-import { IdBlackList } from '~/api/member/domain/idBlackList';
-import { MemberRole } from '~/api/member/domain/member-role';
-import { MemberEntity } from '~/api/member/domain/member.entity';
-import { ExistingMember } from '~/global/common/error/existing-member.error';
-import { InvalidMember } from '~/global/common/error/invalid-member.error';
-import { PasswordKdfBusy } from '~/global/common/error/password-kdf-busy.error';
+import { PasswordKdfSaturatedError } from '~/api/member/application/password-kdf-saturated.error.js';
+import { PasswordService } from '~/api/member/application/password.service.js';
+import { IdBlackList } from '~/api/member/domain/idBlackList.js';
+import { MemberRole } from '~/api/member/domain/member-role.js';
+import { MemberEntity } from '~/api/member/domain/member.entity.js';
+import { ExistingMember } from '~/global/common/error/existing-member.error.js';
+import { InvalidMember } from '~/global/common/error/invalid-member.error.js';
+import { PasswordKdfBusy } from '~/global/common/error/password-kdf-busy.error.js';
 
 @Injectable()
 export class MemberService {

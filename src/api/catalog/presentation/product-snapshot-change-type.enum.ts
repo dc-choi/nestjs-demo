@@ -1,6 +1,6 @@
 import { registerEnumType } from '@nestjs/graphql';
 
-import { ProductSnapshotChangeType } from '../domain/entity/product-snapshot-change-type';
+import { ProductSnapshotChangeType } from '../domain/entity/product-snapshot-change-type.js';
 
 registerEnumType(ProductSnapshotChangeType, {
     name: 'ProductSnapshotChangeType',

@@ -1,9 +1,9 @@
 import { Collection, type Opt, type Rel } from '@mikro-orm/core';
 import { Entity, Enum, Index, ManyToOne, PrimaryKey, Property, Unique } from '@mikro-orm/decorators/legacy';
 
-import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity';
-import { PaymentTransactionStatus } from '~/api/payment/domain/payment-transaction-status';
-import { PaymentTransactionType } from '~/api/payment/domain/payment-transaction-type';
+import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity.js';
+import { PaymentTransactionStatus } from '~/api/payment/domain/payment-transaction-status.js';
+import { PaymentTransactionType } from '~/api/payment/domain/payment-transaction-type.js';
 
 /**
  * 승인, 매입, 환불, 승인 취소 같은 provider 작업을 각각 별도 행으로 누적한다.

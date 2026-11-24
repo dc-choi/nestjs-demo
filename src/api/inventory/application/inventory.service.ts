@@ -9,19 +9,19 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 
-import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
-import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
-import type { InventoryTransitionResult } from '~/api/inventory/application/inventory-transition.result';
-import { InventoryMovementType } from '~/api/inventory/domain/inventory-movement-type';
-import { InventoryMovementEntity } from '~/api/inventory/domain/inventory-movement.entity';
-import { InventoryReservationStatus } from '~/api/inventory/domain/inventory-reservation-status';
-import { InventoryReservationEntity } from '~/api/inventory/domain/inventory-reservation.entity';
-import { MemberRole } from '~/api/member/domain/member-role';
-import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
-import { OrderStatus } from '~/api/order/domain/entity/order-status';
-import { compareBigInt } from '~/global/common/utils/bigint';
-import { isMysqlSignedInt, isNonNegativeMysqlSignedInt } from '~/global/common/utils/mysql-number';
-import type { JwtPayload } from '~/global/jwt/payload/jwt.payload';
+import { ItemEntity } from '~/api/catalog/domain/entity/item.entity.js';
+import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
+import type { InventoryTransitionResult } from '~/api/inventory/application/inventory-transition.result.js';
+import { InventoryMovementType } from '~/api/inventory/domain/inventory-movement-type.js';
+import { InventoryMovementEntity } from '~/api/inventory/domain/inventory-movement.entity.js';
+import { InventoryReservationStatus } from '~/api/inventory/domain/inventory-reservation-status.js';
+import { InventoryReservationEntity } from '~/api/inventory/domain/inventory-reservation.entity.js';
+import { MemberRole } from '~/api/member/domain/member-role.js';
+import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js';
+import { OrderStatus } from '~/api/order/domain/entity/order-status.js';
+import { compareBigInt } from '~/global/common/utils/bigint.js';
+import { isMysqlSignedInt, isNonNegativeMysqlSignedInt } from '~/global/common/utils/mysql-number.js';
+import type { JwtPayload } from '~/global/jwt/payload/jwt.payload.js';
 
 export interface PlacementReservationLine {
     readonly orderItem: OrderItemEntity;

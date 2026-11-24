@@ -1,9 +1,9 @@
 import { Args, ID, Query, Resolver } from '@nestjs/graphql';
 
-import { ProductService } from '~/api/catalog/application/product.service';
-import { toProductType } from '~/api/catalog/presentation/product.mapper';
-import { ProductType } from '~/api/catalog/presentation/product.type';
-import { parseGraphqlId } from '~/global/graphql/graphql-id.parser';
+import { ProductService } from '~/api/catalog/application/product.service.js';
+import { toProductType } from '~/api/catalog/presentation/product.mapper.js';
+import { ProductType } from '~/api/catalog/presentation/product.type.js';
+import { parseGraphqlId } from '~/global/graphql/graphql-id.parser.js';
 
 @Resolver(() => ProductType)
 export class ProductResolver {

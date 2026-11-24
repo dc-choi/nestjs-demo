@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
-import type { MemberEntity } from '~/api/member/domain/member.entity';
-import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
-import { OrderEntity } from '~/api/order/domain/entity/order.entity';
-import { toOrderType } from '~/api/order/presentation/order.mapper';
+import type { ItemEntity } from '~/api/catalog/domain/entity/item.entity.js';
+import type { MemberEntity } from '~/api/member/domain/member.entity.js';
+import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js';
+import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
+import { toOrderType } from '~/api/order/presentation/order.mapper.js';
 
 describe('order GraphQL mapper', () => {
     it('entity의 bigint와 decimal 값을 GraphQL 안전 문자열로 변환한다', () => {

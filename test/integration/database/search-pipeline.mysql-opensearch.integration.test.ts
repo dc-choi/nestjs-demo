@@ -6,25 +6,25 @@ import { randomUUID } from 'node:crypto';
 import {
     readMySqlIntegrationConnection,
     seedCatalogMaintenance,
-} from 'test/integration/database/mysql-integration.config';
+} from 'test/integration/database/mysql-integration.config.js';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { ProductCommandService } from '~/api/catalog/application/product-command.service';
-import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status';
-import { ProductStatus } from '~/api/catalog/domain/entity/product-status';
-import { MemberRole } from '~/api/member/domain/member-role';
-import { MemberEntity } from '~/api/member/domain/member.entity';
-import { databaseEntities } from '~/infra/database/entities';
-import { createCatalogIndexName } from '~/infra/search/catalog-index.definition';
-import { CatalogIndexManager } from '~/infra/search/catalog-index.manager';
-import { CatalogMaintenanceService } from '~/infra/search/catalog-maintenance.service';
-import { CatalogProjectionReader } from '~/infra/search/catalog-projection.reader';
-import { CatalogRebuildService } from '~/infra/search/catalog-rebuild.service';
-import { CatalogSearchWorker } from '~/infra/search/catalog-search.worker';
-import { catalogSearchWriteEffects } from '~/infra/search/catalog-write-effects';
-import { OpenSearchHttpClient } from '~/infra/search/opensearch.client';
-import { SearchOutboxRelay } from '~/infra/search/search-outbox.relay';
-import { SearchReconciliationService } from '~/infra/search/search-reconciliation.service';
-import { SearchConfig } from '~/infra/search/search.config';
+import { ProductCommandService } from '~/api/catalog/application/product-command.service.js';
+import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status.js';
+import { ProductStatus } from '~/api/catalog/domain/entity/product-status.js';
+import { MemberRole } from '~/api/member/domain/member-role.js';
+import { MemberEntity } from '~/api/member/domain/member.entity.js';
+import { databaseEntities } from '~/infra/database/entities.js';
+import { createCatalogIndexName } from '~/infra/search/catalog-index.definition.js';
+import { CatalogIndexManager } from '~/infra/search/catalog-index.manager.js';
+import { CatalogMaintenanceService } from '~/infra/search/catalog-maintenance.service.js';
+import { CatalogProjectionReader } from '~/infra/search/catalog-projection.reader.js';
+import { CatalogRebuildService } from '~/infra/search/catalog-rebuild.service.js';
+import { CatalogSearchWorker } from '~/infra/search/catalog-search.worker.js';
+import { catalogSearchWriteEffects } from '~/infra/search/catalog-write-effects.js';
+import { OpenSearchHttpClient } from '~/infra/search/opensearch.client.js';
+import { SearchOutboxRelay } from '~/infra/search/search-outbox.relay.js';
+import { SearchReconciliationService } from '~/infra/search/search-reconciliation.service.js';
+import { SearchConfig } from '~/infra/search/search.config.js';
 
 const enabled = process.env.MYSQL_INTEGRATION === '1' && process.env.OPENSEARCH_INTEGRATION === '1';
 const describePipeline = enabled ? describe : describe.skip;

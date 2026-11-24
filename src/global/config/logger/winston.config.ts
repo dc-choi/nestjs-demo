@@ -3,14 +3,14 @@ import { join } from 'node:path';
 import { inspect } from 'node:util';
 import winston from 'winston';
 import winstonDaily from 'winston-daily-rotate-file';
-import { getCurrentRequestId } from '~/global/common/context/request-context';
+import { getCurrentRequestId } from '~/global/common/context/request-context.js';
 import type {
     GraphqlOperationLog,
     MikroOrmQueryLog,
     TypedLogger,
     VerbosePayload,
-} from '~/global/common/logger/channel.logger';
-import { WinstonLoggerService } from '~/global/config/logger/winston-logger.service';
+} from '~/global/common/logger/channel.logger.js';
+import { WinstonLoggerService } from '~/global/config/logger/winston-logger.service.js';
 
 type WinstonLevel = 'debug' | 'error' | 'http' | 'info' | 'verbose' | 'warn';
 

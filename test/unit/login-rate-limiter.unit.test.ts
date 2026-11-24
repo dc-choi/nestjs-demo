@@ -1,7 +1,7 @@
 import { HttpException } from '@nestjs/common';
 
 import { describe, expect, it, vi } from 'vitest';
-import { LoginRateLimiter } from '~/api/auth/application/login-rate-limiter';
+import { LoginRateLimiter } from '~/api/auth/application/login-rate-limiter.js';
 
 describe('LoginRateLimiter', () => {
     it('increments hashed account and client keys with an expiry', async () => {

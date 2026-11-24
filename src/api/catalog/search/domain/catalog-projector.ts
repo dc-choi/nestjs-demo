@@ -6,9 +6,9 @@ import {
     MAX_SEARCHABLE_ITEMS_PER_PRODUCT,
     ProductSearchDocument,
     ProductSearchItemDocument,
-} from './product-search.document';
+} from './product-search.document.js';
 
-import { compareBigInt } from '~/global/common/utils/bigint';
+import { compareBigInt } from '~/global/common/utils/bigint.js';
 
 const CODE_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 const DECIMAL_PATTERN = /^(?:0|[1-9]\d{0,6})(?:\.\d{1,3})?$/;

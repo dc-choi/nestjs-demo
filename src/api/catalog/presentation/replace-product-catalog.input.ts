@@ -1,7 +1,7 @@
 import { Field, ID, InputType, Int } from '@nestjs/graphql';
 
-import { ReplaceProductItemInput } from './replace-product-item.input';
-import { ReplaceProductOptionInput } from './replace-product-option.input';
+import { ReplaceProductItemInput } from './replace-product-item.input.js';
+import { ReplaceProductOptionInput } from './replace-product-option.input.js';
 
 import { Type } from 'class-transformer';
 import {
@@ -21,9 +21,9 @@ import {
     PRODUCT_CATALOG_LIMITS,
     PRODUCT_REASON_MAX_LENGTH,
     PRODUCT_TAG_MAX_LENGTH,
-} from '~/api/catalog/domain/product.rules';
-import { emptyValue, invalidMax, invalidMin, invalidValue } from '~/global/common/message/error.message';
-import { GRAPHQL_ID_MAX_LENGTH, GRAPHQL_ID_PATTERN } from '~/global/graphql/graphql-id.parser';
+} from '~/api/catalog/domain/product.rules.js';
+import { emptyValue, invalidMax, invalidMin, invalidValue } from '~/global/common/message/error.message.js';
+import { GRAPHQL_ID_MAX_LENGTH, GRAPHQL_ID_PATTERN } from '~/global/graphql/graphql-id.parser.js';
 
 @InputType()
 export class ReplaceProductCatalogInput {

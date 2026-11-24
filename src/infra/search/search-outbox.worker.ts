@@ -1,8 +1,8 @@
 import { BeforeApplicationShutdown, Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 
-import { CatalogIndexManager } from './catalog-index.manager';
-import { SearchOutboxRelay } from './search-outbox.relay';
-import { SearchConfig } from './search.config';
+import { CatalogIndexManager } from './catalog-index.manager.js';
+import { SearchOutboxRelay } from './search-outbox.relay.js';
+import { SearchConfig } from './search.config.js';
 
 const POLL_INTERVAL_MS = 1_000;
 export const SEARCH_OUTBOX_SHUTDOWN_TIMEOUT_MS = 5_000;

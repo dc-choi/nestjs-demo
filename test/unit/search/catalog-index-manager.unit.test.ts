@@ -1,10 +1,10 @@
 import { type Mock, describe, expect, it, vi } from 'vitest';
-import { CatalogBulkError } from '~/infra/search/catalog-bulk.error';
-import { catalogIndexDefinition, catalogNoriIndexDefinition } from '~/infra/search/catalog-index.definition';
-import { CatalogIndexManager } from '~/infra/search/catalog-index.manager';
-import { OpenSearchHttpError } from '~/infra/search/opensearch-http.error';
-import { OpenSearchHttpClient } from '~/infra/search/opensearch.client';
-import { SearchConfig } from '~/infra/search/search.config';
+import { CatalogBulkError } from '~/infra/search/catalog-bulk.error.js';
+import { catalogIndexDefinition, catalogNoriIndexDefinition } from '~/infra/search/catalog-index.definition.js';
+import { CatalogIndexManager } from '~/infra/search/catalog-index.manager.js';
+import { OpenSearchHttpError } from '~/infra/search/opensearch-http.error.js';
+import { OpenSearchHttpClient } from '~/infra/search/opensearch.client.js';
+import { SearchConfig } from '~/infra/search/search.config.js';
 
 describe('Catalog index manager', () => {
     it('keeps root and item mappings strict and changes only the named analyzer implementation', () => {

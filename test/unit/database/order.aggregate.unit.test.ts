@@ -2,12 +2,12 @@ import { ChangeSetType, Collection, type EntityManager } from '@mikro-orm/core';
 import { MikroORM } from '@mikro-orm/mysql';
 
 import { describe, expect, it } from 'vitest';
-import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
-import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
-import { MemberEntity } from '~/api/member/domain/member.entity';
-import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity';
-import { OrderEntity } from '~/api/order/domain/entity/order.entity';
-import { createMikroOrmCoreOptions } from '~/infra/database/mikro-orm.config';
+import { ItemEntity } from '~/api/catalog/domain/entity/item.entity.js';
+import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
+import { MemberEntity } from '~/api/member/domain/member.entity.js';
+import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js';
+import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
+import { createMikroOrmCoreOptions } from '~/infra/database/mikro-orm.config.js';
 
 describe('order aggregate', () => {
     it('품목과 주문 합계를 정확한 decimal 문자열로 계산한다', () => {

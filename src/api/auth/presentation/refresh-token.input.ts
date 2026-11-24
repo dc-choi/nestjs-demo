@@ -1,7 +1,7 @@
 import { Field, InputType } from '@nestjs/graphql';
 
 import { IsNotEmpty, IsString, IsUUID } from 'class-validator';
-import { emptyValue, invalidValue } from '~/global/common/message/error.message';
+import { emptyValue, invalidValue } from '~/global/common/message/error.message.js';
 
 @InputType()
 export class RefreshTokenInput {

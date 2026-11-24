@@ -1,6 +1,6 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
 
-import { PaymentWebhookEventStatus } from '~/api/payment/presentation/payment.enum';
+import { PaymentWebhookEventStatus } from '~/api/payment/presentation/payment.enum.js';
 
 @ObjectType('PaymentWebhookEvent')
 export class PaymentWebhookEventType {

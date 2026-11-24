@@ -1,21 +1,21 @@
 import { Collection } from '@mikro-orm/core';
 
 import { describe, expect, it } from 'vitest';
-import { CategoryEntity } from '~/api/catalog/domain/entity/category.entity';
-import { ItemOptionValueEntity } from '~/api/catalog/domain/entity/item-option-value.entity';
-import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status';
-import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
-import { MediaAssetEntity } from '~/api/catalog/domain/entity/media-asset.entity';
-import { ProductCategoryEntity } from '~/api/catalog/domain/entity/product-category.entity';
-import { ProductMediaRole } from '~/api/catalog/domain/entity/product-media-role';
-import { ProductMediaEntity } from '~/api/catalog/domain/entity/product-media.entity';
-import { ProductOptionValueEntity } from '~/api/catalog/domain/entity/product-option-value.entity';
-import { ProductOptionEntity } from '~/api/catalog/domain/entity/product-option.entity';
-import { ProductStatus } from '~/api/catalog/domain/entity/product-status';
-import { ProductTagEntity } from '~/api/catalog/domain/entity/product-tag.entity';
-import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
-import { createProductSnapshotPayload } from '~/api/catalog/domain/product-snapshot.factory';
-import { MemberEntity } from '~/api/member/domain/member.entity';
+import { CategoryEntity } from '~/api/catalog/domain/entity/category.entity.js';
+import { ItemOptionValueEntity } from '~/api/catalog/domain/entity/item-option-value.entity.js';
+import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status.js';
+import { ItemEntity } from '~/api/catalog/domain/entity/item.entity.js';
+import { MediaAssetEntity } from '~/api/catalog/domain/entity/media-asset.entity.js';
+import { ProductCategoryEntity } from '~/api/catalog/domain/entity/product-category.entity.js';
+import { ProductMediaRole } from '~/api/catalog/domain/entity/product-media-role.js';
+import { ProductMediaEntity } from '~/api/catalog/domain/entity/product-media.entity.js';
+import { ProductOptionValueEntity } from '~/api/catalog/domain/entity/product-option-value.entity.js';
+import { ProductOptionEntity } from '~/api/catalog/domain/entity/product-option.entity.js';
+import { ProductStatus } from '~/api/catalog/domain/entity/product-status.js';
+import { ProductTagEntity } from '~/api/catalog/domain/entity/product-tag.entity.js';
+import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
+import { createProductSnapshotPayload } from '~/api/catalog/domain/product-snapshot.factory.js';
+import { MemberEntity } from '~/api/member/domain/member.entity.js';
 
 describe('createProductSnapshotPayload', () => {
     it('live graph을 ID 문자열과 안정적인 순서로 정규화하고 재고를 제외한다', () => {

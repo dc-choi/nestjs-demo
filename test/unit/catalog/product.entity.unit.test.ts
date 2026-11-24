@@ -1,12 +1,12 @@
 import { Collection } from '@mikro-orm/core';
 
 import { describe, expect, it } from 'vitest';
-import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status';
-import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
-import { ProductStatus } from '~/api/catalog/domain/entity/product-status';
-import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
-import { ProductRuleError } from '~/api/catalog/domain/product.rules';
-import { MemberEntity } from '~/api/member/domain/member.entity';
+import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status.js';
+import { ItemEntity } from '~/api/catalog/domain/entity/item.entity.js';
+import { ProductStatus } from '~/api/catalog/domain/entity/product-status.js';
+import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
+import { ProductRuleError } from '~/api/catalog/domain/product.rules.js';
+import { MemberEntity } from '~/api/member/domain/member.entity.js';
 
 const seller = Object.assign(new MemberEntity(), { id: 7n });
 

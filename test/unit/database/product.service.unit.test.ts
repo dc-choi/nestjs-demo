@@ -8,17 +8,17 @@ import {
 } from '@mikro-orm/core';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ProductService } from '~/api/catalog/application/product.service';
-import { CategoryEntity } from '~/api/catalog/domain/entity/category.entity';
-import { ItemOptionValueEntity } from '~/api/catalog/domain/entity/item-option-value.entity';
-import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status';
-import { ItemEntity } from '~/api/catalog/domain/entity/item.entity';
-import { ProductCategoryEntity } from '~/api/catalog/domain/entity/product-category.entity';
-import { ProductOptionValueEntity } from '~/api/catalog/domain/entity/product-option-value.entity';
-import { ProductOptionEntity } from '~/api/catalog/domain/entity/product-option.entity';
-import { ProductStatus } from '~/api/catalog/domain/entity/product-status';
-import { ProductTagEntity } from '~/api/catalog/domain/entity/product-tag.entity';
-import { ProductEntity } from '~/api/catalog/domain/entity/product.entity';
+import { ProductService } from '~/api/catalog/application/product.service.js';
+import { CategoryEntity } from '~/api/catalog/domain/entity/category.entity.js';
+import { ItemOptionValueEntity } from '~/api/catalog/domain/entity/item-option-value.entity.js';
+import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status.js';
+import { ItemEntity } from '~/api/catalog/domain/entity/item.entity.js';
+import { ProductCategoryEntity } from '~/api/catalog/domain/entity/product-category.entity.js';
+import { ProductOptionValueEntity } from '~/api/catalog/domain/entity/product-option-value.entity.js';
+import { ProductOptionEntity } from '~/api/catalog/domain/entity/product-option.entity.js';
+import { ProductStatus } from '~/api/catalog/domain/entity/product-status.js';
+import { ProductTagEntity } from '~/api/catalog/domain/entity/product-tag.entity.js';
+import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
 
 describe('ProductService', () => {
     const findOne = vi.fn<EntityManager['findOne']>();

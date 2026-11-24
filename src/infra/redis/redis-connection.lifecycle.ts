@@ -1,7 +1,7 @@
 import { Inject, Injectable, OnApplicationShutdown } from '@nestjs/common';
 
-import Redis from 'ioredis';
-import { REDIS_CLIENT } from '~/infra/redis/redis-client.symbol';
+import { Redis } from 'ioredis';
+import { REDIS_CLIENT } from '~/infra/redis/redis-client.symbol.js';
 
 export const REDIS_QUIT_TIMEOUT_MS = 5_000;
 
