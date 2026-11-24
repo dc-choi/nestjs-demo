@@ -16,6 +16,7 @@ import { InventoryMovementType } from '~/api/inventory/domain/entity/inventory-m
 import { InventoryMovementEntity } from '~/api/inventory/domain/entity/inventory-movement.entity.js';
 import { InventoryReservationStatus } from '~/api/inventory/domain/entity/inventory-reservation-status.js';
 import { InventoryReservationEntity } from '~/api/inventory/domain/entity/inventory-reservation.entity.js';
+import { InventoryReservationConflict } from '~/api/inventory/domain/inventory-reservation-conflict.error.js';
 import { MemberRole } from '~/api/member/domain/entity/member-role.js';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js';
 import { OrderStatus } from '~/api/order/domain/entity/order-status.js';
@@ -228,7 +229,7 @@ export class InventoryService {
 
     consumeForPayment(reservation: InventoryReservationEntity, now = new Date()): void {
         this.assertTransaction();
-        if (this.assertConsumable(reservation, now)) reservation.consume(now);
+        withHttpErrors(() => reservation.consume(now));
     }
 
     async releaseForCancellation(
@@ -321,7 +322,6 @@ export class InventoryService {
             }
         );
         if (!reservation) throw new NotFoundException('재고 예약을 찾을 수 없습니다.');
-        reservation.orderItem.item = item;
         return { reservation, item };
     }
 
@@ -351,18 +351,11 @@ export class InventoryService {
             return { reservation, movement: duplicate };
         }
 
-        if (reservation.status !== InventoryReservationStatus.RESERVED) {
-            throw new ConflictException(`${reservation.status} 재고 예약은 복구할 수 없습니다.`);
-        }
-        if (status === InventoryReservationStatus.EXPIRED && reservation.expiresAt.getTime() > now.getTime()) {
-            throw new ConflictException('아직 만료되지 않은 재고 예약입니다.');
-        }
-
+        withHttpErrors(() => reservation.assertRestorable(status, now));
         const stockAfter = this.restoredStock(item, reservation.quantity);
-        const changed =
-            status === InventoryReservationStatus.EXPIRED ? reservation.expire(now) : reservation.release(now);
-        if (!changed) throw new ConflictException('복구 원장이 없는 종료된 재고 예약입니다.');
-
+        withHttpErrors(() =>
+            status === InventoryReservationStatus.EXPIRED ? reservation.expire(now) : reservation.release(now)
+        );
         item.stock = stockAfter;
         item.updatedAt = now;
         const movement = InventoryMovementEntity.record({
@@ -403,7 +396,7 @@ export class InventoryService {
         }
 
         const stockAfter = this.restoredStock(item, reservation.quantity);
-        reservation.returnAfterConsumption(now);
+        withHttpErrors(() => reservation.returnAfterConsumption(now));
         item.stock = stockAfter;
         item.updatedAt = now;
         const movement = InventoryMovementEntity.record({
@@ -457,20 +450,19 @@ export class InventoryService {
         if (!this.em.isInTransaction()) throw new Error('Inventory transitions require the caller transaction');
     }
 
-    private assertConsumable(reservation: InventoryReservationEntity, now: Date): boolean {
-        if (reservation.status === InventoryReservationStatus.CONSUMED) return false;
-        if (reservation.status !== InventoryReservationStatus.RESERVED) {
-            throw new ConflictException(`${reservation.status} 재고 예약은 소비할 수 없습니다.`);
-        }
-        if (reservation.expiresAt.getTime() <= now.getTime()) {
-            throw new ConflictException('만료된 재고 예약은 소비할 수 없습니다.');
-        }
-        return true;
-    }
-
     private assertIdempotencyKey(value: string): void {
         if (value.trim().length === 0 || value.length > 128) {
             throw new BadRequestException('재고 멱등성 키는 1자 이상 128자 이하여야 합니다.');
         }
+    }
+}
+
+/** Entity가 소유한 재고 예약 전이 규칙 위반을 API 오류로 번역한다. */
+function withHttpErrors(transition: () => unknown): void {
+    try {
+        transition();
+    } catch (error: unknown) {
+        if (error instanceof InventoryReservationConflict) throw new ConflictException(error.message);
+        throw error;
     }
 }

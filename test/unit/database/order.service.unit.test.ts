@@ -27,7 +27,7 @@ import { PaymentAttemptStatus } from '~/api/payment/domain/entity/payment-attemp
 import { PaymentAttemptEntity } from '~/api/payment/domain/entity/payment-attempt.entity.js';
 import { PaymentTransactionType } from '~/api/payment/domain/entity/payment-transaction-type.js';
 import { PaymentTransactionEntity } from '~/api/payment/domain/entity/payment-transaction.entity.js';
-import type { DistributedLockService } from '~/global/common/lock/distributed-lock.service.js';
+import type { DistributedLockService } from '~/api/order/infrastructure/distributed-lock.service.js';
 
 const ITEM_ID = 9_007_199_254_740_993n;
 const PRODUCT_ID = 9_007_199_254_740_995n;

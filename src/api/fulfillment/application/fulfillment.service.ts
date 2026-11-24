@@ -15,11 +15,13 @@ import type {
 } from '~/api/fulfillment/application/fulfillment.command.js';
 import { FulfillmentStatus } from '~/api/fulfillment/domain/entity/fulfillment-status.js';
 import { FulfillmentEntity } from '~/api/fulfillment/domain/entity/fulfillment.entity.js';
+import { FulfillmentConflict } from '~/api/fulfillment/domain/fulfillment-conflict.error.js';
 import { MemberRole } from '~/api/member/domain/entity/member-role.js';
 import { OrderActorType } from '~/api/order/domain/entity/order-actor-type.js';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js';
 import { OrderStatus } from '~/api/order/domain/entity/order-status.js';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
+import { OrderTransitionConflict } from '~/api/order/domain/order-transition-conflict.error.js';
 import { isPositiveMysqlSignedInt } from '~/global/common/utils/mysql-number.js';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload.js';
 
@@ -74,9 +76,9 @@ export class FulfillmentService {
             throw new ConflictException('결제가 확정된 주문만 배송을 만들 수 있습니다.');
         }
         this.assertFunded(order);
-        if (new Set(command.items.map(({ orderItemId }) => orderItemId)).size !== command.items.length) {
-            throw new BadRequestException('한 배송에 같은 주문 품목을 중복 배정할 수 없습니다.');
-        }
+        withHttpErrors(() =>
+            FulfillmentEntity.assertDistinctAllocations(command.items.map(({ orderItemId }) => orderItemId))
+        );
 
         const orderItems = new Map(order.items.getItems().map((item) => [item.id, item]));
         const allocations = command.items.map(({ orderItemId, quantity }) => {
@@ -90,7 +92,7 @@ export class FulfillmentService {
             return { orderItem, quantity };
         });
 
-        const fulfillment = FulfillmentEntity.create(order, command.idempotencyKey, allocations);
+        const fulfillment = withHttpErrors(() => FulfillmentEntity.create(order, command.idempotencyKey, allocations));
         this.em.persist([fulfillment, ...fulfillment.items.getItems()]);
         return fulfillment;
     }
@@ -99,12 +101,10 @@ export class FulfillmentService {
     async pack(jwtPayload: JwtPayload, fulfillmentId: bigint, now = new Date()): Promise<FulfillmentEntity> {
         this.assertAdmin(jwtPayload);
         const fulfillment = await this.findForUpdate(fulfillmentId);
-        if (fulfillment.status === FulfillmentStatus.PACKED) return fulfillment;
-        if (fulfillment.status !== FulfillmentStatus.PENDING) {
-            throw new ConflictException(`${fulfillment.status} 배송은 포장 처리할 수 없습니다.`);
-        }
-        this.assertFunded(fulfillment.order);
-        fulfillment.pack(now);
+        // 전이 가능한 PENDING만 자금을 확인한다. 도달한 상태의 재요청은 전액 환불 뒤에도 Entity가 멱등 처리하고,
+        // 그 밖의 상태는 Entity가 상태 충돌로 거절한다.
+        if (fulfillment.status === FulfillmentStatus.PENDING) this.assertFunded(fulfillment.order);
+        withHttpErrors(() => fulfillment.pack(now));
         return fulfillment;
     }
 
@@ -112,23 +112,12 @@ export class FulfillmentService {
     async ship(jwtPayload: JwtPayload, command: ShipFulfillmentCommand, now = new Date()): Promise<FulfillmentEntity> {
         this.assertAdmin(jwtPayload);
         const fulfillment = await this.findForUpdate(command.fulfillmentId);
-        if (fulfillment.status === FulfillmentStatus.SHIPPED) {
-            if (fulfillment.carrier !== command.carrier || fulfillment.trackingNumber !== command.trackingNumber) {
-                throw new ConflictException('이미 발송된 배송의 운송 정보를 변경할 수 없습니다.');
-            }
-            return fulfillment;
+        // 입력 검증, 상태 충돌, 자금 확인 순서를 지킨다. 발송 재요청은 Entity가 같은 운송 정보인지 판정한다.
+        if (fulfillment.status !== FulfillmentStatus.SHIPPED) {
+            withHttpErrors(() => FulfillmentEntity.assertShippingInfo(command.carrier, command.trackingNumber));
         }
-        if (command.carrier.trim().length === 0 || command.carrier.length > 128) {
-            throw new BadRequestException('택배사 값이 올바르지 않습니다.');
-        }
-        if (command.trackingNumber.trim().length === 0 || command.trackingNumber.length > 255) {
-            throw new BadRequestException('운송장 번호가 올바르지 않습니다.');
-        }
-        if (fulfillment.status !== FulfillmentStatus.PACKED) {
-            throw new ConflictException(`${fulfillment.status} 배송은 발송 처리할 수 없습니다.`);
-        }
-        this.assertFunded(fulfillment.order);
-        fulfillment.ship(command.carrier, command.trackingNumber, now);
+        if (fulfillment.status === FulfillmentStatus.PACKED) this.assertFunded(fulfillment.order);
+        withHttpErrors(() => fulfillment.ship(command.carrier, command.trackingNumber, now));
         return fulfillment;
     }
 
@@ -156,13 +145,15 @@ export class FulfillmentService {
         if (fulfillment.status === FulfillmentStatus.SHIPPED) fulfillment.deliver(now);
 
         if (this.isOrderFullyDelivered(fulfillment.order, fulfillments)) {
-            const history = fulfillment.order.transition({
-                to: OrderStatus.COMPLETED,
-                actorType: OrderActorType.MEMBER,
-                actorId: jwtPayload.memberId.toString(),
-                reason: 'ALL_ITEMS_DELIVERED',
-                occurredAt: now,
-            });
+            const history = withHttpErrors(() =>
+                fulfillment.order.transition({
+                    to: OrderStatus.COMPLETED,
+                    actorType: OrderActorType.MEMBER,
+                    actorId: jwtPayload.memberId.toString(),
+                    reason: 'ALL_ITEMS_DELIVERED',
+                    occurredAt: now,
+                })
+            );
             if (history) this.em.persist(history);
         }
         return fulfillment;
@@ -263,6 +254,19 @@ export class FulfillmentService {
 
     private assertAdmin(jwtPayload: JwtPayload): void {
         if (jwtPayload.role !== MemberRole.ADMIN) throw new ForbiddenException('배송 처리 권한이 없습니다.');
+    }
+}
+
+/** Entity가 소유한 배송 규칙 위반을 API 오류로 번역한다. */
+function withHttpErrors<T>(transition: () => T): T {
+    try {
+        return transition();
+    } catch (error: unknown) {
+        if (error instanceof FulfillmentConflict || error instanceof OrderTransitionConflict) {
+            throw new ConflictException(error.message);
+        }
+        if (error instanceof RangeError) throw new BadRequestException(error.message);
+        throw error;
     }
 }
 

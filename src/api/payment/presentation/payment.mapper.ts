@@ -3,6 +3,7 @@ import type { PaymentTransactionEntity } from '~/api/payment/domain/entity/payme
 import type { PaymentTransactionRecordType } from '~/api/payment/presentation/payment-transaction-record.type.js';
 import type { PaymentWebhookPayload } from '~/api/payment/presentation/payment-webhook.payload.js';
 import type { PaymentPayload } from '~/api/payment/presentation/payment.payload.js';
+import { formatMoneyAmount } from '~/global/graphql/money-amount.js';
 
 export function toPaymentPayload({ attempt, transaction }: PaymentResult): PaymentPayload {
     if (attempt.id == null) throw new Error('저장되지 않은 결제 시도입니다.');
@@ -14,7 +15,7 @@ export function toPaymentPayload({ attempt, transaction }: PaymentResult): Payme
             provider: attempt.provider,
             method: attempt.method,
             status: attempt.status,
-            requestedAmount: { amount: attempt.requestedAmount, currencyCode: attempt.currencyCode },
+            requestedAmount: { amount: formatMoneyAmount(attempt.requestedAmount), currencyCode: attempt.currencyCode },
             providerPaymentId: attempt.providerPaymentId,
             errorCode: attempt.errorCode,
             errorMessage: attempt.errorMessage,
@@ -50,7 +51,7 @@ function toTransactionType(transaction: PaymentTransactionEntity, currencyCode: 
         id: transaction.id.toString(),
         type: transaction.type,
         status: transaction.status,
-        amount: { amount: transaction.amount, currencyCode },
+        amount: { amount: formatMoneyAmount(transaction.amount), currencyCode },
         providerTransactionId: transaction.providerTransactionId,
         errorCode: transaction.errorCode,
         errorMessage: transaction.errorMessage,

@@ -8,7 +8,7 @@ import { PaymentTransactionType } from '~/api/payment/domain/entity/payment-tran
 /**
  * 승인, 매입, 환불, 승인 취소 같은 provider 작업을 각각 별도 행으로 누적한다.
  * attempt 내부의 멱등성 키와 provider 거래 ID가 동일 작업의 중복 반영을 막는다.
- * 누적 매입과 환불 금액 한도는 애플리케이션이 검증한다.
+ * 누적 매입과 환불 금액 한도는 DB 제약이 아니라 PaymentAttemptEntity와 Service가 검증한다.
  */
 @Entity({ tableName: 'payment_transactions' })
 @Unique({

@@ -24,8 +24,8 @@ import type { PlaceOrderCommand } from '~/api/order/application/place-order.comm
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
 import { NotExistingItem } from '~/api/order/domain/not-existing-item.error.js';
-import { OrderCancellationConflict } from '~/api/order/domain/order-cancellation-conflict.error.js';
-import { DistributedLockOptions, DistributedLockService } from '~/global/common/lock/distributed-lock.service.js';
+import { isOrderCancellationConflict } from '~/api/order/domain/order-cancellation-conflict.js';
+import { DistributedLockOptions, DistributedLockService } from '~/api/order/infrastructure/distributed-lock.service.js';
 import { compareBigInt } from '~/global/common/utils/bigint.js';
 import { isPositiveMysqlSignedInt } from '~/global/common/utils/mysql-number.js';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload.js';
@@ -123,7 +123,7 @@ export class OrderService {
                 occurredAt: now,
             });
         } catch (error: unknown) {
-            if (error instanceof OrderCancellationConflict) throw new ConflictException(error.message);
+            if (isOrderCancellationConflict(error)) throw new ConflictException(error.message);
             throw error;
         }
         if (cancellation.isReplay) return order;

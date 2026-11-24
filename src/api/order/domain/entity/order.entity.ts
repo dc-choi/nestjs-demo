@@ -13,6 +13,7 @@ import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js'
 import { OrderStatusHistoryEntity } from '~/api/order/domain/entity/order-status-history.entity.js';
 import { OrderStatus } from '~/api/order/domain/entity/order-status.js';
 import { OrderCancellationConflict } from '~/api/order/domain/order-cancellation-conflict.error.js';
+import { OrderTransitionConflict } from '~/api/order/domain/order-transition-conflict.error.js';
 import { PaymentAttemptEntity } from '~/api/payment/domain/entity/payment-attempt.entity.js';
 
 interface PlaceOrder {
@@ -215,7 +216,7 @@ export class OrderEntity {
         const fromStatus: OrderStatus = this.status;
         if (fromStatus === to) return null;
         if (!ALLOWED_TRANSITIONS[fromStatus].includes(to)) {
-            throw new Error(`주문 상태를 ${fromStatus}에서 ${to}(으)로 변경할 수 없습니다.`);
+            throw new OrderTransitionConflict(`주문 상태를 ${fromStatus}에서 ${to}(으)로 변경할 수 없습니다.`);
         }
 
         this.status = to;

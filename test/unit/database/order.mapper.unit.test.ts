@@ -26,14 +26,14 @@ describe('order GraphQL mapper', () => {
             orderNumber: '019c-test',
             status: 'PENDING',
             currencyCode: 'KRW',
-            totalPrice: { amount: '2200', currencyCode: 'KRW' },
+            totalPrice: { amount: '2200.000', currencyCode: 'KRW' },
             createdAt: new Date('2026-08-13T00:00:00.000Z'),
             items: [
                 {
                     id: '40',
                     itemId: '20',
                     quantity: 2,
-                    lineTotalPrice: { amount: '2200', currencyCode: 'KRW' },
+                    lineTotalPrice: { amount: '2200.000', currencyCode: 'KRW' },
                     snapshot: {
                         productId: '10',
                         productRevision: 7,
@@ -42,9 +42,9 @@ describe('order GraphQL mapper', () => {
                         itemSku: 'sku-v7',
                         productDescription: null,
                         productReturnPolicy: null,
-                        unitSupplyPrice: { amount: '1000', currencyCode: 'KRW' },
-                        unitVat: { amount: '100', currencyCode: 'KRW' },
-                        unitTotalPrice: { amount: '1100', currencyCode: 'KRW' },
+                        unitSupplyPrice: { amount: '1000.000', currencyCode: 'KRW' },
+                        unitVat: { amount: '100.000', currencyCode: 'KRW' },
+                        unitTotalPrice: { amount: '1100.000', currencyCode: 'KRW' },
                         isTaxFree: false,
                         selectedOptions: [
                             {

@@ -9,6 +9,10 @@ import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js'
 import { OrderStatus } from '~/api/order/domain/entity/order-status.js';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
 import { OrderCancellationConflict } from '~/api/order/domain/order-cancellation-conflict.error.js';
+import { isOrderCancellationConflict } from '~/api/order/domain/order-cancellation-conflict.js';
+import { OrderTransitionConflict } from '~/api/order/domain/order-transition-conflict.error.js';
+import { FulfillmentConflict } from '~/api/fulfillment/domain/fulfillment-conflict.error.js';
+import { PaymentAttemptConflict } from '~/api/payment/domain/payment-attempt-conflict.error.js';
 import { PaymentAttemptStatus } from '~/api/payment/domain/entity/payment-attempt-status.js';
 import { PaymentAttemptEntity } from '~/api/payment/domain/entity/payment-attempt.entity.js';
 import { PaymentTransactionType } from '~/api/payment/domain/entity/payment-transaction-type.js';
@@ -19,6 +23,27 @@ const BEFORE_NOW = new Date('2026-09-04T23:45:00.000Z');
 const AFTER_NOW = new Date('2026-09-05T00:15:00.000Z');
 
 describe('order cancellation domain', () => {
+    it('허용되지 않은 주문 전이는 API가 409로 번역할 수 있는 OrderTransitionConflict로 거절한다', () => {
+        const { order } = createOrder(AFTER_NOW);
+        order.cancelByMember({ actorId: '10', reason: 'CUSTOMER_REQUEST', requestId: 'cancel-1', occurredAt: NOW });
+
+        expect(() =>
+            order.transition({ to: OrderStatus.CONFIRMED, actorType: OrderActorType.SYSTEM, occurredAt: NOW })
+        ).toThrow(OrderTransitionConflict);
+    });
+
+    it('주문 취소와 만료가 연쇄로 부르는 Entity 충돌을 모두 취소 충돌로 판정한다', () => {
+        for (const error of [
+            new OrderCancellationConflict('order'),
+            new OrderTransitionConflict('transition'),
+            new PaymentAttemptConflict('payment'),
+            new FulfillmentConflict('fulfillment'),
+        ]) {
+            expect(isOrderCancellationConflict(error)).toBe(true);
+        }
+        expect(isOrderCancellationConflict(new Error('unexpected'))).toBe(false);
+    });
+
     it('회원 취소는 취소 가능한 결제를 종료하고 같은 요청을 변경 없이 재생한다', () => {
         const { order, reservation } = createOrder(AFTER_NOW);
         const attempt = createAttempt(order);

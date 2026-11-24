@@ -11,11 +11,11 @@ import {
 } from '@nestjs/common';
 
 import { FulfillmentStatus } from '~/api/fulfillment/domain/entity/fulfillment-status.js';
-import { InventoryReservationStatus } from '~/api/inventory/domain/entity/inventory-reservation-status.js';
 import { MemberRole } from '~/api/member/domain/entity/member-role.js';
 import { OrderActorType } from '~/api/order/domain/entity/order-actor-type.js';
 import { OrderStatus } from '~/api/order/domain/entity/order-status.js';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
+import { OrderTransitionConflict } from '~/api/order/domain/order-transition-conflict.error.js';
 import { PAYMENT_INVENTORY_PORT, type PaymentInventoryPort } from '~/api/payment/application/payment-inventory.port.js';
 import type { PaymentResult } from '~/api/payment/application/payment-result.js';
 import { PaymentWebhookPrerequisitePending } from '~/api/payment/application/payment-webhook-prerequisite-pending.error.js';
@@ -32,7 +32,8 @@ import { PaymentTransactionStatus } from '~/api/payment/domain/entity/payment-tr
 import { PaymentTransactionType } from '~/api/payment/domain/entity/payment-transaction-type.js';
 import { PaymentTransactionEntity } from '~/api/payment/domain/entity/payment-transaction.entity.js';
 import { PaymentWebhookOutcome } from '~/api/payment/domain/entity/payment-webhook-outcome.js';
-import { assertPositiveMoney, compareMoney, sumMoney } from '~/api/payment/domain/payment-money.js';
+import { PaymentAttemptConflict } from '~/api/payment/domain/payment-attempt-conflict.error.js';
+import { assertPositiveMoney, compareMoney } from '~/api/payment/domain/payment-money.js';
 import { compareBigInt } from '~/global/common/utils/bigint.js';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload.js';
 
@@ -133,15 +134,7 @@ export class PaymentService {
         if (order.status !== OrderStatus.PENDING)
             throw new ConflictException('결제 대기 주문만 결제를 시도할 수 있습니다.');
 
-        const reservations = order.items.getItems().map(({ inventoryReservation }) => inventoryReservation);
-        if (
-            reservations.some(
-                (reservation) =>
-                    !reservation ||
-                    reservation.status !== InventoryReservationStatus.RESERVED ||
-                    reservation.expiresAt.getTime() <= now.getTime()
-            )
-        ) {
+        if (order.items.getItems().some(({ inventoryReservation }) => !inventoryReservation?.isConsumableAt(now))) {
             throw new ConflictException('유효한 재고 예약이 없는 주문은 결제를 시도할 수 없습니다.');
         }
 
@@ -330,25 +323,17 @@ export class PaymentService {
         if (attempt.order.status !== OrderStatus.PENDING) {
             throw new ConflictException('결제 대기 주문만 매입할 수 있습니다.');
         }
-        if (!attempt.isCapturable()) {
-            throw new ConflictException(`${attempt.status} 결제 시도는 매입할 수 없습니다.`);
-        }
+        withHttpErrors(() => attempt.assertCapturable());
 
         const reservations = attempt.order.items.getItems().map(({ inventoryReservation }) => inventoryReservation);
         if (reservations.some((reservation) => !reservation)) {
             throw new ConflictException('모든 주문 품목에 재고 예약이 있어야 합니다.');
         }
-        if (
-            reservations.some(
-                (reservation) =>
-                    reservation!.status !== InventoryReservationStatus.RESERVED ||
-                    reservation!.expiresAt.getTime() <= now.getTime()
-            )
-        ) {
+        if (reservations.some((reservation) => !reservation!.isConsumableAt(now))) {
             throw new ConflictException('유효한 재고 예약이 없는 주문은 매입할 수 없습니다.');
         }
 
-        attempt.capture(now);
+        withHttpErrors(() => attempt.capture(now));
         for (const reservation of reservations) this.inventory.consumeForPayment(reservation!, now);
         const transaction = PaymentTransactionEntity.succeed({
             paymentAttempt: attempt,
@@ -360,14 +345,16 @@ export class PaymentService {
         });
         this.em.persist(transaction);
 
-        const history = attempt.order.transition({
-            to: OrderStatus.CONFIRMED,
-            actorType: OrderActorType.PROVIDER,
-            actorId: attempt.provider,
-            reason: 'PAYMENT_CAPTURED',
-            requestId: command.idempotencyKey,
-            occurredAt: now,
-        });
+        const history = withHttpErrors(() =>
+            attempt.order.transition({
+                to: OrderStatus.CONFIRMED,
+                actorType: OrderActorType.PROVIDER,
+                actorId: attempt.provider,
+                reason: 'PAYMENT_CAPTURED',
+                requestId: command.idempotencyKey,
+                occurredAt: now,
+            })
+        );
         if (history) this.em.persist(history);
 
         return { attempt, transaction };
@@ -383,14 +370,8 @@ export class PaymentService {
             this.assertSameFailedTransaction(duplicate, command);
             return { attempt, transaction: duplicate };
         }
-        if (attempt.status === PaymentAttemptStatus.FAILED) {
-            throw new ConflictException('이미 다른 요청으로 실패 처리된 결제입니다.');
-        }
-        if (!attempt.isFailable()) {
-            throw new ConflictException(`${attempt.status} 결제 시도는 실패 처리할 수 없습니다.`);
-        }
 
-        attempt.fail(command.errorCode, command.errorMessage ?? null);
+        withHttpErrors(() => attempt.fail(command.errorCode, command.errorMessage ?? null));
         const transaction = PaymentTransactionEntity.fail({
             paymentAttempt: attempt,
             type: PaymentTransactionType.AUTHORIZE,
@@ -419,27 +400,11 @@ export class PaymentService {
             );
             return { attempt, transaction: duplicate };
         }
-        if (!attempt.isRefundable()) {
-            throw new ConflictException(`${attempt.status} 결제 시도는 환불할 수 없습니다.`);
-        }
 
-        const succeeded = attempt.transactions
-            .getItems()
-            .filter(({ status }) => status === PaymentTransactionStatus.SUCCEEDED);
-        const capturedAmount = sumMoney(
-            succeeded.filter(({ type }) => type === PaymentTransactionType.CAPTURE).map(({ amount }) => amount)
-        );
-        const refundedAmounts = succeeded
-            .filter(({ type }) => type === PaymentTransactionType.REFUND)
-            .map(({ amount }) => amount);
-        const refundedAmount = sumMoney([...refundedAmounts, command.amount]);
-        if (compareMoney(refundedAmount, capturedAmount) > 0) {
-            throw new BadRequestException('환불 누적 금액은 매입 금액을 초과할 수 없습니다.');
-        }
-
-        const fullyRefunded = compareMoney(refundedAmount, capturedAmount) === 0;
+        // 진행 중인 배송은 다른 aggregate 조건이므로 상태를 바꾸기 전에 Entity의 전액 환불 판정만 먼저 받는다.
+        const fullRefund = withHttpErrors(() => attempt.isFullRefund(command.amount));
         if (
-            fullyRefunded &&
+            fullRefund &&
             attempt.order.fulfillments
                 .getItems()
                 .some(({ status }) => BLOCKING_FULL_REFUND_FULFILLMENT_STATUSES.includes(status))
@@ -447,7 +412,7 @@ export class PaymentService {
             throw new ConflictException('진행 중인 배송을 취소하거나 완료한 뒤 전액 환불할 수 있습니다.');
         }
 
-        attempt.refund(fullyRefunded);
+        withHttpErrors(() => attempt.refund(command.amount));
         const transaction = PaymentTransactionEntity.succeed({
             paymentAttempt: attempt,
             type: PaymentTransactionType.REFUND,
@@ -559,5 +524,18 @@ export class PaymentService {
 
     private assertAdmin(jwtPayload: JwtPayload): void {
         if (jwtPayload.role !== MemberRole.ADMIN) throw new ForbiddenException('결제 처리 권한이 없습니다.');
+    }
+}
+
+/** Entity가 소유한 결제 시도 규칙 위반을 API 오류로 번역한다. */
+function withHttpErrors<T>(transition: () => T): T {
+    try {
+        return transition();
+    } catch (error: unknown) {
+        if (error instanceof PaymentAttemptConflict || error instanceof OrderTransitionConflict) {
+            throw new ConflictException(error.message);
+        }
+        if (error instanceof RangeError) throw new BadRequestException(error.message);
+        throw error;
     }
 }

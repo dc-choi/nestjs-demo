@@ -2,6 +2,7 @@ import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js'
 import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
 import { OrderItemType } from '~/api/order/presentation/order-item.type.js';
 import { OrderType } from '~/api/order/presentation/order.type.js';
+import { formatMoneyAmount } from '~/global/graphql/money-amount.js';
 
 export function toOrderType(order: OrderEntity): OrderType {
     if (order.id == null || order.createdAt == null) {
@@ -48,5 +49,5 @@ function toOrderItemType(item: OrderItemEntity, currencyCode: string): OrderItem
 }
 
 function toMoney(amount: string, currencyCode: string) {
-    return { amount, currencyCode };
+    return { amount: formatMoneyAmount(amount), currencyCode };
 }

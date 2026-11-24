@@ -35,7 +35,7 @@ import { PaymentTransactionEntity } from '~/api/payment/domain/entity/payment-tr
 import { PaymentWebhookEventStatus } from '~/api/payment/domain/entity/payment-webhook-event-status.js';
 import { PaymentWebhookEventEntity } from '~/api/payment/domain/entity/payment-webhook-event.entity.js';
 import { PaymentWebhookOutcome } from '~/api/payment/domain/entity/payment-webhook-outcome.js';
-import type { DistributedLockService } from '~/global/common/lock/distributed-lock.service.js';
+import type { DistributedLockService } from '~/api/order/infrastructure/distributed-lock.service.js';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload.js';
 import { databaseEntities } from '~/infra/database/entities.js';
 import { DatabaseSeeder } from '~/infra/database/seeders/DatabaseSeeder.js';

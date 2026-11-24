@@ -7,6 +7,7 @@ import { PaymentTransactionStatus } from '~/api/payment/domain/entity/payment-tr
 import { PaymentTransactionType } from '~/api/payment/domain/entity/payment-transaction-type.js';
 import { PaymentTransactionEntity } from '~/api/payment/domain/entity/payment-transaction.entity.js';
 import { PaymentWebhookEventEntity } from '~/api/payment/domain/entity/payment-webhook-event.entity.js';
+import { PaymentAttemptConflict } from '~/api/payment/domain/payment-attempt-conflict.error.js';
 import { compareMoney, sumMoney } from '~/api/payment/domain/payment-money.js';
 
 const CAPTURABLE_STATUSES: readonly PaymentAttemptStatus[] = [
@@ -84,11 +85,16 @@ export class PaymentAttemptEntity {
         return attempt;
     }
 
-    capture(processedAt = new Date()): void {
-        if (this.status === PaymentAttemptStatus.CAPTURED) return;
+    /** 상태를 바꾸지 않고 매입 가능 여부를 검사한다. Service가 다른 aggregate 검사보다 먼저 부른다. */
+    assertCapturable(): void {
         if (!this.isCapturable()) {
-            throw new Error(`${this.status} 결제 시도는 매입할 수 없습니다.`);
+            throw new PaymentAttemptConflict(`${this.status} 결제 시도는 매입할 수 없습니다.`);
         }
+    }
+
+    /** 같은 요청의 재실행은 Service가 거래 원장으로 판정하므로, 이미 매입한 시도의 새 매입은 거절한다. */
+    capture(processedAt = new Date()): void {
+        this.assertCapturable();
 
         this.status = PaymentAttemptStatus.CAPTURED;
         this.authorizedAt ??= processedAt;
@@ -97,10 +103,13 @@ export class PaymentAttemptEntity {
         this.errorMessage = null;
     }
 
+    /** 이미 실패한 시도를 조용히 넘기면 새 요청이 실패 거래를 중복 기록하므로 거절한다. */
     fail(errorCode: string, errorMessage: string | null): void {
-        if (this.status === PaymentAttemptStatus.FAILED) return;
+        if (this.status === PaymentAttemptStatus.FAILED) {
+            throw new PaymentAttemptConflict('이미 다른 요청으로 실패 처리된 결제입니다.');
+        }
         if (!this.isFailable()) {
-            throw new Error(`${this.status} 결제 시도는 실패 처리할 수 없습니다.`);
+            throw new PaymentAttemptConflict(`${this.status} 결제 시도는 실패 처리할 수 없습니다.`);
         }
         if (errorCode.trim().length === 0 || errorCode.length > 128) {
             throw new RangeError('결제 실패 코드가 올바르지 않습니다.');
@@ -111,21 +120,34 @@ export class PaymentAttemptEntity {
         this.errorMessage = errorMessage;
     }
 
-    refund(fullyRefunded: boolean): void {
+    /**
+     * `amount`를 새로 환불할 수 있는지 누적 한도로 검증하고, 남은 매입액을 모두 환불하는지 돌려준다.
+     * 상태를 바꾸지 않으므로 Service가 다른 aggregate 조건을 확인한 뒤 `refund()`를 호출할 수 있다.
+     */
+    isFullRefund(amount: string): boolean {
         if (!this.isRefundable()) {
-            throw new Error(`${this.status} 결제 시도는 환불할 수 없습니다.`);
+            throw new PaymentAttemptConflict(`${this.status} 결제 시도는 환불할 수 없습니다.`);
         }
-        if (this.status === PaymentAttemptStatus.REFUNDED && !fullyRefunded) {
-            throw new Error('전액 환불된 결제를 부분 환불 상태로 되돌릴 수 없습니다.');
+        const { captured, refunded } = this.settledAmounts();
+        const comparison = compareMoney(sumMoney([refunded, amount]), captured);
+        if (comparison > 0) throw new RangeError('환불 누적 금액은 매입 금액을 초과할 수 없습니다.');
+        if (comparison < 0 && this.status === PaymentAttemptStatus.REFUNDED) {
+            throw new PaymentAttemptConflict('전액 환불된 결제를 부분 환불 상태로 되돌릴 수 없습니다.');
         }
+        return comparison === 0;
+    }
 
-        this.status = fullyRefunded ? PaymentAttemptStatus.REFUNDED : PaymentAttemptStatus.PARTIALLY_REFUNDED;
+    /** 환불 거래 원장은 호출자가 이 호출 뒤에 기록한다. */
+    refund(amount: string): void {
+        this.status = this.isFullRefund(amount)
+            ? PaymentAttemptStatus.REFUNDED
+            : PaymentAttemptStatus.PARTIALLY_REFUNDED;
     }
 
     cancel(now = new Date()): boolean {
         if (this.status === PaymentAttemptStatus.CANCELLED) return false;
         if (!this.isCancellable()) {
-            throw new Error(`${this.status} 결제 시도는 취소할 수 없습니다.`);
+            throw new PaymentAttemptConflict(`${this.status} 결제 시도는 취소할 수 없습니다.`);
         }
 
         this.status = PaymentAttemptStatus.CANCELLED;
@@ -166,16 +188,18 @@ export class PaymentAttemptEntity {
             return true;
         }
 
+        const { captured, refunded } = this.settledAmounts();
+        return compareMoney(captured, refunded) > 0;
+    }
+
+    /** 성공한 CAPTURE와 REFUND 거래의 누적 금액이다. */
+    private settledAmounts(): { readonly captured: string; readonly refunded: string } {
         const succeeded = this.transactions
             .getItems()
             .filter(({ status }) => status === PaymentTransactionStatus.SUCCEEDED);
-        const captured = sumMoney(
-            succeeded.filter(({ type }) => type === PaymentTransactionType.CAPTURE).map(({ amount }) => amount)
-        );
-        const refunded = sumMoney(
-            succeeded.filter(({ type }) => type === PaymentTransactionType.REFUND).map(({ amount }) => amount)
-        );
-        return compareMoney(captured, refunded) > 0;
+        const total = (type: PaymentTransactionType) =>
+            sumMoney(succeeded.filter((transaction) => transaction.type === type).map(({ amount }) => amount));
+        return { captured: total(PaymentTransactionType.CAPTURE), refunded: total(PaymentTransactionType.REFUND) };
     }
 
     @PrimaryKey({ type: 'bigint', autoincrement: true, unsigned: false })

@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 
 import { setTimeout } from 'node:timers/promises';
 import Redlock from 'redlock';
-import { RED_LOCK } from '~/global/common/lock/distributed-lock.symbol.js';
+import { RED_LOCK } from '~/api/order/infrastructure/distributed-lock.symbol.js';
 
 export interface DistributedLockOptions {
     readonly ttl: number;

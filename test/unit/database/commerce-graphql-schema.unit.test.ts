@@ -9,7 +9,7 @@ import { ProductSearchResolver } from '~/api/search/presentation/product-search.
 import { FulfillmentResolver } from '~/api/fulfillment/presentation/fulfillment.resolver.js';
 import { InventoryResolver } from '~/api/inventory/presentation/inventory.resolver.js';
 import { OrderExpirationResolver } from '~/api/order/presentation/order-expiration.resolver.js';
-import { OrderResolver } from '~/api/order/presentation/place-order.resolver.js';
+import { OrderResolver } from '~/api/order/presentation/order.resolver.js';
 import { PaymentResolver } from '~/api/payment/presentation/payment.resolver.js';
 
 describe('commerce GraphQL schema', () => {

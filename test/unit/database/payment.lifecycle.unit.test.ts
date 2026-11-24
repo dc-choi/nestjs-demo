@@ -21,6 +21,7 @@ import { PaymentTransactionEntity } from '~/api/payment/domain/entity/payment-tr
 import { PaymentWebhookEventStatus } from '~/api/payment/domain/entity/payment-webhook-event-status.js';
 import { PaymentWebhookEventEntity } from '~/api/payment/domain/entity/payment-webhook-event.entity.js';
 import { PaymentWebhookOutcome } from '~/api/payment/domain/entity/payment-webhook-outcome.js';
+import { PaymentAttemptConflict } from '~/api/payment/domain/payment-attempt-conflict.error.js';
 import { HmacPaymentWebhookSignatureVerifier } from '~/api/payment/infrastructure/payment-webhook-signature.verifier.js';
 import type { EnvConfig } from '~/global/config/env/env.config.js';
 
@@ -273,6 +274,81 @@ describe('payment lifecycle', () => {
                 )
             )
         ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('이미 실패한 결제의 새 실패 요청은 실패 거래를 중복 기록하지 않고 Conflict로 거절한다', async () => {
+        const { attempt } = createAttempt();
+        const persistence = createPaymentService(attempt);
+        const fail = (idempotencyKey: string) =>
+            RequestContext.create(persistence.requestContextSource, () =>
+                persistence.service.fail(
+                    ADMIN,
+                    { paymentAttemptId: attempt.id, idempotencyKey, errorCode: 'PROVIDER_DECLINED' },
+                    NOW
+                )
+            );
+
+        await fail('fail-1');
+        await expect(fail('fail-2')).rejects.toThrow(
+            new ConflictException('이미 다른 요청으로 실패 처리된 결제입니다.')
+        );
+
+        expect(attempt.status).toBe(PaymentAttemptStatus.FAILED);
+        expect(attempt.transactions.getItems()).toHaveLength(1);
+        expect(persistence.persist).toHaveBeenCalledTimes(1);
+    });
+
+    it('매입할 수 없는 결제 시도는 예약을 소비하기 전에 Entity 규칙 위반을 Conflict로 번역한다', async () => {
+        const { attempt, reservation } = createAttempt();
+        attempt.fail('PROVIDER_DECLINED', null);
+        // 만료된 예약이어도 결제 시도 상태 충돌을 먼저 알린다.
+        reservation.expiresAt = new Date(NOW.getTime() - 1);
+        const persistence = createPaymentService(attempt);
+
+        await expect(
+            RequestContext.create(persistence.requestContextSource, () =>
+                persistence.service.capture(
+                    ADMIN,
+                    {
+                        paymentAttemptId: attempt.id,
+                        idempotencyKey: 'capture-failed',
+                        providerTransactionId: 'tx-failed',
+                    },
+                    NOW
+                )
+            )
+        ).rejects.toThrow(new ConflictException('FAILED 결제 시도는 매입할 수 없습니다.'));
+
+        expect(reservation.status).toBe('RESERVED');
+        expect(attempt.order.status).toBe(OrderStatus.PENDING);
+        expect(persistence.consumeForPayment).not.toHaveBeenCalled();
+        expect(persistence.persist).not.toHaveBeenCalled();
+    });
+
+    it('환불 판정은 상태를 바꾸지 않고 누적 한도와 환불 가능 상태를 Entity가 검증한다', () => {
+        const { attempt } = createAttempt();
+        expect(() => attempt.isFullRefund('1')).toThrow(
+            new PaymentAttemptConflict('PENDING 결제 시도는 환불할 수 없습니다.')
+        );
+        attempt.capture(NOW);
+        PaymentTransactionEntity.succeed({
+            paymentAttempt: attempt,
+            type: PaymentTransactionType.CAPTURE,
+            amount: '100',
+            idempotencyKey: 'capture-1',
+            providerTransactionId: 'tx-capture-1',
+            processedAt: NOW,
+        });
+
+        expect(attempt.isFullRefund('100.000')).toBe(true);
+        expect(attempt.isFullRefund('99.999')).toBe(false);
+        expect(() => attempt.isFullRefund('100.001')).toThrow(
+            new RangeError('환불 누적 금액은 매입 금액을 초과할 수 없습니다.')
+        );
+        expect(attempt.status).toBe(PaymentAttemptStatus.CAPTURED);
+
+        attempt.refund('99.999');
+        expect(attempt.status).toBe(PaymentAttemptStatus.PARTIALLY_REFUNDED);
     });
 
     it('동일한 Webhook 배달은 inbox 한 행만 만들고 payload가 바뀐 재사용은 거부한다', async () => {

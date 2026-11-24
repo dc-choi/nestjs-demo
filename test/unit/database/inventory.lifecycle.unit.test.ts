@@ -16,6 +16,7 @@ import { InventoryMovementType } from '~/api/inventory/domain/entity/inventory-m
 import { InventoryMovementEntity } from '~/api/inventory/domain/entity/inventory-movement.entity.js';
 import { InventoryReservationStatus } from '~/api/inventory/domain/entity/inventory-reservation-status.js';
 import { InventoryReservationEntity } from '~/api/inventory/domain/entity/inventory-reservation.entity.js';
+import { InventoryReservationConflict } from '~/api/inventory/domain/inventory-reservation-conflict.error.js';
 import { MemberEntity } from '~/api/member/domain/entity/member.entity.js';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js';
 import { OrderStatus } from '~/api/order/domain/entity/order-status.js';
@@ -122,18 +123,29 @@ describe('inventory lifecycle', () => {
         expect(persist).not.toHaveBeenCalled();
     });
 
-    it('예약은 소비하거나 한 번만 복구할 수 있고 만료 전 만료 처리를 거부한다', () => {
+    it('예약은 소비하거나 한 번만 복구할 수 있고 종료된 예약의 새 전이와 만료 전 만료 처리를 거부한다', () => {
         const consumable = InventoryReservationEntity.reserve(createOrderItem(createItem(5), 2), EXPIRES_AT, NOW);
+        expect(consumable.isConsumableAt(new Date('2026-09-04T00:14:59.999Z'))).toBe(true);
+        expect(consumable.isConsumableAt(EXPIRES_AT)).toBe(false);
         expect(consumable.consume(new Date('2026-09-04T00:10:00.000Z'))).toBe(true);
+        expect(consumable.isConsumableAt(new Date('2026-09-04T00:10:00.000Z'))).toBe(false);
         expect(consumable.consume(new Date('2026-09-04T00:11:00.000Z'))).toBe(false);
-        expect(() => consumable.release()).toThrow('CONSUMED 재고 예약은 복구할 수 없습니다.');
+        expect(() => consumable.release()).toThrow(
+            new InventoryReservationConflict('CONSUMED 재고 예약은 복구할 수 없습니다.')
+        );
 
         const expirable = InventoryReservationEntity.reserve(createOrderItem(createItem(5), 2), EXPIRES_AT, NOW);
         expect(() => expirable.expire(new Date('2026-09-04T00:14:59.999Z'))).toThrow(
-            '아직 만료되지 않은 재고 예약입니다.'
+            new InventoryReservationConflict('아직 만료되지 않은 재고 예약입니다.')
         );
-        expect(expirable.expire(EXPIRES_AT)).toBe(true);
-        expect(expirable.expire(new Date('2026-09-04T00:20:00.000Z'))).toBe(false);
+        expirable.expire(EXPIRES_AT);
+        expect(() => expirable.expire(new Date('2026-09-04T00:20:00.000Z'))).toThrow(
+            new InventoryReservationConflict('EXPIRED 재고 예약은 복구할 수 없습니다.')
+        );
+        expect(() => expirable.consume(NOW)).toThrow(
+            new InventoryReservationConflict('EXPIRED 재고 예약은 소비할 수 없습니다.')
+        );
+        expect(expirable.status).toBe(InventoryReservationStatus.EXPIRED);
         expect(expirable.releasedAt).toBe(EXPIRES_AT);
     });
 
@@ -216,6 +228,20 @@ describe('inventory lifecycle', () => {
         ).rejects.toThrow('RELEASED 재고 예약은 복구할 수 없습니다.');
         expect(item.stock).toBe(3);
         expect(persistence.persist).not.toHaveBeenCalled();
+    });
+
+    it('종료된 예약은 새 멱등성 키의 복구 요청을 Conflict로 거절하고 재고를 다시 늘리지 않는다', async () => {
+        const { item, reservation } = createReservation();
+        const persistence = createReservationService(reservation, () => null);
+
+        await persistence.service.restoreForExpiration(reservation, 'expire-first', EXPIRES_AT);
+        await expect(
+            persistence.service.restoreForExpiration(reservation, 'expire-second', EXPIRES_AT)
+        ).rejects.toThrow(new ConflictException('EXPIRED 재고 예약은 복구할 수 없습니다.'));
+
+        expect(item.stock).toBe(5);
+        expect(reservation.status).toBe(InventoryReservationStatus.EXPIRED);
+        expect(persistence.persist).toHaveBeenCalledTimes(1);
     });
 
     it('만료 replay 조회는 같은 복구 원장만 돌려주고 다른 요청의 키는 거절한다', async () => {

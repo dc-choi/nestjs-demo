@@ -3,6 +3,7 @@ import { Entity, Enum, Index, ManyToOne, OneToMany, PrimaryKey, Property, Unique
 
 import { FulfillmentItemEntity } from '~/api/fulfillment/domain/entity/fulfillment-item.entity.js';
 import { FulfillmentStatus } from '~/api/fulfillment/domain/entity/fulfillment-status.js';
+import { FulfillmentConflict } from '~/api/fulfillment/domain/fulfillment-conflict.error.js';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
 import { isPositiveMysqlSignedInt } from '~/global/common/utils/mysql-number.js';
@@ -28,11 +29,9 @@ export class FulfillmentEntity {
             throw new RangeError('배송 생성 멱등성 키는 1자 이상 128자 이하여야 합니다.');
         }
         if (allocations.length === 0) throw new RangeError('배송 품목은 하나 이상이어야 합니다.');
-        if (new Set(allocations.map(({ orderItem }) => orderItem)).size !== allocations.length) {
-            throw new Error('한 배송에 같은 주문 품목을 중복 배정할 수 없습니다.');
-        }
+        FulfillmentEntity.assertDistinctAllocations(allocations.map(({ orderItem }) => orderItem));
         if (allocations.some(({ orderItem }) => orderItem.order !== order)) {
-            throw new Error('다른 주문의 품목을 배송에 배정할 수 없습니다.');
+            throw new FulfillmentConflict('다른 주문의 품목을 배송에 배정할 수 없습니다.');
         }
         if (
             allocations.some(
@@ -61,17 +60,29 @@ export class FulfillmentEntity {
         return true;
     }
 
-    ship(carrier: string, trackingNumber: string, now = new Date()): boolean {
-        if (this.status === FulfillmentStatus.SHIPPED) {
-            if (this.carrier !== carrier || this.trackingNumber !== trackingNumber) {
-                throw new Error('이미 발송된 배송의 운송 정보를 변경할 수 없습니다.');
-            }
-            return false;
+    /** 한 배송에 같은 주문 품목을 두 번 배정하지 않는다. Service는 품목 조회 전에 ID로 먼저 부른다. */
+    static assertDistinctAllocations(orderItems: readonly unknown[]): void {
+        if (new Set(orderItems).size !== orderItems.length) {
+            throw new RangeError('한 배송에 같은 주문 품목을 중복 배정할 수 없습니다.');
         }
+    }
+
+    /** 운송 정보 입력 규칙. 발송 전이 전에 입력 오류를 먼저 알리도록 Service도 호출한다. */
+    static assertShippingInfo(carrier: string, trackingNumber: string): void {
         if (carrier.trim().length === 0 || carrier.length > 128) throw new RangeError('택배사 값이 올바르지 않습니다.');
         if (trackingNumber.trim().length === 0 || trackingNumber.length > 255) {
             throw new RangeError('운송장 번호가 올바르지 않습니다.');
         }
+    }
+
+    ship(carrier: string, trackingNumber: string, now = new Date()): boolean {
+        if (this.status === FulfillmentStatus.SHIPPED) {
+            if (this.carrier !== carrier || this.trackingNumber !== trackingNumber) {
+                throw new FulfillmentConflict('이미 발송된 배송의 운송 정보를 변경할 수 없습니다.');
+            }
+            return false;
+        }
+        FulfillmentEntity.assertShippingInfo(carrier, trackingNumber);
 
         this.assertStatus(FulfillmentStatus.PACKED, '발송');
         this.status = FulfillmentStatus.SHIPPED;
@@ -92,7 +103,7 @@ export class FulfillmentEntity {
     cancel(now = new Date()): boolean {
         if (this.status === FulfillmentStatus.CANCELLED) return false;
         if (!this.isCancellable()) {
-            throw new Error(`${this.status} 배송은 취소할 수 없습니다.`);
+            throw new FulfillmentConflict(`${this.status} 배송은 취소할 수 없습니다.`);
         }
 
         this.status = FulfillmentStatus.CANCELLED;
@@ -105,7 +116,9 @@ export class FulfillmentEntity {
     }
 
     private assertStatus(expected: FulfillmentStatus, action: string): void {
-        if (this.status !== expected) throw new Error(`${this.status} 배송은 ${action} 처리할 수 없습니다.`);
+        if (this.status !== expected) {
+            throw new FulfillmentConflict(`${this.status} 배송은 ${action} 처리할 수 없습니다.`);
+        }
     }
 
     @PrimaryKey({ type: 'bigint', autoincrement: true, unsigned: false })

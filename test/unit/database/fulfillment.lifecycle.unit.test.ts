@@ -19,6 +19,8 @@ import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js'
 import { OrderStatus } from '~/api/order/domain/entity/order-status.js';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
 import { PaymentAttemptEntity } from '~/api/payment/domain/entity/payment-attempt.entity.js';
+import { PaymentTransactionType } from '~/api/payment/domain/entity/payment-transaction-type.js';
+import { PaymentTransactionEntity } from '~/api/payment/domain/entity/payment-transaction.entity.js';
 
 const NOW = new Date('2026-09-04T00:00:00.000Z');
 const ADMIN = { memberId: 1n, role: 'ADMIN' as const };
@@ -172,7 +174,7 @@ describe('fulfillment lifecycle', () => {
             persistence.service.deliver(ADMIN, fulfillment.id, NOW)
         );
         expect(order.status).toBe(OrderStatus.COMPLETED);
-        order.paymentAttempts[0].refund(true);
+        order.paymentAttempts[0].refund(order.totalPrice);
         await RequestContext.create(persistence.requestContextSource, () =>
             persistence.service.deliver(ADMIN, fulfillment.id, NOW)
         );
@@ -227,7 +229,7 @@ describe('fulfillment lifecycle', () => {
         shipped.id = 51n;
         shipped.pack(NOW);
         shipped.ship('parcel', 'tracking-before-refund', NOW);
-        order.paymentAttempts[0].refund(true);
+        order.paymentAttempts[0].refund(order.totalPrice);
         const persistence = createService(order, pending);
 
         await expect(
@@ -267,6 +269,111 @@ describe('fulfillment lifecycle', () => {
                 persistence.service.ship(ADMIN, { fulfillmentId: 50n, carrier: ' ', trackingNumber: 'tracking-1' }, NOW)
             )
         ).rejects.toBeInstanceOf(BadRequestException);
+        await expect(
+            RequestContext.create(persistence.requestContextSource, () =>
+                persistence.service.ship(
+                    ADMIN,
+                    { fulfillmentId: 50n, carrier: 'parcel', trackingNumber: 'tracking-1' },
+                    NOW
+                )
+            )
+        ).rejects.toThrow(new ConflictException('PENDING 배송은 발송 처리할 수 없습니다.'));
+
+        pending.pack(NOW);
+        pending.ship('parcel', 'tracking-1', NOW);
+        await expect(
+            RequestContext.create(persistence.requestContextSource, () => persistence.service.pack(ADMIN, 50n, NOW))
+        ).rejects.toThrow(new ConflictException('SHIPPED 배송은 포장 처리할 수 없습니다.'));
+        expect(pending.status).toBe(FulfillmentStatus.SHIPPED);
+    });
+
+    it('한 배송 요청에 같은 주문 품목을 중복 배정하면 Entity 입력 규칙 위반을 BadRequest로 번역한다', async () => {
+        const { order, orderItem } = createConfirmedOrder(2);
+        const persistence = createService(order, new FulfillmentEntity());
+
+        await expect(
+            RequestContext.create(persistence.requestContextSource, () =>
+                persistence.service.create(ADMIN, {
+                    orderId: order.id,
+                    idempotencyKey: 'duplicate-allocation',
+                    items: [
+                        { orderItemId: orderItem.id, quantity: 1 },
+                        { orderItemId: orderItem.id, quantity: 1 },
+                    ],
+                })
+            )
+        ).rejects.toThrow(new BadRequestException('한 배송에 같은 주문 품목을 중복 배정할 수 없습니다.'));
+        expect(order.fulfillments.getItems()).toHaveLength(0);
+        expect(persistence.persist).not.toHaveBeenCalled();
+    });
+
+    it('이미 포장되거나 발송된 배송의 같은 재요청은 전액 환불 뒤에도 성공하고 운송 정보 변경은 거부한다', async () => {
+        const { order, orderItem } = createConfirmedOrder(2);
+        const packed = FulfillmentEntity.create(order, 'packed-before-refund', [{ orderItem, quantity: 1 }]);
+        packed.id = 50n;
+        packed.pack(NOW);
+        const shipped = FulfillmentEntity.create(order, 'shipped-before-refund', [{ orderItem, quantity: 1 }]);
+        shipped.id = 51n;
+        shipped.pack(NOW);
+        shipped.ship('parcel', 'tracking-before-refund', NOW);
+        order.paymentAttempts[0].refund(order.totalPrice);
+        expect(order.paymentAttempts[0].isFunded()).toBe(false);
+
+        const packedPersistence = createService(order, packed);
+        await expect(
+            RequestContext.create(packedPersistence.requestContextSource, () =>
+                packedPersistence.service.pack(ADMIN, packed.id, NOW)
+            )
+        ).resolves.toBe(packed);
+
+        const shippedPersistence = createService(order, shipped);
+        const ship = (trackingNumber: string) =>
+            RequestContext.create(shippedPersistence.requestContextSource, () =>
+                shippedPersistence.service.ship(
+                    ADMIN,
+                    { fulfillmentId: shipped.id, carrier: 'parcel', trackingNumber },
+                    NOW
+                )
+            );
+        await expect(ship('tracking-before-refund')).resolves.toBe(shipped);
+        await expect(ship('tracking-changed')).rejects.toThrow(
+            new ConflictException('이미 발송된 배송의 운송 정보를 변경할 수 없습니다.')
+        );
+
+        const cancelled = FulfillmentEntity.create(order, 'cancelled-before-refund', [{ orderItem, quantity: 1 }]);
+        cancelled.id = 52n;
+        cancelled.cancel(NOW);
+        const cancelledPersistence = createService(order, cancelled);
+        await expect(
+            RequestContext.create(cancelledPersistence.requestContextSource, () =>
+                cancelledPersistence.service.pack(ADMIN, cancelled.id, NOW)
+            )
+        ).rejects.toThrow(new ConflictException('CANCELLED 배송은 포장 처리할 수 없습니다.'));
+        await expect(
+            RequestContext.create(cancelledPersistence.requestContextSource, () =>
+                cancelledPersistence.service.ship(
+                    ADMIN,
+                    { fulfillmentId: cancelled.id, carrier: 'parcel', trackingNumber: 'tracking' },
+                    NOW
+                )
+            )
+        ).rejects.toThrow(new ConflictException('CANCELLED 배송은 발송 처리할 수 없습니다.'));
+
+        const packedShipPersistence = createService(order, packed);
+        await expect(
+            RequestContext.create(packedShipPersistence.requestContextSource, () =>
+                packedShipPersistence.service.ship(
+                    ADMIN,
+                    { fulfillmentId: packed.id, carrier: ' ', trackingNumber: 'tracking' },
+                    NOW
+                )
+            )
+        ).rejects.toThrow(new BadRequestException('택배사 값이 올바르지 않습니다.'));
+
+        expect(packed.status).toBe(FulfillmentStatus.PACKED);
+        expect(shipped.trackingNumber).toBe('tracking-before-refund');
+        expect(packedPersistence.persist).not.toHaveBeenCalled();
+        expect(shippedPersistence.persist).not.toHaveBeenCalled();
     });
 });
 
@@ -324,6 +431,14 @@ function createConfirmedOrder(quantity: number): { order: OrderEntity; orderItem
     });
     attempt.id = 41n;
     attempt.capture(NOW);
+    PaymentTransactionEntity.succeed({
+        paymentAttempt: attempt,
+        type: PaymentTransactionType.CAPTURE,
+        amount: attempt.requestedAmount,
+        idempotencyKey: 'fixture-capture',
+        providerTransactionId: 'fixture-capture-transaction',
+        processedAt: NOW,
+    });
     order.transition({ to: OrderStatus.CONFIRMED, actorType: 'PROVIDER', occurredAt: NOW });
     return { order, orderItem };
 }

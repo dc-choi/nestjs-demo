@@ -28,7 +28,7 @@ import { PaymentWebhookEventEntity } from '~/api/payment/domain/entity/payment-w
 import { PaymentWebhookOutcome } from '~/api/payment/domain/entity/payment-webhook-outcome.js';
 import { HmacPaymentWebhookSignatureVerifier } from '~/api/payment/infrastructure/payment-webhook-signature.verifier.js';
 import { PaymentWebhookController } from '~/api/payment/presentation/payment-webhook.controller.js';
-import type { DistributedLockService } from '~/global/common/lock/distributed-lock.service.js';
+import type { DistributedLockService } from '~/api/order/infrastructure/distributed-lock.service.js';
 import type { EnvConfig } from '~/global/config/env/env.config.js';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload.js';
 import { databaseEntities } from '~/infra/database/entities.js';

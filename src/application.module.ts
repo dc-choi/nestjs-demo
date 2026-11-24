@@ -8,7 +8,6 @@ import { InventoryModule } from '~/api/inventory/inventory.module.js';
 import { MemberModule } from '~/api/member/member.module.js';
 import { OrderModule } from '~/api/order/order.module.js';
 import { PaymentModule } from '~/api/payment/payment.module.js';
-import { DistributedLockModule } from '~/global/common/lock/distributed-lock.module.js';
 import { envValidationSchema } from '~/global/config/env/env.validation.js';
 import { LoggingModule } from '~/global/config/logger/logging.module.js';
 import { JwtAuthModule } from '~/global/jwt/jwt-auth.module.js';
@@ -25,7 +24,6 @@ import { RedisClientModule } from '~/infra/redis/redis-client.module.js';
         }),
         LoggingModule,
         RedisClientModule,
-        DistributedLockModule,
         DatabaseModule,
         MailModule,
         JwtAuthModule,
