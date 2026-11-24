@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 
 import { CatalogMaintenanceService } from './application/catalog-maintenance.service.js';
+import { CatalogProductSynchronizer } from './application/catalog-product.synchronizer.js';
 import { CatalogRebuildService } from './application/catalog-rebuild.service.js';
-import { CatalogSearchWorker } from './application/catalog-search.worker.js';
 import { SearchHealthService } from './application/search-health.service.js';
 import { SearchOutboxRecoveryService } from './application/search-outbox-recovery.service.js';
 import { SearchOutboxRelay } from './application/search-outbox.relay.js';
@@ -21,7 +21,7 @@ const searchProviders = [
     CatalogProjectionReader,
     CatalogIndexManager,
     CatalogRebuildService,
-    CatalogSearchWorker,
+    CatalogProductSynchronizer,
     SearchOutboxRelay,
     SearchReconciliationService,
     SearchRelevanceEvaluationService,

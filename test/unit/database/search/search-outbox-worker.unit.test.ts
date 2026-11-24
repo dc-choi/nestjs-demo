@@ -1,8 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { CatalogIndexManager } from '~/api/search/infrastructure/catalog-index.manager.js';
 import { SearchOutboxRelay } from '~/api/search/application/search-outbox.relay.js';
-import { SEARCH_OUTBOX_SHUTDOWN_TIMEOUT_MS, SearchOutboxWorker } from '~/api/search/application/search-outbox.worker.js';
-import { SearchConfig } from '~/infra/opensearch/search.config.js';
+import {
+    SEARCH_OUTBOX_SHUTDOWN_TIMEOUT_MS,
+    SearchOutboxWorker,
+} from '~/api/search/application/search-outbox.worker.js';
+import { CatalogIndexManager } from '~/api/search/infrastructure/catalog-index.manager.js';
+import { OpenSearchConfig } from '~/infra/opensearch/opensearch.config.js';
 
 describe('Search outbox worker', () => {
     afterEach(() => vi.useRealTimers());
@@ -12,7 +15,7 @@ describe('Search outbox worker', () => {
         const drainUntilEmpty = vi.fn();
         const hasAlias = vi.fn();
         const worker = new SearchOutboxWorker(
-            { enabled: false } as SearchConfig,
+            { enabled: false } as OpenSearchConfig,
             { drainUntilEmpty } as unknown as SearchOutboxRelay,
             { hasAlias } as unknown as CatalogIndexManager
         );
@@ -39,7 +42,7 @@ describe('Search outbox worker', () => {
                 })
         );
         const worker = new SearchOutboxWorker(
-            { enabled: true, writeAlias: 'catalog-products-write' } as SearchConfig,
+            { enabled: true, writeAlias: 'catalog-products-write' } as OpenSearchConfig,
             { drainUntilEmpty } as unknown as SearchOutboxRelay,
             { hasAlias: vi.fn(async () => true) } as unknown as CatalogIndexManager
         );
@@ -76,7 +79,7 @@ describe('Search outbox worker', () => {
             return new Promise<never>(() => undefined);
         });
         const worker = new SearchOutboxWorker(
-            { enabled: true, writeAlias: 'catalog-products-write' } as SearchConfig,
+            { enabled: true, writeAlias: 'catalog-products-write' } as OpenSearchConfig,
             { drainUntilEmpty } as unknown as SearchOutboxRelay,
             { hasAlias: vi.fn(async () => true) } as unknown as CatalogIndexManager
         );
@@ -110,7 +113,7 @@ describe('Search outbox worker', () => {
         }));
         const hasAlias = vi.fn<() => Promise<boolean>>().mockResolvedValueOnce(false).mockResolvedValue(true);
         const worker = new SearchOutboxWorker(
-            { enabled: true, writeAlias: 'catalog-products-write' } as SearchConfig,
+            { enabled: true, writeAlias: 'catalog-products-write' } as OpenSearchConfig,
             { drainUntilEmpty } as unknown as SearchOutboxRelay,
             { hasAlias } as unknown as CatalogIndexManager
         );

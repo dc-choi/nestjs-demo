@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { OpenSearchHttpError } from '~/infra/opensearch/opensearch-http.error.js';
 import { OpenSearchHttpClient } from '~/infra/opensearch/opensearch.client.js';
-import { SearchConfig } from '~/infra/opensearch/search.config.js';
+import { OpenSearchConfig } from '~/infra/opensearch/opensearch.config.js';
 
 interface InfoResponse {
     version?: { number?: string };
@@ -27,7 +27,7 @@ export interface SearchHealthResult {
 @Injectable()
 export class SearchHealthService {
     constructor(
-        private readonly config: SearchConfig,
+        private readonly config: OpenSearchConfig,
         private readonly client: OpenSearchHttpClient
     ) {}
 

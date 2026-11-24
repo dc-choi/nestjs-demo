@@ -1,7 +1,7 @@
 import { Redis } from 'ioredis';
 import { createHash, randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { LoginRateLimiter } from '~/api/auth/infrastructure/login-rate-limiter.js';
+import { LoginRateLimiter } from '~/api/auth/infrastructure/login-rate.limiter.js';
 
 const enabled = process.env.REDIS_INTEGRATION === '1';
 const describeRedis = enabled ? describe : describe.skip;

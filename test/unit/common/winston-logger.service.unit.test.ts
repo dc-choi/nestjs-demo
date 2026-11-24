@@ -1,7 +1,7 @@
 import { Writable } from 'node:stream';
 import { describe, expect, it, onTestFinished } from 'vitest';
 import { createLogger, format, transports } from 'winston';
-import { WinstonLoggerService } from '~/global/config/logger/winston-logger.service.js';
+import { WinstonLoggerService } from '~/global/logger/winston-logger.service.js';
 
 describe('WinstonLoggerService', () => {
     it('keeps structured messages and the Nest context as metadata', () => {

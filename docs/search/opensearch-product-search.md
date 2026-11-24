@@ -609,7 +609,7 @@ src/infra/opensearch/
   opensearch.module.ts
   opensearch.client.ts
   opensearch-http.error.ts
-  search.config.ts
+  opensearch.config.ts
 
 src/api/search/
   search.module.ts
@@ -623,8 +623,8 @@ src/api/search/
   application/product-search-cursor.error.ts
   application/catalog-maintenance.service.ts
   application/catalog-rebuild.service.ts
-  application/catalog-search.worker.ts
-  application/catalog-write-effects.ts
+  application/catalog-product.synchronizer.ts
+  application/catalog-search-write-effects.ts
   application/search-outbox.relay.ts
   application/search-outbox.worker.ts
   application/search-reconciliation.service.ts

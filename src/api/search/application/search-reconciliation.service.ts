@@ -4,15 +4,15 @@ import { SearchReconciliationDifferenceKind } from '../domain/search-reconciliat
 import { CatalogIndexManager, CatalogWriteTarget } from '../infrastructure/catalog-index.manager.js';
 import { CatalogProjectionReader } from '../infrastructure/catalog-projection.reader.js';
 import { CatalogMaintenanceService } from './catalog-maintenance.service.js';
-import { CatalogSearchWorker } from './catalog-search.worker.js';
+import { CatalogProductSynchronizer } from './catalog-product.synchronizer.js';
 
 import { projectCatalogProduct } from '~/api/search/domain/catalog-projector.js';
 import { MAX_PRODUCT_REVISION, isIndexedDocumentCurrent } from '~/api/search/domain/product-search.document.js';
-import { SearchConfig } from '~/infra/opensearch/search.config.js';
+import { OpenSearchConfig } from '~/infra/opensearch/opensearch.config.js';
 
 export interface SearchReconciliationDifference {
     productId: string;
-    kind: (typeof SearchReconciliationDifferenceKind)[keyof typeof SearchReconciliationDifferenceKind];
+    kind: SearchReconciliationDifferenceKind;
     databaseRevision: number | null;
     indexedRevision: number | null;
 }
@@ -29,10 +29,10 @@ export interface SearchReconciliationResult {
 @Injectable()
 export class SearchReconciliationService {
     constructor(
-        private readonly config: SearchConfig,
+        private readonly config: OpenSearchConfig,
         private readonly reader: CatalogProjectionReader,
         private readonly indexManager: CatalogIndexManager,
-        private readonly worker: CatalogSearchWorker,
+        private readonly synchronizer: CatalogProductSynchronizer,
         private readonly maintenance: CatalogMaintenanceService
     ) {}
 
@@ -101,7 +101,11 @@ export class SearchReconciliationService {
                         indexedRevision: null,
                     });
                     if (target) {
-                        await this.worker.synchronize(BigInt(document.productId), document.productRevision, target);
+                        await this.synchronizer.synchronize(
+                            BigInt(document.productId),
+                            document.productRevision,
+                            target
+                        );
                         result.repairedCount += 1;
                     }
                 } else if (!isIndexedDocumentCurrent(stored, document)) {
@@ -115,7 +119,11 @@ export class SearchReconciliationService {
                         if (stored.version === document.productRevision) {
                             await this.indexManager.repairExternal(document, target);
                         } else {
-                            await this.worker.synchronize(BigInt(document.productId), document.productRevision, target);
+                            await this.synchronizer.synchronize(
+                                BigInt(document.productId),
+                                document.productRevision,
+                                target
+                            );
                         }
                         result.repairedCount += 1;
                     }
@@ -145,7 +153,7 @@ export class SearchReconciliationService {
                     if (stored.version === revision) {
                         await this.indexManager.repairDeleteExternal(stored.id, revision, target);
                     } else {
-                        await this.worker.synchronize(BigInt(stored.id), revision, target);
+                        await this.synchronizer.synchronize(BigInt(stored.id), revision, target);
                     }
                     result.repairedCount += 1;
                 }

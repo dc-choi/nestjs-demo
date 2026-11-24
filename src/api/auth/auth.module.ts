@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 
 import { AuthService } from './application/auth.service.js';
-import { LoginRateLimiter } from './infrastructure/login-rate-limiter.js';
+import { LoginRateLimiter } from './infrastructure/login-rate.limiter.js';
 import { TokenProvider } from './infrastructure/token.provider.js';
 import { AuthResolver } from './presentation/auth.resolver.js';
 

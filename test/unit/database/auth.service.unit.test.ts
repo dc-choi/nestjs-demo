@@ -4,7 +4,7 @@ import { HttpException, HttpStatus, ServiceUnavailableException } from '@nestjs/
 import { describe, expect, it, vi } from 'vitest';
 import { AuthService } from '~/api/auth/application/auth.service.js';
 import { LoginRateLimited } from '~/api/auth/application/login-rate-limited.error.js';
-import { LoginRateLimiter } from '~/api/auth/infrastructure/login-rate-limiter.js';
+import { LoginRateLimiter } from '~/api/auth/infrastructure/login-rate.limiter.js';
 import { TokenProvider } from '~/api/auth/infrastructure/token.provider.js';
 import { MemberService } from '~/api/member/application/member.service.js';
 import { PasswordKdfSaturatedError } from '~/api/member/application/password-kdf-saturated.error.js';

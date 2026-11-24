@@ -16,7 +16,7 @@ import {
 } from '~/api/recommendation/infrastructure/recommendation-profile.reader.js';
 import { OpenSearchHttpError } from '~/infra/opensearch/opensearch-http.error.js';
 import { OpenSearchHttpClient } from '~/infra/opensearch/opensearch.client.js';
-import { SearchConfig } from '~/infra/opensearch/search.config.js';
+import { OpenSearchConfig } from '~/infra/opensearch/opensearch.config.js';
 
 const ids = (from: number, count: number) => Array.from({ length: count }, (_, index) => String(from + index));
 const doc = (productId: string): CandidateDocument => ({
@@ -87,7 +87,7 @@ describe('recommendation candidate queries', () => {
 });
 
 describe('recommendation candidate service', () => {
-    const config = { enabled: true, readAlias: 'rec-read' } as SearchConfig;
+    const config = { enabled: true, readAlias: 'rec-read' } as OpenSearchConfig;
 
     /** `popularity` lists product IDs in rank order; `missing` IDs are absent from the read alias. */
     function setup(
@@ -393,7 +393,7 @@ describe('recommendation candidate service', () => {
         const { service, reader } = setup();
         const disabled = new RecommendationCandidateService(
             reader as unknown as RecommendationProfileReader,
-            { enabled: false } as SearchConfig,
+            { enabled: false } as OpenSearchConfig,
             { request: vi.fn() } as unknown as OpenSearchHttpClient
         );
 

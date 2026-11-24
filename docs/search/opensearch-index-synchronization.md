@@ -44,12 +44,12 @@ Alias가 생긴 다음 poll부터 자동으로 전달을 시작하므로 초기�
 `DEAD_LETTER`로 소진되지 않습니다.
 
 `ProductSnapshot.payload`는 감사와 복원용입니다. Outbox에는 Product ID와 trigger revision만 저장하며,
-worker는 항상 MySQL primary의 현재 graph를 다시 읽습니다. 검색 문서에 stock을 넣지 않으므로 독립적인
+synchronizer는 항상 MySQL primary의 현재 graph를 다시 읽습니다. 검색 문서에 stock을 넣지 않으므로 독립적인
 재고 변경은 Catalog revision/검색 Outbox 대상이 아닙니다.
 
-### Worker revision 규칙
+### Synchronizer revision 규칙
 
-Worker가 primary에서 읽은 `currentProductRevision`을 실제 OpenSearch external version으로 사용합니다.
+Synchronizer가 primary에서 읽은 `currentProductRevision`을 실제 OpenSearch external version으로 사용합니다.
 
 - `eventRevision < currentProductRevision`: 최신 현재본과 현재 revision으로 수렴
 - `eventRevision == currentProductRevision`: 해당 현재본으로 수렴
@@ -70,10 +70,10 @@ Worker가 primary에서 읽은 `currentProductRevision`을 실제 OpenSearch ext
 - HTTP 응답뿐 아니라 모든 Bulk item의 status/error 검사
 - `429`와 `5xx`만 제한 재시도
 
-동일하거나 오래된 revision은 409가 될 수 있습니다. Worker는 오류 문자열을 정합성 판단 근거로 쓰지
+동일하거나 오래된 revision은 409가 될 수 있습니다. Synchronizer는 오류 문자열을 정합성 판단 근거로 쓰지
 않고 현재 문서를 GET해 external version과 결정적 source가 MySQL desired projection에 이미 수렴했는지
 확인합니다. HTTP status 해석은 index manager가 맡습니다. External version 쓰기의 Bulk item이 409(version
-충돌)나 404(대상 없음)로만 거절되면 application 에러 `CatalogWriteConflictError`로 바꾸고, worker는 이
+충돌)나 404(대상 없음)로만 거절되면 application 에러 `CatalogWriteConflictError`로 바꾸고, synchronizer는 이
 에러에서만 GET 대조를 합니다. 그 밖의 Bulk 실패는 그대로 실패합니다. Alias가 없으면 같은 이름의 물리
 인덱스를 자동 생성하지 않고 실패합니다.
 
@@ -105,7 +105,7 @@ Product 수로 사용합니다.
 ### 활성 rebuild의 유지보수 barrier
 
 활성 rebuild는 `catalog_maintenance` singleton 행에 차단 상태를 먼저 commit합니다. Catalog command와
-검색 worker/repair는 공유 잠금을, rebuild는 배타 잠금을 사용하므로 여러 서버에서도 같은 진입 제한을
+검색 synchronizer/repair는 공유 잠금을, rebuild는 배타 잠금을 사용하므로 여러 서버에서도 같은 진입 제한을
 따릅니다. 진행 중인 작업 때문에 배타 잠금을 얻지 못하면 시작을 거절하므로 잠시 뒤 다시 실행합니다.
 차단 중 상품 변경은 일시적 사용 불가 오류를 반환하며, 일반 조회와 독립 재고 변경은 계속됩니다.
 
@@ -144,11 +144,11 @@ sink별 delivery는 제공하지 않습니다. Alias API는 Alias membership 변
 차이와 제한된 표본만 출력하는 읽기 전용 검사입니다. `--repair`를 명시하면 차이에 따라 두 경로로
 복구합니다.
 
-- 누락 문서와 색인 revision이 MySQL과 다른 오래된/초과 문서는 증분 경로와 같은 worker가 MySQL primary를
+- 누락 문서와 색인 revision이 MySQL과 다른 오래된/초과 문서는 증분 경로와 같은 synchronizer가 MySQL primary를
   다시 읽어 `version_type=external`로 upsert하거나 delete합니다.
-- 색인 revision이 MySQL과 같은데 source만 다른 문서(drift)와 revision이 같은 초과 문서는 worker의 같은
-  external version이 409로 거절되므로 worker를 거치지 않고 `version_type=external_gte`로 직접 덮어쓰거나
-  삭제합니다. 이 복구 모드는 reconciliation에만 있고 worker에는 두지 않습니다.
+- 색인 revision이 MySQL과 같은데 source만 다른 문서(drift)와 revision이 같은 초과 문서는 synchronizer의 같은
+  external version이 409로 거절되므로 synchronizer를 거치지 않고 `version_type=external_gte`로 직접 덮어쓰거나
+  삭제합니다. 이 복구 모드는 reconciliation에만 있고 synchronizer에는 두지 않습니다.
 
 복구 뒤 읽기 전용 검사를 다시 실행해야 합니다.
 

@@ -230,7 +230,7 @@ OPENSEARCH_CURSOR_SECRET=replace-with-a-long-random-cursor-secret
 
 `OPENSEARCH_READ_ALIAS`, `OPENSEARCH_WRITE_ALIAS`, `OPENSEARCH_REQUEST_TIMEOUT_MS`를 생략하면 각각
 `catalog-products-read`, `catalog-products-write`, 5000ms를 사용합니다. 이 기본값은
-[`SearchConfig`](../../src/infra/opensearch/search.config.ts) 한 곳에서 정합니다.
+[`OpenSearchConfig`](../../src/infra/opensearch/opensearch.config.ts) 한 곳에서 정합니다.
 
 ## 7. 전체 rebuild와 Alias 전환
 

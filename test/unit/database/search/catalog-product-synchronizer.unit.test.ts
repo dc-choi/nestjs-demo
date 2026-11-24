@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
+import { CatalogMaintenanceService } from '~/api/search/application/catalog-maintenance.service.js';
+import { CatalogProductSynchronizer } from '~/api/search/application/catalog-product.synchronizer.js';
+import { CatalogWriteConflictError } from '~/api/search/application/catalog-write-conflict.error.js';
 import { CatalogProductProjectionSource } from '~/api/search/domain/product-search.document.js';
 import { CatalogIndexManager } from '~/api/search/infrastructure/catalog-index.manager.js';
-import { CatalogMaintenanceService } from '~/api/search/application/catalog-maintenance.service.js';
-import { CatalogWriteConflictError } from '~/api/search/application/catalog-write-conflict.error.js';
 import { CatalogProjectionReader } from '~/api/search/infrastructure/catalog-projection.reader.js';
-import { CatalogSearchWorker } from '~/api/search/application/catalog-search.worker.js';
 import { OpenSearchHttpClient } from '~/infra/opensearch/opensearch.client.js';
-import { SearchConfig } from '~/infra/opensearch/search.config.js';
+import { OpenSearchConfig } from '~/infra/opensearch/opensearch.config.js';
 
 const target = { indexName: 'catalog-v1', writeAlias: 'catalog-v1-projection' };
 
@@ -56,8 +56,8 @@ describe('Catalog search worker', () => {
             errors: false,
             items: [{ delete: { _id: '1', status: 404, result: 'not_found' } }],
         });
-        const manager = new CatalogIndexManager({ request } as unknown as OpenSearchHttpClient, {} as SearchConfig);
-        const worker = new CatalogSearchWorker(
+        const manager = new CatalogIndexManager({ request } as unknown as OpenSearchHttpClient, {} as OpenSearchConfig);
+        const worker = new CatalogProductSynchronizer(
             {
                 findById: vi.fn(async () => createSource({ revision: 3, status: 'CLOSED' })),
             } as unknown as CatalogProjectionReader,
@@ -96,7 +96,7 @@ describe('Catalog search worker', () => {
     it('does not read or write after losing the admission lock while resolving the target', async () => {
         const { reader, indexManager } = createWorker(createSource());
         const assertOwnership = vi.fn().mockRejectedValue(new Error('lock connection lost'));
-        const worker = new CatalogSearchWorker(
+        const worker = new CatalogProductSynchronizer(
             reader as unknown as CatalogProjectionReader,
             indexManager as unknown as CatalogIndexManager,
             {
@@ -118,7 +118,7 @@ function createWorker(source: CatalogProductProjectionSource) {
         deleteExternal: vi.fn(async () => undefined),
         getDocument: vi.fn(async () => null),
     };
-    const worker = new CatalogSearchWorker(
+    const worker = new CatalogProductSynchronizer(
         reader as unknown as CatalogProjectionReader,
         indexManager as unknown as CatalogIndexManager,
         maintenance

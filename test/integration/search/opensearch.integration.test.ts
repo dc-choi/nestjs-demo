@@ -1,16 +1,16 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { CatalogBulkError } from '~/api/search/application/catalog-bulk.error.js';
 import { CatalogWriteConflictError } from '~/api/search/application/catalog-write-conflict.error.js';
 import { ProductSearchService } from '~/api/search/application/product-search.service.js';
+import { SearchHealthService } from '~/api/search/application/search-health.service.js';
+import { SearchRelevanceEvaluationService } from '~/api/search/application/search-relevance-evaluation.service.js';
 import { ProductSearchDocument } from '~/api/search/domain/product-search.document.js';
-import { CatalogBulkError } from '~/api/search/infrastructure/catalog-bulk.error.js';
 import { createCatalogIndexName } from '~/api/search/infrastructure/catalog-index.definition.js';
 import { CatalogIndexManager } from '~/api/search/infrastructure/catalog-index.manager.js';
 import { OpenSearchProductSearchAdapter } from '~/api/search/infrastructure/opensearch-product-search.adapter.js';
 import { OpenSearchHttpClient } from '~/infra/opensearch/opensearch.client.js';
-import { SearchHealthService } from '~/api/search/application/search-health.service.js';
-import { SearchRelevanceEvaluationService } from '~/api/search/application/search-relevance-evaluation.service.js';
-import { SearchConfig } from '~/infra/opensearch/search.config.js';
+import { OpenSearchConfig } from '~/infra/opensearch/opensearch.config.js';
 
 const describeOpenSearch = process.env.OPENSEARCH_INTEGRATION === '1' ? describe : describe.skip;
 
@@ -25,7 +25,7 @@ describeOpenSearch('OpenSearch catalog integration', () => {
         readAlias: `catalog-products-read-${suffix}`,
         writeAlias: `catalog-products-write-${suffix}`,
         requestTimeoutMs: 5_000,
-    } as SearchConfig;
+    } as OpenSearchConfig;
     const client = new OpenSearchHttpClient(config);
     const manager = new CatalogIndexManager(client, config);
 

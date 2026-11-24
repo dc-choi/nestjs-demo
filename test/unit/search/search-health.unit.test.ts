@@ -1,17 +1,17 @@
 import { ConfigService } from '@nestjs/config';
 
 import { describe, expect, it, vi } from 'vitest';
+import { SearchHealthService } from '~/api/search/application/search-health.service.js';
+import { SearchHealthController } from '~/api/search/presentation/search-health.controller.js';
 import { OpenSearchHttpError } from '~/infra/opensearch/opensearch-http.error.js';
 import { OpenSearchHttpClient } from '~/infra/opensearch/opensearch.client.js';
-import { SearchHealthController } from '~/api/search/presentation/search-health.controller.js';
-import { SearchHealthService } from '~/api/search/application/search-health.service.js';
-import { SearchConfig } from '~/infra/opensearch/search.config.js';
+import { OpenSearchConfig } from '~/infra/opensearch/opensearch.config.js';
 
 describe('Search health', () => {
     it('does not call OpenSearch when disabled', async () => {
         const request = vi.fn();
         const health = new SearchHealthService(
-            { enabled: false } as SearchConfig,
+            { enabled: false } as OpenSearchConfig,
             {
                 request,
             } as unknown as OpenSearchHttpClient
@@ -26,7 +26,7 @@ describe('Search health', () => {
             throw new OpenSearchHttpError(null, null, 'connection failed');
         });
         const health = new SearchHealthService(
-            { enabled: true } as SearchConfig,
+            { enabled: true } as OpenSearchConfig,
             {
                 request,
             } as unknown as OpenSearchHttpClient
@@ -57,8 +57,8 @@ class UnavailableOpenSearchHttpClient extends OpenSearchHttpClient {
     }
 }
 
-function createSearchConfig(enabled: boolean): SearchConfig {
-    return new SearchConfig(
+function createSearchConfig(enabled: boolean): OpenSearchConfig {
+    return new OpenSearchConfig(
         new ConfigService(
             enabled
                 ? {

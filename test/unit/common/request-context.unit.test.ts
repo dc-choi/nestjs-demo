@@ -4,7 +4,7 @@ import {
     RequestContextMiddleware,
     getCurrentRequestId,
     runWithRequestContext,
-} from '~/global/common/context/request-context.js';
+} from '~/global/common/context/request-context.middleware.js';
 
 describe('request context', () => {
     it('keeps concurrent asynchronous request IDs isolated', async () => {

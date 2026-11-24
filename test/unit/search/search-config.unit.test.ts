@@ -1,11 +1,11 @@
 import { ConfigService } from '@nestjs/config';
 
 import { describe, expect, it } from 'vitest';
-import { SearchConfig } from '~/infra/opensearch/search.config.js';
+import { OpenSearchConfig } from '~/infra/opensearch/opensearch.config.js';
 
 describe('Search config', () => {
     it('is inert with safe local defaults when disabled', () => {
-        const config = new SearchConfig(createConfigService({ OPENSEARCH_ENABLED: false }));
+        const config = new OpenSearchConfig(createConfigService({ OPENSEARCH_ENABLED: false }));
         expect(config.enabled).toBe(false);
         expect(config.nodeUrl.href).toBe('http://127.0.0.1:9200/');
     });
@@ -13,7 +13,7 @@ describe('Search config', () => {
     it('requires an endpoint when enabled', () => {
         expect(
             () =>
-                new SearchConfig(
+                new OpenSearchConfig(
                     createConfigService({
                         OPENSEARCH_ENABLED: true,
                     })
@@ -23,7 +23,7 @@ describe('Search config', () => {
 
     it('owns the runtime defaults for aliases and request timeout', () => {
         // env Joi schema는 기본값을 두지 않으므로 앱과 CLI의 기본값은 이 값이다.
-        const config = new SearchConfig(
+        const config = new OpenSearchConfig(
             createConfigService({
                 OPENSEARCH_ENABLED: true,
                 OPENSEARCH_NODE_URL: 'http://127.0.0.1:9200',
@@ -38,7 +38,7 @@ describe('Search config', () => {
     it('rejects a shared read and write alias', () => {
         expect(
             () =>
-                new SearchConfig(
+                new OpenSearchConfig(
                     createConfigService({
                         OPENSEARCH_ENABLED: true,
                         OPENSEARCH_NODE_URL: 'http://127.0.0.1:9200',

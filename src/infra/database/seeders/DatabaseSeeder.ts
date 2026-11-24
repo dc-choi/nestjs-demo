@@ -16,7 +16,7 @@ import { PasswordKdfAdmission } from '~/api/member/application/password-kdf.admi
 import { PasswordService } from '~/api/member/application/password.service.js';
 import { MemberRole } from '~/api/member/domain/entity/member-role.js';
 import { MemberEntity } from '~/api/member/domain/entity/member.entity.js';
-import { catalogSearchWriteEffects } from '~/api/search/application/catalog-write-effects.js';
+import { catalogSearchWriteEffects } from '~/api/search/application/catalog-search-write-effects.js';
 import type { EnvConfig } from '~/global/config/env/env.config.js';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload.js';
 

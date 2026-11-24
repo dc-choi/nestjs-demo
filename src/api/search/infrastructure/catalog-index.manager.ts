@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import { CatalogBulkError, CatalogBulkFailure } from './catalog-bulk.error.js';
+import { CatalogBulkError, CatalogBulkFailure } from '../application/catalog-bulk.error.js';
 import { catalogIndexDefinition, catalogNoriIndexDefinition } from './catalog-index.definition.js';
 
 import { createHash } from 'node:crypto';
@@ -9,7 +9,7 @@ import { CatalogAnalyzer } from '~/api/search/domain/catalog-analyzer.js';
 import { ProductSearchDocument } from '~/api/search/domain/product-search.document.js';
 import { OpenSearchHttpError } from '~/infra/opensearch/opensearch-http.error.js';
 import { OpenSearchHttpClient, escapeOpenSearchPathSegment } from '~/infra/opensearch/opensearch.client.js';
-import { SearchConfig } from '~/infra/opensearch/search.config.js';
+import { OpenSearchConfig } from '~/infra/opensearch/opensearch.config.js';
 
 interface AliasResponse {
     [index: string]: {
@@ -78,7 +78,7 @@ export interface CatalogWriteTarget {
 export class CatalogIndexManager {
     constructor(
         private readonly client: OpenSearchHttpClient,
-        private readonly config: SearchConfig
+        private readonly config: OpenSearchConfig
     ) {}
 
     async createIndex(indexName: string, analyzer: CatalogAnalyzer = CatalogAnalyzer.STANDARD): Promise<void> {

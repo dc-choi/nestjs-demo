@@ -17,7 +17,6 @@ import { OrderStatus } from '~/api/order/domain/entity/order-status.js';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
 import { OrderTransitionConflict } from '~/api/order/domain/order-transition-conflict.error.js';
 import { PAYMENT_INVENTORY_PORT, type PaymentInventoryPort } from '~/api/payment/application/payment-inventory.port.js';
-import type { PaymentResult } from '~/api/payment/application/payment-result.js';
 import { PaymentWebhookPrerequisitePending } from '~/api/payment/application/payment-webhook-prerequisite-pending.error.js';
 import type {
     CapturePaymentCommand,
@@ -26,6 +25,7 @@ import type {
     ProcessPaymentWebhookCommand,
     RefundPaymentCommand,
 } from '~/api/payment/application/payment.command.js';
+import type { PaymentResult } from '~/api/payment/application/payment.result.js';
 import { PaymentAttemptStatus } from '~/api/payment/domain/entity/payment-attempt-status.js';
 import { PaymentAttemptEntity } from '~/api/payment/domain/entity/payment-attempt.entity.js';
 import { PaymentTransactionStatus } from '~/api/payment/domain/entity/payment-transaction-status.js';

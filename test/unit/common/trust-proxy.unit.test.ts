@@ -1,8 +1,8 @@
 import { Controller, Get, Module, Req } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import type { Request } from 'express';
 
+import type { Request } from 'express';
 import { afterEach, describe, expect, it } from 'vitest';
 import { envValidationSchema } from '~/global/config/env/env.validation.js';
 import { applyTrustProxy } from '~/global/config/trust-proxy.js';
@@ -27,9 +27,7 @@ afterEach(async () => {
 });
 
 async function clientIpWith(trustProxyEnv: string | undefined): Promise<string> {
-    const { error, value } = envValidationSchema
-        .extract('TRUST_PROXY')
-        .validate(trustProxyEnv, { convert: true });
+    const { error, value } = envValidationSchema.extract('TRUST_PROXY').validate(trustProxyEnv, { convert: true });
     expect(error).toBeUndefined();
 
     app = await NestFactory.create<NestExpressApplication>(ClientIpModule, { logger: false });

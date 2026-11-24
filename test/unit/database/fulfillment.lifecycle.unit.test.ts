@@ -1,8 +1,8 @@
 import {
     Collection,
     EntityManager,
-    LockMode,
     type EntityRepository,
+    LockMode,
     RequestContext,
     type TransactionOptions,
 } from '@mikro-orm/core';
@@ -394,7 +394,10 @@ function createService(order: OrderEntity, fulfillment: FulfillmentEntity) {
     const service = new FulfillmentService(
         entityManager,
         { findOne: findOrder } as unknown as EntityRepository<OrderEntity>,
-        { findOne: vi.fn(async () => fulfillment), find: findFulfillments } as unknown as EntityRepository<FulfillmentEntity>
+        {
+            findOne: vi.fn(async () => fulfillment),
+            find: findFulfillments,
+        } as unknown as EntityRepository<FulfillmentEntity>
     );
 
     return { service, persist, requestContextSource, findOrder, findFulfillments };

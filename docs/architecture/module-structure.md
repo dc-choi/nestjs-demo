@@ -12,7 +12,7 @@ src/
   infra/{tech}/        여러 도메인이 공유하는 기술 연결(database, redis, mail, opensearch)
   global/              도메인이 없는 횡단 관심사(config, logger, graphql, jwt, 공통 util)
   cli/                 운영 CLI 진입점. Nest application context만 만들고 로직은 도메인 Service를 호출한다.
-  *.module.ts, main.ts 앱 조립(HTTP 앱, maintenance 앱, search maintenance 앱)
+  *.module.ts, main.ts 앱 조립(HTTP 앱, 검색과 추천 CLI 앱)
 ```
 
 - 특정 도메인만 쓰는 코드는 `infra/`나 `global/`에 두지 않고 그 도메인 모듈 안에 둡니다.

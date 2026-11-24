@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
+import { CatalogMaintenanceService } from '~/api/search/application/catalog-maintenance.service.js';
+import { CatalogProductSynchronizer } from '~/api/search/application/catalog-product.synchronizer.js';
+import { SearchReconciliationService } from '~/api/search/application/search-reconciliation.service.js';
 import { projectCatalogProduct } from '~/api/search/domain/catalog-projector.js';
 import { CatalogProductProjectionSource } from '~/api/search/domain/product-search.document.js';
 import { CatalogIndexManager } from '~/api/search/infrastructure/catalog-index.manager.js';
-import { CatalogMaintenanceService } from '~/api/search/application/catalog-maintenance.service.js';
 import { CatalogProjectionReader } from '~/api/search/infrastructure/catalog-projection.reader.js';
-import { CatalogSearchWorker } from '~/api/search/application/catalog-search.worker.js';
-import { SearchReconciliationService } from '~/api/search/application/search-reconciliation.service.js';
-import { SearchConfig } from '~/infra/opensearch/search.config.js';
+import { OpenSearchConfig } from '~/infra/opensearch/opensearch.config.js';
 
 const target = { indexName: 'catalog-v1', writeAlias: 'catalog-v1-projection' };
 
@@ -66,10 +66,10 @@ describe('Search reconciliation', () => {
         } as unknown as CatalogIndexManager;
         const synchronize = vi.fn();
         const service = new SearchReconciliationService(
-            { enabled: true, readAlias: 'catalog-read' } as SearchConfig,
+            { enabled: true, readAlias: 'catalog-read' } as OpenSearchConfig,
             reader,
             indexManager,
-            { synchronize } as unknown as CatalogSearchWorker,
+            { synchronize } as unknown as CatalogProductSynchronizer,
             maintenance
         );
 

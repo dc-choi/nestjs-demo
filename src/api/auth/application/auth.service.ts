@@ -4,7 +4,7 @@ import { Injectable, ServiceUnavailableException, UnauthorizedException } from '
 
 import { InvalidIdOrPassword } from '~/api/auth/application/invalid-id-or-password.error.js';
 import { NotExistingMember } from '~/api/auth/application/not-existing-member.error.js';
-import { LoginRateLimiter } from '~/api/auth/infrastructure/login-rate-limiter.js';
+import { LoginRateLimiter } from '~/api/auth/infrastructure/login-rate.limiter.js';
 import { TokenProvider } from '~/api/auth/infrastructure/token.provider.js';
 import { MemberService } from '~/api/member/application/member.service.js';
 import { PasswordKdfBusy } from '~/api/member/application/password-kdf-busy.error.js';

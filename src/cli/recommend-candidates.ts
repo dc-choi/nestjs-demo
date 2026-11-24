@@ -1,17 +1,11 @@
-import { Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
 import { RecommendationCandidateService } from '~/api/recommendation/application/recommendation-candidate.service.js';
-import { RecommendationModule } from '~/api/recommendation/recommendation.module.js';
 import { SearchMaintenanceAppModule } from '~/search-maintenance-app.module.js';
-
-// Config, logging, MySQL and OpenSearch only; no HTTP server.
-@Module({ imports: [SearchMaintenanceAppModule, RecommendationModule] })
-class RecommendCandidatesModule {}
 
 async function main(): Promise<void> {
     const args = parseArguments(process.argv.slice(2));
-    const app = await NestFactory.createApplicationContext(RecommendCandidatesModule, { logger: ['error', 'warn'] });
+    const app = await NestFactory.createApplicationContext(SearchMaintenanceAppModule, { logger: ['error', 'warn'] });
     try {
         const result = await app.get(RecommendationCandidateService).findCandidates(args.user, args.version);
         process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);

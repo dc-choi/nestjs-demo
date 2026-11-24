@@ -9,7 +9,7 @@ import { SearchReconciliationService } from './search-reconciliation.service.js'
 import { CatalogAnalyzer } from '~/api/search/domain/catalog-analyzer.js';
 import { projectCatalogProduct } from '~/api/search/domain/catalog-projector.js';
 import { ProductSearchDocument, isIndexedDocumentCurrent } from '~/api/search/domain/product-search.document.js';
-import { SearchConfig } from '~/infra/opensearch/search.config.js';
+import { OpenSearchConfig } from '~/infra/opensearch/opensearch.config.js';
 
 export interface CatalogRebuildResult {
     indexName: string;
@@ -22,7 +22,7 @@ export interface CatalogRebuildResult {
 @Injectable()
 export class CatalogRebuildService {
     constructor(
-        private readonly config: SearchConfig,
+        private readonly config: OpenSearchConfig,
         private readonly reader: CatalogProjectionReader,
         private readonly indexManager: CatalogIndexManager,
         private readonly maintenance: CatalogMaintenanceService,

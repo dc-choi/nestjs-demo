@@ -4,13 +4,13 @@ import { InjectRepository } from '@mikro-orm/nestjs';
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { createHash } from 'node:crypto';
-import type { PaymentWebhookRecoveryResult, PaymentWebhookResult } from '~/api/payment/application/payment-result.js';
 import { PaymentWebhookPrerequisitePending } from '~/api/payment/application/payment-webhook-prerequisite-pending.error.js';
 import type {
     ProcessPaymentWebhookCommand,
     ReceivePaymentWebhookCommand,
     VerifiedPaymentWebhookCommand,
 } from '~/api/payment/application/payment.command.js';
+import type { PaymentWebhookRecoveryResult, PaymentWebhookResult } from '~/api/payment/application/payment.result.js';
 import { PaymentService } from '~/api/payment/application/payment.service.js';
 import { PaymentAttemptEntity } from '~/api/payment/domain/entity/payment-attempt.entity.js';
 import { PaymentTransactionEntity } from '~/api/payment/domain/entity/payment-transaction.entity.js';

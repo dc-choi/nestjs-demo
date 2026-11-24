@@ -1,12 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { ProductSearchDocument } from '~/api/search/domain/product-search.document.js';
 import { RecommendationCandidateService } from '~/api/recommendation/application/recommendation-candidate.service.js';
 import { RecommendationProfileReader } from '~/api/recommendation/infrastructure/recommendation-profile.reader.js';
+import { ProductSearchDocument } from '~/api/search/domain/product-search.document.js';
 import { createCatalogIndexName } from '~/api/search/infrastructure/catalog-index.definition.js';
 import { CatalogIndexManager } from '~/api/search/infrastructure/catalog-index.manager.js';
 import { OpenSearchHttpClient } from '~/infra/opensearch/opensearch.client.js';
-import { SearchConfig } from '~/infra/opensearch/search.config.js';
+import { OpenSearchConfig } from '~/infra/opensearch/opensearch.config.js';
 
 const describeOpenSearch = process.env.OPENSEARCH_INTEGRATION === '1' ? describe : describe.skip;
 
@@ -19,7 +19,7 @@ describeOpenSearch('OpenSearch recommendation candidates', () => {
         readAlias: indexName,
         writeAlias: `catalog-products-write-${suffix}`,
         requestTimeoutMs: 5_000,
-    } as SearchConfig;
+    } as OpenSearchConfig;
     const client = new OpenSearchHttpClient(config);
     const manager = new CatalogIndexManager(client, config);
 

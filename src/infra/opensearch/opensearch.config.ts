@@ -8,7 +8,7 @@ const DEFAULT_REQUEST_TIMEOUT_MS = 5_000;
 
 /** OpenSearch 연결 설정과 기본값의 유일한 소유자. env Joi schema는 형식만 검사하고 기본값을 두지 않는다. */
 @Injectable()
-export class SearchConfig {
+export class OpenSearchConfig {
     readonly enabled: boolean;
     readonly nodeUrl: URL;
     readonly readAlias: string;

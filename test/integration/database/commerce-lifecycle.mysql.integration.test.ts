@@ -22,24 +22,24 @@ import { MemberEntity } from '~/api/member/domain/entity/member.entity.js';
 import { OrderExpirationService } from '~/api/order/application/order-expiration.service.js';
 import { OrderService } from '~/api/order/application/order.service.js';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js';
-import { OrderStatus } from '~/api/order/domain/entity/order-status.js';
 import { OrderStatusHistoryEntity } from '~/api/order/domain/entity/order-status-history.entity.js';
+import { OrderStatus } from '~/api/order/domain/entity/order-status.js';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
+import type { DistributedLockService } from '~/api/order/infrastructure/distributed-lock.service.js';
 import { PaymentWebhookService } from '~/api/payment/application/payment-webhook.service.js';
 import { PaymentService } from '~/api/payment/application/payment.service.js';
 import { PaymentAttemptStatus } from '~/api/payment/domain/entity/payment-attempt-status.js';
 import { PaymentAttemptEntity } from '~/api/payment/domain/entity/payment-attempt.entity.js';
-import { compareMoney } from '~/api/payment/domain/payment-money.js';
 import { PaymentTransactionType } from '~/api/payment/domain/entity/payment-transaction-type.js';
 import { PaymentTransactionEntity } from '~/api/payment/domain/entity/payment-transaction.entity.js';
 import { PaymentWebhookEventStatus } from '~/api/payment/domain/entity/payment-webhook-event-status.js';
 import { PaymentWebhookEventEntity } from '~/api/payment/domain/entity/payment-webhook-event.entity.js';
 import { PaymentWebhookOutcome } from '~/api/payment/domain/entity/payment-webhook-outcome.js';
-import type { DistributedLockService } from '~/api/order/infrastructure/distributed-lock.service.js';
+import { compareMoney } from '~/api/payment/domain/payment-money.js';
+import { catalogSearchWriteEffects } from '~/api/search/application/catalog-search-write-effects.js';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload.js';
 import { databaseEntities } from '~/infra/database/entities.js';
 import { DatabaseSeeder } from '~/infra/database/seeders/DatabaseSeeder.js';
-import { catalogSearchWriteEffects } from '~/api/search/application/catalog-write-effects.js';
 
 const describeCommerceMySql = process.env.MYSQL_INTEGRATION === '1' ? describe : describe.skip;
 
@@ -407,10 +407,7 @@ describeCommerceMySql('Commerce lifecycle MySQL integration', () => {
             });
             return new FulfillmentService(em, orderRepository, em.getRepository(FulfillmentEntity));
         };
-        await Promise.all([
-            deliveryService().deliver(admin, first.id),
-            deliveryService().deliver(admin, second.id),
-        ]);
+        await Promise.all([deliveryService().deliver(admin, first.id), deliveryService().deliver(admin, second.id)]);
 
         const state = await readOrderState(orm!.em.fork(), placed.id);
         expect(state.fulfillments.map(({ status }) => status)).toEqual([

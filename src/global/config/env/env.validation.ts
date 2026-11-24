@@ -2,7 +2,7 @@ import type { EnvConfig } from './env.config.js';
 
 import Joi from 'joi';
 
-// OpenSearch 값의 기본값은 SearchConfig 한 곳이 소유한다. 여기서는 형식만 검사한다.
+// OpenSearch 값의 기본값은 OpenSearchConfig 한 곳이 소유한다. 여기서는 형식만 검사한다.
 export const envValidationSchema = Joi.object<EnvConfig>({
     SERVER_PORT: Joi.number().optional().default(3000),
     // Express `trust proxy`: 앞단 proxy hop 수 또는 쉼표로 구분한 proxy 주소/CIDR. 숫자 문자열은 hop 수로 바꾼다.

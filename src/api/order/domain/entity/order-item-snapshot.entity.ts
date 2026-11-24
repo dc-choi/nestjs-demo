@@ -2,8 +2,8 @@ import type { Opt, Rel } from '@mikro-orm/core';
 import { Entity, Index, OneToOne, Property } from '@mikro-orm/decorators/legacy';
 
 import { ItemEntity } from '~/api/catalog/domain/entity/item.entity.js';
-import { SelectedOrderOptionSnapshot } from '~/api/order/domain/entity/order-item-snapshot.type.js';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js';
+import { SelectedOrderOptionSnapshot } from '~/api/order/domain/entity/selected-order-option-snapshot.js';
 
 /**
  * 주문 접수 시 live Product와 Item의 표시 정보와 실제 적용 단가를 고정한 거래 증거다.

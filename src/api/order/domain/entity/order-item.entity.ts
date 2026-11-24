@@ -4,9 +4,9 @@ import { Entity, Index, ManyToOne, OneToMany, OneToOne, PrimaryKey, Property } f
 import { ItemEntity } from '~/api/catalog/domain/entity/item.entity.js';
 import { FulfillmentItemEntity } from '~/api/fulfillment/domain/entity/fulfillment-item.entity.js';
 import { InventoryReservationEntity } from '~/api/inventory/domain/entity/inventory-reservation.entity.js';
-import { assertOrderMoneyFits, multiplyDecimal } from '~/api/order/domain/decimal.js';
 import { OrderItemSnapshotEntity } from '~/api/order/domain/entity/order-item-snapshot.entity.js';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
+import { assertOrderMoneyFits, multiplyDecimal } from '~/api/order/domain/order-money.js';
 import { isPositiveMysqlSignedInt } from '~/global/common/utils/mysql-number.js';
 
 interface CreateOrderItem {

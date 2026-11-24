@@ -1,11 +1,14 @@
 import { type Mock, describe, expect, it, vi } from 'vitest';
+import { CatalogBulkError } from '~/api/search/application/catalog-bulk.error.js';
 import { CatalogWriteConflictError } from '~/api/search/application/catalog-write-conflict.error.js';
-import { CatalogBulkError } from '~/api/search/infrastructure/catalog-bulk.error.js';
-import { catalogIndexDefinition, catalogNoriIndexDefinition } from '~/api/search/infrastructure/catalog-index.definition.js';
+import {
+    catalogIndexDefinition,
+    catalogNoriIndexDefinition,
+} from '~/api/search/infrastructure/catalog-index.definition.js';
 import { CatalogIndexManager } from '~/api/search/infrastructure/catalog-index.manager.js';
 import { OpenSearchHttpError } from '~/infra/opensearch/opensearch-http.error.js';
 import { OpenSearchHttpClient } from '~/infra/opensearch/opensearch.client.js';
-import { SearchConfig } from '~/infra/opensearch/search.config.js';
+import { OpenSearchConfig } from '~/infra/opensearch/opensearch.config.js';
 
 describe('Catalog index manager', () => {
     it('keeps root and item mappings strict and changes only the named analyzer implementation', () => {
@@ -201,7 +204,7 @@ function createManager(request: Mock): CatalogIndexManager {
     const config = {
         readAlias: 'catalog-products-read',
         writeAlias: 'catalog-products-write',
-    } as SearchConfig;
+    } as OpenSearchConfig;
     return new CatalogIndexManager(client, config);
 }
 

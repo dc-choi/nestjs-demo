@@ -9,7 +9,7 @@ import {
 } from '~/api/recommendation/infrastructure/recommendation-profile.reader.js';
 import type { ProductSearchDocument } from '~/api/search/domain/product-search.document.js';
 import { OpenSearchHttpClient, escapeOpenSearchPathSegment } from '~/infra/opensearch/opensearch.client.js';
-import { SearchConfig } from '~/infra/opensearch/search.config.js';
+import { OpenSearchConfig } from '~/infra/opensearch/opensearch.config.js';
 
 export const CANDIDATE_LIMIT = 200;
 export const INTEREST_CANDIDATE_LIMIT = 150;
@@ -99,7 +99,7 @@ interface PopularFill {
 export class RecommendationCandidateService {
     constructor(
         private readonly profiles: RecommendationProfileReader,
-        private readonly config: SearchConfig,
+        private readonly config: OpenSearchConfig,
         private readonly client: OpenSearchHttpClient
     ) {}
 

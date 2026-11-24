@@ -4,14 +4,15 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
 
 import { GraphqlHttpContext } from './graphql-context.js';
-import { createGraphqlErrorLoggingPlugin, formatGraphqlError } from './graphql-error.formatter.js';
+import { createGraphqlErrorLoggingPlugin } from './graphql-error-logging.plugin.js';
+import { formatGraphqlError } from './graphql-error.formatter.js';
 import { createGraphqlRequestLoggingPlugin } from './graphql-request-logging.plugin.js';
 
-import { APPLICATION_LOGGER } from '~/global/common/logger/application-logger.symbol.js';
-import { type GraphqlOperationLog, type TypedLogger } from '~/global/common/logger/channel.logger.js';
-import { GRAPHQL_LOGGER } from '~/global/common/logger/graphql-logger.symbol.js';
 import { EnvConfig } from '~/global/config/env/env.config.js';
-import { LoggingModule } from '~/global/config/logger/logging.module.js';
+import { APPLICATION_LOGGER } from '~/global/logger/application-logger.symbol.js';
+import { type GraphqlOperationLog, type TypedLogger } from '~/global/logger/channel.logger.js';
+import { GRAPHQL_LOGGER } from '~/global/logger/graphql-logger.symbol.js';
+import { LoggingModule } from '~/global/logger/logging.module.js';
 
 @Module({
     imports: [

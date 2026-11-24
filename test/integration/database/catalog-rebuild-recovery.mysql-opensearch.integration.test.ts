@@ -13,20 +13,20 @@ import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status.js'
 import { ProductStatus } from '~/api/catalog/domain/entity/product-status.js';
 import { MemberRole } from '~/api/member/domain/entity/member-role.js';
 import { MemberEntity } from '~/api/member/domain/entity/member.entity.js';
-import { databaseEntities } from '~/infra/database/entities.js';
-import { createCatalogIndexName } from '~/api/search/infrastructure/catalog-index.definition.js';
-import { CatalogIndexManager } from '~/api/search/infrastructure/catalog-index.manager.js';
-import { CatalogMaintenanceEntity } from '~/api/search/domain/entity/catalog-maintenance.entity.js';
 import { CatalogMaintenanceError } from '~/api/search/application/catalog-maintenance.error.js';
 import { CatalogMaintenanceService } from '~/api/search/application/catalog-maintenance.service.js';
-import { CatalogProjectionReader } from '~/api/search/infrastructure/catalog-projection.reader.js';
+import { CatalogProductSynchronizer } from '~/api/search/application/catalog-product.synchronizer.js';
 import { CatalogRebuildService } from '~/api/search/application/catalog-rebuild.service.js';
-import { CatalogSearchWorker } from '~/api/search/application/catalog-search.worker.js';
-import { catalogSearchWriteEffects } from '~/api/search/application/catalog-write-effects.js';
-import { OpenSearchHttpClient } from '~/infra/opensearch/opensearch.client.js';
+import { catalogSearchWriteEffects } from '~/api/search/application/catalog-search-write-effects.js';
 import { SearchOutboxRelay } from '~/api/search/application/search-outbox.relay.js';
 import { SearchReconciliationService } from '~/api/search/application/search-reconciliation.service.js';
-import { SearchConfig } from '~/infra/opensearch/search.config.js';
+import { CatalogMaintenanceEntity } from '~/api/search/domain/entity/catalog-maintenance.entity.js';
+import { createCatalogIndexName } from '~/api/search/infrastructure/catalog-index.definition.js';
+import { CatalogIndexManager } from '~/api/search/infrastructure/catalog-index.manager.js';
+import { CatalogProjectionReader } from '~/api/search/infrastructure/catalog-projection.reader.js';
+import { databaseEntities } from '~/infra/database/entities.js';
+import { OpenSearchHttpClient } from '~/infra/opensearch/opensearch.client.js';
+import { OpenSearchConfig } from '~/infra/opensearch/opensearch.config.js';
 
 const enabled = process.env.MYSQL_INTEGRATION === '1' && process.env.OPENSEARCH_INTEGRATION === '1';
 const describeRecovery = enabled ? describe : describe.skip;
@@ -43,7 +43,7 @@ describeRecovery('catalog rebuild recovery after MySQL connection loss', () => {
         readAlias: `catalog-recovery-read-${suffix}`,
         writeAlias: `catalog-recovery-write-${suffix}`,
         requestTimeoutMs: 5_000,
-    } as SearchConfig;
+    } as OpenSearchConfig;
     const manager = new CatalogIndexManager(new OpenSearchHttpClient(config), config);
     let orm: CoreMikroORM<MySqlDriver>;
     let ownerOrm: CoreMikroORM<MySqlDriver>;
@@ -92,7 +92,7 @@ describeRecovery('catalog rebuild recovery after MySQL connection loss', () => {
             const maintenance = new CatalogMaintenanceService(orm);
             const ownerMaintenance = new CatalogMaintenanceService(ownerOrm);
             const reader = new CatalogProjectionReader(orm);
-            const worker = new CatalogSearchWorker(reader, manager, maintenance);
+            const worker = new CatalogProductSynchronizer(reader, manager, maintenance);
             const relay = new SearchOutboxRelay(orm, worker, config);
             const reconciliation = new SearchReconciliationService(config, reader, manager, worker, maintenance);
             const rebuildA = new CatalogRebuildService(config, reader, manager, ownerMaintenance, reconciliation);
@@ -214,7 +214,7 @@ describeRecovery('catalog rebuild recovery after MySQL connection loss', () => {
             const maintenance = new CatalogMaintenanceService(orm);
             const ownerMaintenance = new CatalogMaintenanceService(ownerOrm);
             const reader = new CatalogProjectionReader(orm);
-            const worker = new CatalogSearchWorker(reader, manager, maintenance);
+            const worker = new CatalogProductSynchronizer(reader, manager, maintenance);
             const reconciliation = new SearchReconciliationService(config, reader, manager, worker, maintenance);
             const rebuild = new CatalogRebuildService(config, reader, manager, maintenance, reconciliation);
             const beforeBuildId = `projection-before-${suffix}`;
@@ -258,7 +258,7 @@ describeRecovery('catalog rebuild recovery after MySQL connection loss', () => {
                 await release.promise;
                 return originalWrite(document, target);
             });
-            const delayedWorker = new CatalogSearchWorker(reader, manager, ownerMaintenance);
+            const delayedWorker = new CatalogProductSynchronizer(reader, manager, ownerMaintenance);
             const delayedReconciliation = new SearchReconciliationService(
                 config,
                 reader,

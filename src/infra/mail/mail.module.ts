@@ -4,11 +4,11 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 
-import { SignupMailHandler } from './handler/signup.mail.handler.js';
+import { SignupMailHandler } from './signup-mail.handler.js';
 
 import { join } from 'node:path';
 import { EnvConfig } from '~/global/config/env/env.config.js';
-import { LoggingModule } from '~/global/config/logger/logging.module.js';
+import { LoggingModule } from '~/global/logger/logging.module.js';
 
 @Module({
     imports: [

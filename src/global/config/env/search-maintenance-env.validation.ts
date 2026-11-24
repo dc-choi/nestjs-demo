@@ -2,7 +2,7 @@ import type { SearchMaintenanceEnvConfig } from './search-maintenance-env.config
 
 import Joi from 'joi';
 
-// OpenSearch 값의 기본값은 SearchConfig 한 곳이 소유한다. 여기서는 형식만 검사한다.
+// OpenSearch 값의 기본값은 OpenSearchConfig 한 곳이 소유한다. 여기서는 형식만 검사한다.
 export const searchMaintenanceEnvValidationSchema = Joi.object<SearchMaintenanceEnvConfig>({
     MYSQL_HOST: Joi.string().required(),
     MYSQL_PORT: Joi.number().required(),

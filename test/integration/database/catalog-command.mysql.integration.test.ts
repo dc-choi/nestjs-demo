@@ -18,8 +18,8 @@ import { ProductStatus } from '~/api/catalog/domain/entity/product-status.js';
 import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
 import { MemberRole } from '~/api/member/domain/entity/member-role.js';
 import { MemberEntity } from '~/api/member/domain/entity/member.entity.js';
+import { catalogSearchWriteEffects } from '~/api/search/application/catalog-search-write-effects.js';
 import { databaseEntities } from '~/infra/database/entities.js';
-import { catalogSearchWriteEffects } from '~/api/search/application/catalog-write-effects.js';
 
 const describeMySql = process.env.MYSQL_INTEGRATION === '1' ? describe : describe.skip;
 

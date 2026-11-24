@@ -3,7 +3,7 @@ import { BeforeApplicationShutdown, Injectable, Logger, OnApplicationBootstrap }
 import { CatalogIndexManager } from '../infrastructure/catalog-index.manager.js';
 import { SearchOutboxRelay } from './search-outbox.relay.js';
 
-import { SearchConfig } from '~/infra/opensearch/search.config.js';
+import { OpenSearchConfig } from '~/infra/opensearch/opensearch.config.js';
 
 const POLL_INTERVAL_MS = 1_000;
 export const SEARCH_OUTBOX_SHUTDOWN_TIMEOUT_MS = 5_000;
@@ -21,7 +21,7 @@ export class SearchOutboxWorker implements OnApplicationBootstrap, BeforeApplica
     private missingAliasReported = false;
 
     constructor(
-        private readonly config: SearchConfig,
+        private readonly config: OpenSearchConfig,
         private readonly relay: SearchOutboxRelay,
         private readonly indexManager: CatalogIndexManager
     ) {}

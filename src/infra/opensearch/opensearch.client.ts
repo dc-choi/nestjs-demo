@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { OpenSearchHttpError } from './opensearch-http.error.js';
-import { SearchConfig } from './search.config.js';
+import { OpenSearchConfig } from './opensearch.config.js';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 type QueryValue = string | number | boolean;
@@ -16,7 +16,7 @@ export interface OpenSearchRequestOptions {
 
 @Injectable()
 export class OpenSearchHttpClient {
-    constructor(private readonly config: SearchConfig) {}
+    constructor(private readonly config: OpenSearchConfig) {}
 
     async request<T>(method: HttpMethod, path: string, options: OpenSearchRequestOptions = {}): Promise<T> {
         if (!this.config.enabled) throw new OpenSearchHttpError(null, null, 'OpenSearch is disabled');

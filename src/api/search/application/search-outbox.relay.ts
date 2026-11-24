@@ -2,11 +2,11 @@ import { EntityManager, MikroORM } from '@mikro-orm/mysql';
 import { Injectable } from '@nestjs/common';
 
 import { CatalogMaintenanceError } from './catalog-maintenance.error.js';
-import { CatalogSearchWorker } from './catalog-search.worker.js';
+import { CatalogProductSynchronizer } from './catalog-product.synchronizer.js';
 
 import { randomUUID } from 'node:crypto';
 import { toBigInt, toNonNegativeInteger } from '~/global/common/utils/mysql-row.js';
-import { SearchConfig } from '~/infra/opensearch/search.config.js';
+import { OpenSearchConfig } from '~/infra/opensearch/opensearch.config.js';
 
 interface ClaimedOutboxRow {
     id: bigint;
@@ -45,8 +45,8 @@ export const SEARCH_OUTBOX_HEARTBEAT_MILLISECONDS = SEARCH_OUTBOX_LEASE_MILLISEC
 export class SearchOutboxRelay {
     constructor(
         private readonly orm: MikroORM,
-        private readonly worker: CatalogSearchWorker,
-        private readonly config: SearchConfig
+        private readonly synchronizer: CatalogProductSynchronizer,
+        private readonly config: OpenSearchConfig
     ) {}
 
     async drainBatch(limit = 50, signal?: AbortSignal): Promise<SearchOutboxDrainResult> {
@@ -174,7 +174,7 @@ export class SearchOutboxRelay {
         let synchronized = false;
         let error: unknown = undefined;
         try {
-            await this.worker.synchronize(event.productId, event.productRevision);
+            await this.synchronizer.synchronize(event.productId, event.productRevision);
             synchronized = true;
         } catch (caught: unknown) {
             error = caught;

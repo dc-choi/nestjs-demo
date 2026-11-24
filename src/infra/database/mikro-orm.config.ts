@@ -7,8 +7,8 @@ import type { MikroOrmEnvironment } from './database-environment.js';
 import { databaseEntities } from './entities.js';
 import { MIKRO_ORM_SLOW_QUERY_THRESHOLD_MS, createMikroOrmLogger } from './mikro-orm.logger.js';
 
-import type { MikroOrmQueryLog, TypedLogger } from '~/global/common/logger/channel.logger.js';
 import { EnvConfig } from '~/global/config/env/env.config.js';
+import type { MikroOrmQueryLog, TypedLogger } from '~/global/logger/channel.logger.js';
 
 export const createMikroOrmCoreOptions = (
     env: MikroOrmEnvironment,

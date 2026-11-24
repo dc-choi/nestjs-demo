@@ -6,13 +6,13 @@ import { FulfillmentEntity } from '~/api/fulfillment/domain/entity/fulfillment.e
 import { InventoryReservationStatus } from '~/api/inventory/domain/entity/inventory-reservation-status.js';
 import type { InventoryReservationEntity } from '~/api/inventory/domain/entity/inventory-reservation.entity.js';
 import { MemberEntity } from '~/api/member/domain/entity/member.entity.js';
-import { assertOrderMoneyFits, sumDecimals } from '~/api/order/domain/decimal.js';
 import { OrderActorType } from '~/api/order/domain/entity/order-actor-type.js';
 import { OrderAddressEntity } from '~/api/order/domain/entity/order-address.entity.js';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js';
 import { OrderStatusHistoryEntity } from '~/api/order/domain/entity/order-status-history.entity.js';
 import { OrderStatus } from '~/api/order/domain/entity/order-status.js';
 import { OrderCancellationConflict } from '~/api/order/domain/order-cancellation-conflict.error.js';
+import { assertOrderMoneyFits, sumDecimals } from '~/api/order/domain/order-money.js';
 import { OrderTransitionConflict } from '~/api/order/domain/order-transition-conflict.error.js';
 import { PaymentAttemptEntity } from '~/api/payment/domain/entity/payment-attempt.entity.js';
 

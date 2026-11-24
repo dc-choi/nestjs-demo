@@ -2,7 +2,7 @@ import { HttpException } from '@nestjs/common';
 
 import { GraphQLFormattedError } from 'graphql';
 import { describe, expect, it } from 'vitest';
-import { runWithRequestContext } from '~/global/common/context/request-context.js';
+import { runWithRequestContext } from '~/global/common/context/request-context.middleware.js';
 import { formatGraphqlError } from '~/global/graphql/graphql-error.formatter.js';
 
 describe('formatGraphqlError', () => {

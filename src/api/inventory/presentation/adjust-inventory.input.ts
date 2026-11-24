@@ -1,7 +1,7 @@
 import { Field, ID, InputType, Int } from '@nestjs/graphql';
 
 import { IsEnum, IsNotEmpty, IsNumber, IsString, Matches, Max, MaxLength, Min } from 'class-validator';
-import { InventoryAdjustmentType } from '~/api/inventory/presentation/inventory-reservation-status.enum.js';
+import { InventoryAdjustmentType } from '~/api/inventory/presentation/inventory.enum.js';
 import { MYSQL_SIGNED_INT_MAX, MYSQL_SIGNED_INT_MIN } from '~/global/common/utils/mysql-number.js';
 import { GRAPHQL_ID_MAX_LENGTH, GRAPHQL_ID_PATTERN } from '~/global/graphql/graphql-id.parser.js';
 

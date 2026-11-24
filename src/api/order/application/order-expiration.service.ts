@@ -21,7 +21,7 @@ import { ORDER_INVENTORY_PORT, type OrderInventoryPort } from '~/api/order/appli
 import { OrderActorType } from '~/api/order/domain/entity/order-actor-type.js';
 import { OrderStatus } from '~/api/order/domain/entity/order-status.js';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
-import { isOrderCancellationConflict } from '~/api/order/domain/order-cancellation-conflict.js';
+import { isOrderCancellationConflict } from '~/api/order/domain/is-order-cancellation-conflict.js';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload.js';
 
 export interface OrderExpirationBatchResult {

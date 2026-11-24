@@ -5,9 +5,9 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 
 import { AppModule } from './app.module.js';
 
-import { APPLICATION_LOGGER } from '~/global/common/logger/application-logger.symbol.js';
 import type { EnvConfig } from '~/global/config/env/env.config.js';
 import { applyTrustProxy } from '~/global/config/trust-proxy.js';
+import { APPLICATION_LOGGER } from '~/global/logger/application-logger.symbol.js';
 
 async function bootstrap() {
     const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true, bufferLogs: true });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { PaymentResult } from '~/api/payment/application/payment-result.js';
+import type { PaymentResult } from '~/api/payment/application/payment.result.js';
 import { toPaymentPayload } from '~/api/payment/presentation/payment.mapper.js';
 
 describe('payment GraphQL mapper', () => {

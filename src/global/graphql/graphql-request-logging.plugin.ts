@@ -6,9 +6,9 @@ import type {
 
 import { FragmentDefinitionNode, Kind, SelectionSetNode } from 'graphql';
 import { performance } from 'node:perf_hooks';
-import { getCurrentRequestId } from '~/global/common/context/request-context.js';
-import type { GraphqlOperationLog, TypedLogger } from '~/global/common/logger/channel.logger.js';
+import { getCurrentRequestId } from '~/global/common/context/request-context.middleware.js';
 import { GraphqlHttpContext } from '~/global/graphql/graphql-context.js';
+import type { GraphqlOperationLog, TypedLogger } from '~/global/logger/channel.logger.js';
 
 const INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR';
 const MAX_OPERATION_NAME_LENGTH = 128;

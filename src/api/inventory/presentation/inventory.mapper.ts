@@ -1,7 +1,7 @@
 import type { InventoryTransitionResult } from '~/api/inventory/application/inventory-transition.result.js';
 import type { InventoryMovementEntity } from '~/api/inventory/domain/entity/inventory-movement.entity.js';
 import type { InventoryAdjustmentPayload } from '~/api/inventory/presentation/inventory-adjustment.payload.js';
-import type { InventoryMovementType } from '~/api/inventory/presentation/inventory-movement.type.js';
+import type { InventoryMovementRecordType } from '~/api/inventory/presentation/inventory-movement-record.type.js';
 import type { InventoryTransitionPayload } from '~/api/inventory/presentation/inventory-transition.payload.js';
 
 export function toInventoryTransitionPayload(result: InventoryTransitionResult): InventoryTransitionPayload {
@@ -27,7 +27,7 @@ export function toInventoryAdjustmentPayload(movement: InventoryMovementEntity):
     return { movement: toInventoryMovementType(movement) };
 }
 
-function toInventoryMovementType(movement: InventoryMovementEntity): InventoryMovementType {
+function toInventoryMovementType(movement: InventoryMovementEntity): InventoryMovementRecordType {
     if (movement.id == null) throw new Error('저장되지 않은 재고 원장입니다.');
     return {
         id: movement.id.toString(),

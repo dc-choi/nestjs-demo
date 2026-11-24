@@ -6,13 +6,13 @@ import { canonicalizeProductSearchInput } from '~/api/search/domain/product-sear
 import { OpenSearchProductSearchAdapter } from '~/api/search/infrastructure/opensearch-product-search.adapter.js';
 import { OpenSearchHttpError } from '~/infra/opensearch/opensearch-http.error.js';
 import { OpenSearchHttpClient } from '~/infra/opensearch/opensearch.client.js';
-import { SearchConfig } from '~/infra/opensearch/search.config.js';
+import { OpenSearchConfig } from '~/infra/opensearch/opensearch.config.js';
 
 describe('OpenSearch product search adapter', () => {
     it('does not call OpenSearch when search is disabled', async () => {
         const request = vi.fn();
         const adapter = new OpenSearchProductSearchAdapter(
-            { enabled: false } as SearchConfig,
+            { enabled: false } as OpenSearchConfig,
             { request } as unknown as OpenSearchHttpClient
         );
 
@@ -50,7 +50,7 @@ describe('OpenSearch product search adapter', () => {
                 },
             });
         const adapter = new OpenSearchProductSearchAdapter(
-            { enabled: true, readAlias: 'catalog-products-read' } as SearchConfig,
+            { enabled: true, readAlias: 'catalog-products-read' } as OpenSearchConfig,
             { request } as unknown as OpenSearchHttpClient
         );
 
@@ -93,7 +93,7 @@ describe('OpenSearch product search adapter', () => {
             .mockResolvedValueOnce({ pit_id: 'pit-2', hits: { hits: [] }, ...incomplete })
             .mockResolvedValueOnce(null);
         const adapter = new OpenSearchProductSearchAdapter(
-            { enabled: true, readAlias: 'catalog-products-read' } as SearchConfig,
+            { enabled: true, readAlias: 'catalog-products-read' } as OpenSearchConfig,
             { request } as unknown as OpenSearchHttpClient
         );
 
@@ -104,7 +104,7 @@ describe('OpenSearch product search adapter', () => {
     it('keeps a caller-owned PIT available after an incomplete response', async () => {
         const request = vi.fn().mockResolvedValue({ timed_out: true, hits: { hits: [] } });
         const adapter = new OpenSearchProductSearchAdapter(
-            { enabled: true, readAlias: 'catalog-products-read' } as SearchConfig,
+            { enabled: true, readAlias: 'catalog-products-read' } as OpenSearchConfig,
             { request } as unknown as OpenSearchHttpClient
         );
 
@@ -116,7 +116,7 @@ describe('OpenSearch product search adapter', () => {
 
     it('converts unavailable backend errors to an application port error', async () => {
         const adapter = new OpenSearchProductSearchAdapter(
-            { enabled: true, readAlias: 'catalog-products-read' } as SearchConfig,
+            { enabled: true, readAlias: 'catalog-products-read' } as OpenSearchConfig,
             { request: vi.fn().mockRejectedValue(new Error('offline')) } as unknown as OpenSearchHttpClient
         );
 
@@ -130,7 +130,7 @@ describe('OpenSearch product search adapter', () => {
             .mockRejectedValueOnce(new Error('offline'))
             .mockResolvedValueOnce(null);
         const adapter = new OpenSearchProductSearchAdapter(
-            { enabled: true, readAlias: 'catalog-products-read' } as SearchConfig,
+            { enabled: true, readAlias: 'catalog-products-read' } as OpenSearchConfig,
             { request } as unknown as OpenSearchHttpClient
         );
 
@@ -145,7 +145,7 @@ describe('OpenSearch product search adapter', () => {
             .mockResolvedValueOnce({ pit_id: 'pit-2', hits: { hits: [{ _source: { productId: 1 } }] } })
             .mockResolvedValueOnce(null);
         const adapter = new OpenSearchProductSearchAdapter(
-            { enabled: true, readAlias: 'catalog-products-read' } as SearchConfig,
+            { enabled: true, readAlias: 'catalog-products-read' } as OpenSearchConfig,
             { request } as unknown as OpenSearchHttpClient
         );
 
@@ -160,7 +160,7 @@ describe('OpenSearch product search adapter', () => {
                 new OpenSearchHttpError(404, { error: { type: 'search_context_missing_exception' } }, 'expired')
             );
         const adapter = new OpenSearchProductSearchAdapter(
-            { enabled: true, readAlias: 'catalog-products-read' } as SearchConfig,
+            { enabled: true, readAlias: 'catalog-products-read' } as OpenSearchConfig,
             { request } as unknown as OpenSearchHttpClient
         );
 
@@ -173,7 +173,7 @@ describe('OpenSearch product search adapter', () => {
     it('does not close a caller-owned PIT after a retriable search failure', async () => {
         const request = vi.fn().mockRejectedValue(new Error('offline'));
         const adapter = new OpenSearchProductSearchAdapter(
-            { enabled: true, readAlias: 'catalog-products-read' } as SearchConfig,
+            { enabled: true, readAlias: 'catalog-products-read' } as OpenSearchConfig,
             { request } as unknown as OpenSearchHttpClient
         );
 
@@ -189,7 +189,7 @@ describe('OpenSearch product search adapter', () => {
             .mockResolvedValueOnce({ pit_id: 'rotated-pit', hits: { hits: [{ _source: { productId: 1 } }] } })
             .mockResolvedValueOnce(null);
         const adapter = new OpenSearchProductSearchAdapter(
-            { enabled: true, readAlias: 'catalog-products-read' } as SearchConfig,
+            { enabled: true, readAlias: 'catalog-products-read' } as OpenSearchConfig,
             { request } as unknown as OpenSearchHttpClient
         );
 
@@ -211,7 +211,7 @@ describe('OpenSearch product search adapter', () => {
                 },
             });
         const adapter = new OpenSearchProductSearchAdapter(
-            { enabled: true, readAlias: 'catalog-products-read' } as SearchConfig,
+            { enabled: true, readAlias: 'catalog-products-read' } as OpenSearchConfig,
             { request } as unknown as OpenSearchHttpClient
         );
 
@@ -233,7 +233,7 @@ describe('OpenSearch product ID search for relevance evaluation', () => {
             .mockResolvedValueOnce({ pit_id: 'pit-2', hits: { hits: [{ _id: '3' }, { _id: '1' }] } })
             .mockResolvedValueOnce(null);
         const adapter = new OpenSearchProductSearchAdapter(
-            { enabled: true, readAlias: 'catalog-products-read' } as SearchConfig,
+            { enabled: true, readAlias: 'catalog-products-read' } as OpenSearchConfig,
             { request } as unknown as OpenSearchHttpClient
         );
 
@@ -265,7 +265,7 @@ describe('OpenSearch product ID search for relevance evaluation', () => {
             .mockResolvedValueOnce({ pit_id: 'pit-2', hits: { hits: [{ _id: '1' }] }, ...incomplete })
             .mockResolvedValueOnce(null);
         const adapter = new OpenSearchProductSearchAdapter(
-            { enabled: true, readAlias: 'catalog-products-read' } as SearchConfig,
+            { enabled: true, readAlias: 'catalog-products-read' } as OpenSearchConfig,
             { request } as unknown as OpenSearchHttpClient
         );
 

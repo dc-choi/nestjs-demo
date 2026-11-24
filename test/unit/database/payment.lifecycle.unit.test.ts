@@ -22,7 +22,7 @@ import { PaymentWebhookEventStatus } from '~/api/payment/domain/entity/payment-w
 import { PaymentWebhookEventEntity } from '~/api/payment/domain/entity/payment-webhook-event.entity.js';
 import { PaymentWebhookOutcome } from '~/api/payment/domain/entity/payment-webhook-outcome.js';
 import { PaymentAttemptConflict } from '~/api/payment/domain/payment-attempt-conflict.error.js';
-import { HmacPaymentWebhookSignatureVerifier } from '~/api/payment/infrastructure/payment-webhook-signature.verifier.js';
+import { HmacPaymentWebhookSignatureVerifier } from '~/api/payment/infrastructure/hmac-payment-webhook-signature.verifier.js';
 import type { EnvConfig } from '~/global/config/env/env.config.js';
 
 const NOW = new Date('2026-09-04T00:00:00.000Z');
@@ -122,7 +122,12 @@ describe('payment lifecycle', () => {
         expect(persistence.persist).not.toHaveBeenCalled();
 
         const result = await RequestContext.create(persistence.requestContextSource, () =>
-            persistence.service.applyWebhookOutcome(attempt, { ...command, amount: '100.000' }, 'webhook:capture-amount', NOW)
+            persistence.service.applyWebhookOutcome(
+                attempt,
+                { ...command, amount: '100.000' },
+                'webhook:capture-amount',
+                NOW
+            )
         );
         expect(result.transaction?.amount).toBe('100');
         expect(attempt.status).toBe(PaymentAttemptStatus.CAPTURED);

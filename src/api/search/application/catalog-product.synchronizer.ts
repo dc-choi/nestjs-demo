@@ -9,7 +9,7 @@ import { projectCatalogProduct } from '~/api/search/domain/catalog-projector.js'
 import { MAX_PRODUCT_REVISION } from '~/api/search/domain/product-search.document.js';
 
 @Injectable()
-export class CatalogSearchWorker {
+export class CatalogProductSynchronizer {
     constructor(
         private readonly reader: CatalogProjectionReader,
         private readonly indexManager: CatalogIndexManager,

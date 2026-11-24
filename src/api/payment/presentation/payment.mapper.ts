@@ -1,4 +1,4 @@
-import type { PaymentResult, PaymentWebhookResult } from '~/api/payment/application/payment-result.js';
+import type { PaymentResult, PaymentWebhookResult } from '~/api/payment/application/payment.result.js';
 import type { PaymentTransactionEntity } from '~/api/payment/domain/entity/payment-transaction.entity.js';
 import type { PaymentTransactionRecordType } from '~/api/payment/presentation/payment-transaction-record.type.js';
 import type { PaymentWebhookPayload } from '~/api/payment/presentation/payment-webhook.payload.js';

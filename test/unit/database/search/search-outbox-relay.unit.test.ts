@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { CatalogMaintenanceError } from '~/api/search/application/catalog-maintenance.error.js';
-import { SEARCH_OUTBOX_HEARTBEAT_MILLISECONDS, SearchOutboxRelay } from '~/api/search/application/search-outbox.relay.js';
+import {
+    SEARCH_OUTBOX_HEARTBEAT_MILLISECONDS,
+    SearchOutboxRelay,
+} from '~/api/search/application/search-outbox.relay.js';
 
 describe('Search outbox relay', () => {
     it('does not claim rows while OpenSearch is disabled', async () => {

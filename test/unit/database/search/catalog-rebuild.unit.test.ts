@@ -1,11 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
-import { CatalogProductProjectionSource } from '~/api/search/domain/product-search.document.js';
-import { CatalogIndexManager } from '~/api/search/infrastructure/catalog-index.manager.js';
 import { CatalogMaintenanceService } from '~/api/search/application/catalog-maintenance.service.js';
-import { CatalogProjectionBatch, CatalogProjectionReader } from '~/api/search/infrastructure/catalog-projection.reader.js';
 import { CatalogRebuildService } from '~/api/search/application/catalog-rebuild.service.js';
 import { SearchReconciliationService } from '~/api/search/application/search-reconciliation.service.js';
-import { SearchConfig } from '~/infra/opensearch/search.config.js';
+import { CatalogProductProjectionSource } from '~/api/search/domain/product-search.document.js';
+import { CatalogIndexManager } from '~/api/search/infrastructure/catalog-index.manager.js';
+import {
+    CatalogProjectionBatch,
+    CatalogProjectionReader,
+} from '~/api/search/infrastructure/catalog-projection.reader.js';
+import { OpenSearchConfig } from '~/infra/opensearch/opensearch.config.js';
 
 describe('Catalog rebuild', () => {
     it('validates counts and a sample before moving aliases', async () => {
@@ -61,7 +64,7 @@ describe('Catalog rebuild', () => {
             cutOverAliases: vi.fn(async () => calls.push('cutover')),
         } as unknown as CatalogIndexManager;
         const service = new CatalogRebuildService(
-            { enabled: true } as SearchConfig,
+            { enabled: true } as OpenSearchConfig,
             reader,
             indexManager,
             maintenance,
@@ -97,7 +100,7 @@ describe('Catalog rebuild', () => {
             cutOverAliases: vi.fn(),
         } as unknown as CatalogIndexManager;
         const service = new CatalogRebuildService(
-            { enabled: true } as SearchConfig,
+            { enabled: true } as OpenSearchConfig,
             reader,
             indexManager,
             maintenance,
@@ -125,7 +128,7 @@ describe('Catalog rebuild', () => {
                 }),
         } as CatalogMaintenanceService;
         const service = new CatalogRebuildService(
-            { enabled: true } as SearchConfig,
+            { enabled: true } as OpenSearchConfig,
             {} as CatalogProjectionReader,
             indexManager,
             ownership,
@@ -142,7 +145,7 @@ describe('Catalog rebuild', () => {
             enabled: true,
             readAlias: 'catalog-read',
             writeAlias: 'catalog-write',
-        } as SearchConfig;
+        } as OpenSearchConfig;
         const reader = {} as CatalogProjectionReader;
         const indexManager = { createIndex: vi.fn() } as unknown as CatalogIndexManager;
         const service = new CatalogRebuildService(config, reader, indexManager, maintenance, reconciliation);

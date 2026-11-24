@@ -2,8 +2,8 @@ import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, onTestFinished } from 'vitest';
-import { runWithRequestContext } from '~/global/common/context/request-context.js';
-import { createWinstonLogging } from '~/global/config/logger/winston.config.js';
+import { runWithRequestContext } from '~/global/common/context/request-context.middleware.js';
+import { createWinstonLogging } from '~/global/logger/winston.config.js';
 
 describe('Winston logging lifecycle', () => {
     it('keeps channels scoped to their owner and flushes structured logs on shutdown', async () => {

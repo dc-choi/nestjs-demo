@@ -23,8 +23,8 @@ import { ORDER_INVENTORY_PORT, type OrderInventoryPort } from '~/api/order/appli
 import type { PlaceOrderCommand } from '~/api/order/application/place-order.command.js';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
+import { isOrderCancellationConflict } from '~/api/order/domain/is-order-cancellation-conflict.js';
 import { NotExistingItem } from '~/api/order/domain/not-existing-item.error.js';
-import { isOrderCancellationConflict } from '~/api/order/domain/order-cancellation-conflict.js';
 import { DistributedLockOptions, DistributedLockService } from '~/api/order/infrastructure/distributed-lock.service.js';
 import { compareBigInt } from '~/global/common/utils/bigint.js';
 import { isPositiveMysqlSignedInt } from '~/global/common/utils/mysql-number.js';

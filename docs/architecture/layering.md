@@ -82,8 +82,10 @@ export class MemberService {
 - 한 파일에는 export하는 런타임 객체를 하나만 둡니다. 런타임 객체는 class(에러 class 포함), DI 토큰
   `Symbol`, `as const` enum 객체와 같은 이름의 type입니다.
 - 파일 이름은 담은 객체를 알 수 있게 kebab-case로 쓰고 역할 suffix를 붙입니다. 예: `*.service.ts`,
-  `*.entity.ts`, `*.error.ts`, `*.symbol.ts`, `*.input.ts`, `*.type.ts`, `*.payload.ts`. Domain enum과
-  `catalog-graph.ts` 같은 domain model class는 suffix 없이 씁니다. DI 토큰을 만드는 factory 함수가 있으면 토큰을
+  `*.entity.ts`, `*.error.ts`, `*.symbol.ts`, `*.input.ts`, `*.type.ts`, `*.payload.ts`. Domain enum,
+  `catalog-graph.ts` 같은 domain model class, `catalog-graph-resolution.ts`/`order-money.ts` 같은 domain 순수 함수
+  파일, `product-snapshot-payload.ts` 같은 Entity JSON column 타입은 suffix 없이 씁니다. `*.type.ts`는 GraphQL
+  ObjectType에만 씁니다. DI 토큰을 만드는 factory 함수가 있으면 토큰을
   그 파일에 함께 둡니다(예: `product-search-cursor-secret.ts`).
 - 같은 파일에 함께 둘 수 있는 것은 그 파일에서만 쓰는 비공개 helper/타입/class, 주 객체의 입출력 interface,
   런타임 객체가 없는 순수 interface/type 묶음(command, result, payload), 값 상수와 함수입니다.

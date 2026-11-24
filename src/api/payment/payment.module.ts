@@ -12,7 +12,7 @@ import { PaymentService } from '~/api/payment/application/payment.service.js';
 import { PaymentAttemptEntity } from '~/api/payment/domain/entity/payment-attempt.entity.js';
 import { PaymentTransactionEntity } from '~/api/payment/domain/entity/payment-transaction.entity.js';
 import { PaymentWebhookEventEntity } from '~/api/payment/domain/entity/payment-webhook-event.entity.js';
-import { HmacPaymentWebhookSignatureVerifier } from '~/api/payment/infrastructure/payment-webhook-signature.verifier.js';
+import { HmacPaymentWebhookSignatureVerifier } from '~/api/payment/infrastructure/hmac-payment-webhook-signature.verifier.js';
 import { PaymentWebhookController } from '~/api/payment/presentation/payment-webhook.controller.js';
 import { PaymentResolver } from '~/api/payment/presentation/payment.resolver.js';
 

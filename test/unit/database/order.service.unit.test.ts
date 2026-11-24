@@ -23,11 +23,11 @@ import { OrderItemSnapshotEntity } from '~/api/order/domain/entity/order-item-sn
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js';
 import { OrderStatus } from '~/api/order/domain/entity/order-status.js';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
+import type { DistributedLockService } from '~/api/order/infrastructure/distributed-lock.service.js';
 import { PaymentAttemptStatus } from '~/api/payment/domain/entity/payment-attempt-status.js';
 import { PaymentAttemptEntity } from '~/api/payment/domain/entity/payment-attempt.entity.js';
 import { PaymentTransactionType } from '~/api/payment/domain/entity/payment-transaction-type.js';
 import { PaymentTransactionEntity } from '~/api/payment/domain/entity/payment-transaction.entity.js';
-import type { DistributedLockService } from '~/api/order/infrastructure/distributed-lock.service.js';
 
 const ITEM_ID = 9_007_199_254_740_993n;
 const PRODUCT_ID = 9_007_199_254_740_995n;

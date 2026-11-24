@@ -6,11 +6,10 @@ import { createHash, randomUUIDv7 } from 'node:crypto';
 import { InvalidRefreshToken } from '~/api/auth/application/invalid-refresh-token.error.js';
 import { NotExpiredAccessToken } from '~/api/auth/application/not-expired-access-token.error.js';
 import type { MemberRole } from '~/api/member/domain/entity/member-role.js';
-import { WEEK } from '~/global/common/utils/time.js';
 import { JwtClaims } from '~/global/jwt/payload/jwt.payload.js';
 import { REDIS_CLIENT } from '~/infra/redis/redis-client.symbol.js';
 
-const REFRESH_TOKEN_TTL_SECONDS = WEEK * 2;
+const REFRESH_TOKEN_TTL_SECONDS = 14 * 24 * 60 * 60;
 const REFRESH_TOKEN_PREFIX = 'token:';
 const REFRESH_TOKEN_USED_PREFIX = 'token:used:';
 const REFRESH_TOKEN_FAMILY_PREFIX = 'token:family:';

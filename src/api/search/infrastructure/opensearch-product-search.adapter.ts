@@ -12,10 +12,10 @@ import {
 } from '~/api/search/application/product-search.port.js';
 import { ProductSearchItemDocument } from '~/api/search/domain/product-search.document.js';
 import { CanonicalProductSearchInput, SearchSortValue } from '~/api/search/domain/product-search.query.js';
-import { getCurrentRequestId } from '~/global/common/context/request-context.js';
+import { getCurrentRequestId } from '~/global/common/context/request-context.middleware.js';
 import { OpenSearchHttpError } from '~/infra/opensearch/opensearch-http.error.js';
 import { OpenSearchHttpClient, escapeOpenSearchPathSegment } from '~/infra/opensearch/opensearch.client.js';
-import { SearchConfig } from '~/infra/opensearch/search.config.js';
+import { OpenSearchConfig } from '~/infra/opensearch/opensearch.config.js';
 
 interface OpenSearchProductHit {
     _id?: unknown;
@@ -52,7 +52,7 @@ export class OpenSearchProductSearchAdapter implements ProductSearchPort {
     private readonly logger = new Logger(OpenSearchProductSearchAdapter.name);
 
     constructor(
-        private readonly config: SearchConfig,
+        private readonly config: OpenSearchConfig,
         private readonly client: OpenSearchHttpClient
     ) {}
 

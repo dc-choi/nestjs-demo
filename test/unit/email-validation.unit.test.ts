@@ -1,5 +1,4 @@
 import { validateSync } from 'class-validator';
-
 import { describe, expect, it } from 'vitest';
 import { LoginInput } from '~/api/auth/presentation/login.input.js';
 import { SignupInput } from '~/api/member/presentation/signup.input.js';

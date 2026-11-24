@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isReservedMemberName, PASSWORD_REGEXP } from '~/api/member/domain/member.rules.js';
+import { PASSWORD_REGEXP, isReservedMemberName } from '~/api/member/domain/member.rules.js';
 
 describe('PASSWORD_REGEXP', () => {
     it.each(['password1', '1password', 'pass-word', 'p@ss_w0rd!', `pa'ss"wd[]{}`, 'A'.repeat(16)])(

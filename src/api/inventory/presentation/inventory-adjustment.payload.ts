@@ -1,9 +1,9 @@
 import { Field, ObjectType } from '@nestjs/graphql';
 
-import { InventoryMovementType } from './inventory-movement.type.js';
+import { InventoryMovementRecordType } from './inventory-movement-record.type.js';
 
 @ObjectType()
 export class InventoryAdjustmentPayload {
-    @Field(() => InventoryMovementType)
-    movement!: InventoryMovementType;
+    @Field(() => InventoryMovementRecordType)
+    movement!: InventoryMovementRecordType;
 }

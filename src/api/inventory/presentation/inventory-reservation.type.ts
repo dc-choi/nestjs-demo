@@ -1,6 +1,6 @@
 import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
 
-import { InventoryReservationStatus } from '~/api/inventory/presentation/inventory-reservation-status.enum.js';
+import { InventoryReservationStatus } from '~/api/inventory/presentation/inventory.enum.js';
 
 @ObjectType('InventoryReservation')
 export class InventoryReservationType {

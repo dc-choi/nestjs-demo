@@ -8,7 +8,7 @@ import { ProductSearchConnection, ProductSearchService } from '~/api/search/appl
 import { ProductSearchInputError } from '~/api/search/domain/product-search-input.error.js';
 import { ProductSearchConnectionType } from '~/api/search/presentation/product-search-connection.type.js';
 import { ProductSearchInputType } from '~/api/search/presentation/product-search.input.js';
-import { getCurrentRequestId } from '~/global/common/context/request-context.js';
+import { getCurrentRequestId } from '~/global/common/context/request-context.middleware.js';
 import { formatMoneyAmount } from '~/global/graphql/money-amount.js';
 
 @Resolver(() => ProductSearchConnectionType)

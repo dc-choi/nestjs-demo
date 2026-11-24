@@ -16,6 +16,7 @@ import { InventoryReservationEntity } from '~/api/inventory/domain/entity/invent
 import { MemberEntity } from '~/api/member/domain/entity/member.entity.js';
 import { OrderService } from '~/api/order/application/order.service.js';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
+import type { DistributedLockService } from '~/api/order/infrastructure/distributed-lock.service.js';
 import { PaymentWebhookRecoveryRelay } from '~/api/payment/application/payment-webhook-recovery.relay.js';
 import { PaymentWebhookService } from '~/api/payment/application/payment-webhook.service.js';
 import { PaymentService } from '~/api/payment/application/payment.service.js';
@@ -26,9 +27,8 @@ import { PaymentTransactionEntity } from '~/api/payment/domain/entity/payment-tr
 import { PaymentWebhookEventStatus } from '~/api/payment/domain/entity/payment-webhook-event-status.js';
 import { PaymentWebhookEventEntity } from '~/api/payment/domain/entity/payment-webhook-event.entity.js';
 import { PaymentWebhookOutcome } from '~/api/payment/domain/entity/payment-webhook-outcome.js';
-import { HmacPaymentWebhookSignatureVerifier } from '~/api/payment/infrastructure/payment-webhook-signature.verifier.js';
+import { HmacPaymentWebhookSignatureVerifier } from '~/api/payment/infrastructure/hmac-payment-webhook-signature.verifier.js';
 import { PaymentWebhookController } from '~/api/payment/presentation/payment-webhook.controller.js';
-import type { DistributedLockService } from '~/api/order/infrastructure/distributed-lock.service.js';
 import type { EnvConfig } from '~/global/config/env/env.config.js';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload.js';
 import { databaseEntities } from '~/infra/database/entities.js';
