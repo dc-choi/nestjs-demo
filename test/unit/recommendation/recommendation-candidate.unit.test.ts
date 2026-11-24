@@ -14,9 +14,9 @@ import {
     RecommendationProfile,
     RecommendationProfileReader,
 } from '~/api/recommendation/infrastructure/recommendation-profile.reader.js';
-import { OpenSearchHttpError } from '~/infra/search/opensearch-http.error.js';
-import { OpenSearchHttpClient } from '~/infra/search/opensearch.client.js';
-import { SearchConfig } from '~/infra/search/search.config.js';
+import { OpenSearchHttpError } from '~/infra/opensearch/opensearch-http.error.js';
+import { OpenSearchHttpClient } from '~/infra/opensearch/opensearch.client.js';
+import { SearchConfig } from '~/infra/opensearch/search.config.js';
 
 const ids = (from: number, count: number) => Array.from({ length: count }, (_, index) => String(from + index));
 const doc = (productId: string): CandidateDocument => ({

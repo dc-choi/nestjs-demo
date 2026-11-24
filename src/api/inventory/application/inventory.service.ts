@@ -12,11 +12,11 @@ import {
 import { ItemEntity } from '~/api/catalog/domain/entity/item.entity.js';
 import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
 import type { InventoryTransitionResult } from '~/api/inventory/application/inventory-transition.result.js';
-import { InventoryMovementType } from '~/api/inventory/domain/inventory-movement-type.js';
-import { InventoryMovementEntity } from '~/api/inventory/domain/inventory-movement.entity.js';
-import { InventoryReservationStatus } from '~/api/inventory/domain/inventory-reservation-status.js';
-import { InventoryReservationEntity } from '~/api/inventory/domain/inventory-reservation.entity.js';
-import { MemberRole } from '~/api/member/domain/member-role.js';
+import { InventoryMovementType } from '~/api/inventory/domain/entity/inventory-movement-type.js';
+import { InventoryMovementEntity } from '~/api/inventory/domain/entity/inventory-movement.entity.js';
+import { InventoryReservationStatus } from '~/api/inventory/domain/entity/inventory-reservation-status.js';
+import { InventoryReservationEntity } from '~/api/inventory/domain/entity/inventory-reservation.entity.js';
+import { MemberRole } from '~/api/member/domain/entity/member-role.js';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js';
 import { OrderStatus } from '~/api/order/domain/entity/order-status.js';
 import { compareBigInt } from '~/global/common/utils/bigint.js';

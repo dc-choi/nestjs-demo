@@ -1,4 +1,4 @@
-import type { InventoryReservationEntity } from '~/api/inventory/domain/inventory-reservation.entity.js';
+import type { InventoryReservationEntity } from '~/api/inventory/domain/entity/inventory-reservation.entity.js';
 
 export const PAYMENT_INVENTORY_PORT = Symbol('PAYMENT_INVENTORY_PORT');
 

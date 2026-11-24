@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import { CatalogProductProjectionSource } from '~/api/catalog/search/domain/product-search.document.js';
-import { CatalogIndexManager } from '~/infra/search/catalog-index.manager.js';
-import { CatalogMaintenanceService } from '~/infra/search/catalog-maintenance.service.js';
-import { CatalogProjectionBatch, CatalogProjectionReader } from '~/infra/search/catalog-projection.reader.js';
-import { CatalogRebuildService } from '~/infra/search/catalog-rebuild.service.js';
-import { SearchReconciliationService } from '~/infra/search/search-reconciliation.service.js';
-import { SearchConfig } from '~/infra/search/search.config.js';
+import { CatalogProductProjectionSource } from '~/api/search/domain/product-search.document.js';
+import { CatalogIndexManager } from '~/api/search/infrastructure/catalog-index.manager.js';
+import { CatalogMaintenanceService } from '~/api/search/application/catalog-maintenance.service.js';
+import { CatalogProjectionBatch, CatalogProjectionReader } from '~/api/search/infrastructure/catalog-projection.reader.js';
+import { CatalogRebuildService } from '~/api/search/application/catalog-rebuild.service.js';
+import { SearchReconciliationService } from '~/api/search/application/search-reconciliation.service.js';
+import { SearchConfig } from '~/infra/opensearch/search.config.js';
 
 describe('Catalog rebuild', () => {
     it('validates counts and a sample before moving aliases', async () => {

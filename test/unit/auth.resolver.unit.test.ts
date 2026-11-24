@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { AuthService } from '~/api/auth/application/auth.service.js';
 import { LoginRateLimiter } from '~/api/auth/application/login-rate-limiter.js';
 import { AuthResolver } from '~/api/auth/presentation/auth.resolver.js';
-import { LoginRateLimited } from '~/global/common/error/login-rate-limited.error.js';
+import { LoginRateLimited } from '~/api/auth/application/login-rate-limited.error.js';
 import { GraphqlHttpContext } from '~/global/graphql/graphql-context.js';
 
 describe('AuthResolver', () => {

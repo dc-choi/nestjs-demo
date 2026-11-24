@@ -1,6 +1,6 @@
 import { registerEnumType } from '@nestjs/graphql';
 
-import { MemberRole } from '../domain/member-role.js';
+import { MemberRole } from '../domain/entity/member-role.js';
 
 registerEnumType(MemberRole, {
     name: 'MemberRole',

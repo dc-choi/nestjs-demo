@@ -15,7 +15,7 @@ import { ProductStatus } from '~/api/catalog/domain/entity/product-status.js';
 import { ProductTagEntity } from '~/api/catalog/domain/entity/product-tag.entity.js';
 import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
 import { createProductSnapshotPayload } from '~/api/catalog/domain/product-snapshot.factory.js';
-import { MemberEntity } from '~/api/member/domain/member.entity.js';
+import { MemberEntity } from '~/api/member/domain/entity/member.entity.js';
 
 describe('createProductSnapshotPayload', () => {
     it('live graph을 ID 문자열과 안정적인 순서로 정규화하고 재고를 제외한다', () => {

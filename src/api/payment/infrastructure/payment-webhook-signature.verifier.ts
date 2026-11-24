@@ -2,18 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import type {
+    PaymentWebhookSignatureVerifier,
+    VerifyPaymentWebhookSignature,
+} from '~/api/payment/application/payment-webhook-signature-verifier.port.js';
 import type { EnvConfig } from '~/global/config/env/env.config.js';
-
-export interface VerifyPaymentWebhookSignature {
-    readonly provider: string;
-    readonly providerEventId: string;
-    readonly rawBody: Buffer;
-    readonly signature: string;
-}
-
-export interface PaymentWebhookSignatureVerifier {
-    verify(input: VerifyPaymentWebhookSignature): boolean | Promise<boolean>;
-}
 
 @Injectable()
 export class HmacPaymentWebhookSignatureVerifier implements PaymentWebhookSignatureVerifier {

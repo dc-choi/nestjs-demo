@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ItemEntity } from '~/api/catalog/domain/entity/item.entity.js';
-import type { MemberEntity } from '~/api/member/domain/member.entity.js';
+import type { MemberEntity } from '~/api/member/domain/entity/member.entity.js';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
 import { toOrderType } from '~/api/order/presentation/order.mapper.js';

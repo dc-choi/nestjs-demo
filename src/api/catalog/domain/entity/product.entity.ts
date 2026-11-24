@@ -18,7 +18,7 @@ import {
     normalizeRequiredText,
     normalizeSlug,
 } from '~/api/catalog/domain/product.rules.js';
-import { MemberEntity } from '~/api/member/domain/member.entity.js';
+import { MemberEntity } from '~/api/member/domain/entity/member.entity.js';
 
 export interface CreateProduct {
     readonly slug: string;

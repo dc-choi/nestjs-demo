@@ -12,10 +12,10 @@ import type {
     VerifiedPaymentWebhookCommand,
 } from '~/api/payment/application/payment.command.js';
 import { PaymentService } from '~/api/payment/application/payment.service.js';
-import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity.js';
-import { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity.js';
-import { PaymentWebhookEventStatus } from '~/api/payment/domain/payment-webhook-event-status.js';
-import { PaymentWebhookEventEntity } from '~/api/payment/domain/payment-webhook-event.entity.js';
+import { PaymentAttemptEntity } from '~/api/payment/domain/entity/payment-attempt.entity.js';
+import { PaymentTransactionEntity } from '~/api/payment/domain/entity/payment-transaction.entity.js';
+import { PaymentWebhookEventStatus } from '~/api/payment/domain/entity/payment-webhook-event-status.js';
+import { PaymentWebhookEventEntity } from '~/api/payment/domain/entity/payment-webhook-event.entity.js';
 
 interface ProcessWebhookOptions {
     readonly rejectFailedEvent?: boolean;

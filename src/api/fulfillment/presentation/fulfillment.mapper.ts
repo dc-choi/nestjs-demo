@@ -1,4 +1,4 @@
-import type { FulfillmentEntity } from '~/api/fulfillment/domain/fulfillment.entity.js';
+import type { FulfillmentEntity } from '~/api/fulfillment/domain/entity/fulfillment.entity.js';
 import type { FulfillmentPayload } from '~/api/fulfillment/presentation/fulfillment.payload.js';
 
 export function toFulfillmentPayload(fulfillment: FulfillmentEntity): FulfillmentPayload {

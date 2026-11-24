@@ -1,7 +1,7 @@
 import { MikroORM } from '@mikro-orm/mysql';
 
 import { describe, expect, it, vi } from 'vitest';
-import { CatalogProjectionReader } from '~/infra/search/catalog-projection.reader.js';
+import { CatalogProjectionReader } from '~/api/search/infrastructure/catalog-projection.reader.js';
 
 describe('Catalog projection reader', () => {
     it('hydrates a bounded live catalog batch from the primary snapshot', async () => {

@@ -3,7 +3,7 @@ import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 
 import { MemberService } from './application/member.service.js';
-import { MemberEntity } from './domain/member.entity.js';
+import { MemberEntity } from './domain/entity/member.entity.js';
 import { PasswordModule } from './password.module.js';
 import { MemberResolver } from './presentation/member.resolver.js';
 

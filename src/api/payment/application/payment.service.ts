@@ -10,9 +10,9 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 
-import { FulfillmentStatus } from '~/api/fulfillment/domain/fulfillment-status.js';
-import { InventoryReservationStatus } from '~/api/inventory/domain/inventory-reservation-status.js';
-import { MemberRole } from '~/api/member/domain/member-role.js';
+import { FulfillmentStatus } from '~/api/fulfillment/domain/entity/fulfillment-status.js';
+import { InventoryReservationStatus } from '~/api/inventory/domain/entity/inventory-reservation-status.js';
+import { MemberRole } from '~/api/member/domain/entity/member-role.js';
 import { OrderActorType } from '~/api/order/domain/entity/order-actor-type.js';
 import { OrderStatus } from '~/api/order/domain/entity/order-status.js';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
@@ -26,13 +26,13 @@ import type {
     ProcessPaymentWebhookCommand,
     RefundPaymentCommand,
 } from '~/api/payment/application/payment.command.js';
-import { PaymentAttemptStatus } from '~/api/payment/domain/payment-attempt-status.js';
-import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity.js';
+import { PaymentAttemptStatus } from '~/api/payment/domain/entity/payment-attempt-status.js';
+import { PaymentAttemptEntity } from '~/api/payment/domain/entity/payment-attempt.entity.js';
+import { PaymentTransactionStatus } from '~/api/payment/domain/entity/payment-transaction-status.js';
+import { PaymentTransactionType } from '~/api/payment/domain/entity/payment-transaction-type.js';
+import { PaymentTransactionEntity } from '~/api/payment/domain/entity/payment-transaction.entity.js';
+import { PaymentWebhookOutcome } from '~/api/payment/domain/entity/payment-webhook-outcome.js';
 import { assertPositiveMoney, compareMoney, sumMoney } from '~/api/payment/domain/payment-money.js';
-import { PaymentTransactionStatus } from '~/api/payment/domain/payment-transaction-status.js';
-import { PaymentTransactionType } from '~/api/payment/domain/payment-transaction-type.js';
-import { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity.js';
-import { PaymentWebhookOutcome } from '~/api/payment/domain/payment-webhook-outcome.js';
 import { compareBigInt } from '~/global/common/utils/bigint.js';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload.js';
 

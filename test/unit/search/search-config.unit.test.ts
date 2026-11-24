@@ -1,7 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 
 import { describe, expect, it } from 'vitest';
-import { SearchConfig } from '~/infra/search/search.config.js';
+import { SearchConfig } from '~/infra/opensearch/search.config.js';
 
 describe('Search config', () => {
     it('is inert with safe local defaults when disabled', () => {

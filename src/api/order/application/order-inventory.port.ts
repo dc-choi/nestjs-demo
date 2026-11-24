@@ -1,6 +1,6 @@
 import type { InventoryTransitionResult } from '~/api/inventory/application/inventory-transition.result.js';
-import type { InventoryMovementEntity } from '~/api/inventory/domain/inventory-movement.entity.js';
-import type { InventoryReservationEntity } from '~/api/inventory/domain/inventory-reservation.entity.js';
+import type { InventoryMovementEntity } from '~/api/inventory/domain/entity/inventory-movement.entity.js';
+import type { InventoryReservationEntity } from '~/api/inventory/domain/entity/inventory-reservation.entity.js';
 import type { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js';
 
 export const ORDER_INVENTORY_PORT = Symbol('ORDER_INVENTORY_PORT');

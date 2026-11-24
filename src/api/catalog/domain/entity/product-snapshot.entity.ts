@@ -5,7 +5,7 @@ import { ProductSnapshotChangeType } from './product-snapshot-change-type.js';
 import type { ProductSnapshotPayload } from './product-snapshot-payload.js';
 import { ProductEntity } from './product.entity.js';
 
-import { MemberEntity } from '~/api/member/domain/member.entity.js';
+import { MemberEntity } from '~/api/member/domain/entity/member.entity.js';
 
 /**
  * live Product graph의 revision별 전체 상태를 보존하는 append-only 감사 이력이다.

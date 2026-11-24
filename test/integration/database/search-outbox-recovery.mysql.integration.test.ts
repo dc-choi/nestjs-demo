@@ -9,14 +9,14 @@ import {
 } from 'test/integration/database/mysql-integration.config.js';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
-import { MemberRole } from '~/api/member/domain/member-role.js';
-import { MemberEntity } from '~/api/member/domain/member.entity.js';
+import { MemberRole } from '~/api/member/domain/entity/member-role.js';
+import { MemberEntity } from '~/api/member/domain/entity/member.entity.js';
 import { databaseEntities } from '~/infra/database/entities.js';
-import { SearchOutboxRecoveryService } from '~/infra/search/search-outbox-recovery.service.js';
-import { SearchOutboxRelay } from '~/infra/search/search-outbox.relay.js';
-import { SearchProjectionOutboxStatus } from '~/infra/search/search-projection-outbox-status.js';
-import { SearchProjectionOutboxEntity } from '~/infra/search/search-projection-outbox.entity.js';
-import { SearchConfig } from '~/infra/search/search.config.js';
+import { SearchOutboxRecoveryService } from '~/api/search/application/search-outbox-recovery.service.js';
+import { SearchOutboxRelay } from '~/api/search/application/search-outbox.relay.js';
+import { SearchProjectionOutboxStatus } from '~/api/search/domain/entity/search-projection-outbox-status.js';
+import { SearchProjectionOutboxEntity } from '~/api/search/domain/entity/search-projection-outbox.entity.js';
+import { SearchConfig } from '~/infra/opensearch/search.config.js';
 
 const describeMySql = process.env.MYSQL_INTEGRATION === '1' ? describe : describe.skip;
 

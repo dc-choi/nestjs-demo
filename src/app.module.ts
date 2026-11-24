@@ -5,9 +5,9 @@ import { ApplicationModule } from './application.module.js';
 
 import { PaymentWebhookRecoveryWorker } from '~/api/payment/application/payment-webhook-recovery.worker.js';
 import { PaymentModule } from '~/api/payment/payment.module.js';
+import { SearchHttpModule } from '~/api/search/search-http.module.js';
 import { RequestContextMiddleware } from '~/global/common/context/request-context.js';
 import { GlobalGraphqlModule } from '~/global/graphql/graphql.module.js';
-import { SearchHttpModule } from '~/infra/search/search-http.module.js';
 
 @Module({
     imports: [PaymentModule, ApplicationModule, SearchHttpModule, GlobalGraphqlModule],

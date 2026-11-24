@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { CatalogProjectionError, projectCatalogProduct } from '~/api/catalog/search/domain/catalog-projector.js';
-import { CatalogProductProjectionSource } from '~/api/catalog/search/domain/product-search.document.js';
+import { CatalogProjectionError, projectCatalogProduct } from '~/api/search/domain/catalog-projector.js';
+import { CatalogProductProjectionSource } from '~/api/search/domain/product-search.document.js';
 
 describe('Catalog projector', () => {
     it('projects only live sellable items and deterministic catalog relations', () => {

@@ -1,6 +1,6 @@
 import { registerEnumType } from '@nestjs/graphql';
 
-import { FulfillmentStatus } from '~/api/fulfillment/domain/fulfillment-status.js';
+import { FulfillmentStatus } from '~/api/fulfillment/domain/entity/fulfillment-status.js';
 
 registerEnumType(FulfillmentStatus, { name: 'FulfillmentStatus' });
 

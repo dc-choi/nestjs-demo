@@ -14,19 +14,19 @@ import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status.js'
 import { ItemEntity } from '~/api/catalog/domain/entity/item.entity.js';
 import { ProductStatus } from '~/api/catalog/domain/entity/product-status.js';
 import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
-import { FulfillmentEntity } from '~/api/fulfillment/domain/fulfillment.entity.js';
-import { InventoryReservationEntity } from '~/api/inventory/domain/inventory-reservation.entity.js';
-import { MemberEntity } from '~/api/member/domain/member.entity.js';
+import { FulfillmentEntity } from '~/api/fulfillment/domain/entity/fulfillment.entity.js';
+import { InventoryReservationEntity } from '~/api/inventory/domain/entity/inventory-reservation.entity.js';
+import { MemberEntity } from '~/api/member/domain/entity/member.entity.js';
 import type { OrderInventoryPort } from '~/api/order/application/order-inventory.port.js';
 import { OrderService } from '~/api/order/application/order.service.js';
 import { OrderItemSnapshotEntity } from '~/api/order/domain/entity/order-item-snapshot.entity.js';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js';
 import { OrderStatus } from '~/api/order/domain/entity/order-status.js';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
-import { PaymentAttemptStatus } from '~/api/payment/domain/payment-attempt-status.js';
-import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity.js';
-import { PaymentTransactionType } from '~/api/payment/domain/payment-transaction-type.js';
-import { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity.js';
+import { PaymentAttemptStatus } from '~/api/payment/domain/entity/payment-attempt-status.js';
+import { PaymentAttemptEntity } from '~/api/payment/domain/entity/payment-attempt.entity.js';
+import { PaymentTransactionType } from '~/api/payment/domain/entity/payment-transaction-type.js';
+import { PaymentTransactionEntity } from '~/api/payment/domain/entity/payment-transaction.entity.js';
 import type { DistributedLockService } from '~/global/common/lock/distributed-lock.service.js';
 
 const ITEM_ID = 9_007_199_254_740_993n;

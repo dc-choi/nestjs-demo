@@ -3,9 +3,9 @@ import { Module } from '@nestjs/common';
 
 import { ItemEntity } from '~/api/catalog/domain/entity/item.entity.js';
 import { InventoryService } from '~/api/inventory/application/inventory.service.js';
-import { InventoryReservationEntity } from '~/api/inventory/domain/inventory-reservation.entity.js';
+import { InventoryReservationEntity } from '~/api/inventory/domain/entity/inventory-reservation.entity.js';
 import { InventoryModule } from '~/api/inventory/inventory.module.js';
-import { MemberEntity } from '~/api/member/domain/member.entity.js';
+import { MemberEntity } from '~/api/member/domain/entity/member.entity.js';
 import { OrderExpirationService } from '~/api/order/application/order-expiration.service.js';
 import { ORDER_INVENTORY_PORT } from '~/api/order/application/order-inventory.port.js';
 import { OrderService } from '~/api/order/application/order.service.js';

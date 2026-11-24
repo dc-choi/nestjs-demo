@@ -9,22 +9,22 @@ import { ProductOptionEntity } from '~/api/catalog/domain/entity/product-option.
 import { ProductSnapshotEntity } from '~/api/catalog/domain/entity/product-snapshot.entity.js';
 import { ProductTagEntity } from '~/api/catalog/domain/entity/product-tag.entity.js';
 import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
-import { FulfillmentItemEntity } from '~/api/fulfillment/domain/fulfillment-item.entity.js';
-import { FulfillmentEntity } from '~/api/fulfillment/domain/fulfillment.entity.js';
-import { InventoryMovementEntity } from '~/api/inventory/domain/inventory-movement.entity.js';
-import { InventoryReservationEntity } from '~/api/inventory/domain/inventory-reservation.entity.js';
-import { MemberEntity } from '~/api/member/domain/member.entity.js';
+import { FulfillmentItemEntity } from '~/api/fulfillment/domain/entity/fulfillment-item.entity.js';
+import { FulfillmentEntity } from '~/api/fulfillment/domain/entity/fulfillment.entity.js';
+import { InventoryMovementEntity } from '~/api/inventory/domain/entity/inventory-movement.entity.js';
+import { InventoryReservationEntity } from '~/api/inventory/domain/entity/inventory-reservation.entity.js';
+import { MemberEntity } from '~/api/member/domain/entity/member.entity.js';
 import { OrderAddressEntity } from '~/api/order/domain/entity/order-address.entity.js';
 import { OrderItemSnapshotEntity } from '~/api/order/domain/entity/order-item-snapshot.entity.js';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js';
 import { OrderStatusHistoryEntity } from '~/api/order/domain/entity/order-status-history.entity.js';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
-import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity.js';
-import { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity.js';
-import { PaymentWebhookEventEntity } from '~/api/payment/domain/payment-webhook-event.entity.js';
-import { CatalogMaintenanceEntity } from '~/infra/search/catalog-maintenance.entity.js';
-import { SearchOutboxRetryHistoryEntity } from '~/infra/search/search-outbox-retry-history.entity.js';
-import { SearchProjectionOutboxEntity } from '~/infra/search/search-projection-outbox.entity.js';
+import { PaymentAttemptEntity } from '~/api/payment/domain/entity/payment-attempt.entity.js';
+import { PaymentTransactionEntity } from '~/api/payment/domain/entity/payment-transaction.entity.js';
+import { PaymentWebhookEventEntity } from '~/api/payment/domain/entity/payment-webhook-event.entity.js';
+import { CatalogMaintenanceEntity } from '~/api/search/domain/entity/catalog-maintenance.entity.js';
+import { SearchOutboxRetryHistoryEntity } from '~/api/search/domain/entity/search-outbox-retry-history.entity.js';
+import { SearchProjectionOutboxEntity } from '~/api/search/domain/entity/search-projection-outbox.entity.js';
 
 export const databaseEntities = [
     MemberEntity,

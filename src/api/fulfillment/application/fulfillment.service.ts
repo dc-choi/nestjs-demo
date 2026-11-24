@@ -13,9 +13,9 @@ import type {
     CreateFulfillmentCommand,
     ShipFulfillmentCommand,
 } from '~/api/fulfillment/application/fulfillment.command.js';
-import { FulfillmentStatus } from '~/api/fulfillment/domain/fulfillment-status.js';
-import { FulfillmentEntity } from '~/api/fulfillment/domain/fulfillment.entity.js';
-import { MemberRole } from '~/api/member/domain/member-role.js';
+import { FulfillmentStatus } from '~/api/fulfillment/domain/entity/fulfillment-status.js';
+import { FulfillmentEntity } from '~/api/fulfillment/domain/entity/fulfillment.entity.js';
+import { MemberRole } from '~/api/member/domain/entity/member-role.js';
 import { OrderActorType } from '~/api/order/domain/entity/order-actor-type.js';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js';
 import { OrderStatus } from '~/api/order/domain/entity/order-status.js';

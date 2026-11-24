@@ -2,13 +2,13 @@ import type { EntityRepository } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 
+import { InvalidIdOrPassword } from '~/api/auth/application/invalid-id-or-password.error.js';
+import { NotExistingMember } from '~/api/auth/application/not-existing-member.error.js';
+import { TokenProvider } from '~/api/auth/infrastructure/token.provider.js';
+import { PasswordKdfBusy } from '~/api/member/application/password-kdf-busy.error.js';
 import { PasswordKdfSaturatedError } from '~/api/member/application/password-kdf-saturated.error.js';
 import { PasswordService } from '~/api/member/application/password.service.js';
-import { MemberEntity } from '~/api/member/domain/member.entity.js';
-import { InvalidIdOrPassword } from '~/global/common/error/invalid-id-or-password.error.js';
-import { NotExistingMember } from '~/global/common/error/not-existing-member.error.js';
-import { PasswordKdfBusy } from '~/global/common/error/password-kdf-busy.error.js';
-import { TokenProvider } from '~/global/jwt/token.provider.js';
+import { MemberEntity } from '~/api/member/domain/entity/member.entity.js';
 
 @Injectable()
 export class AuthService {

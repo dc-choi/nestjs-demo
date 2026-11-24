@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 
-import { CatalogAnalyzer } from '~/infra/search/catalog-index.definition.js';
-import { CatalogRebuildService } from '~/infra/search/catalog-rebuild.service.js';
+import { CatalogRebuildService } from '~/api/search/application/catalog-rebuild.service.js';
+import { CatalogAnalyzer } from '~/api/search/infrastructure/catalog-index.definition.js';
 import { SearchMaintenanceAppModule } from '~/search-maintenance-app.module.js';
 
 async function main(): Promise<void> {

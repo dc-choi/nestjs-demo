@@ -1,7 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 
 import { describe, expect, it } from 'vitest';
-import { resolveProductSearchCursorSecret } from '~/api/catalog/search/application/product-search-cursor-secret.js';
+import { resolveProductSearchCursorSecret } from '~/api/search/application/product-search-cursor-secret.js';
 
 describe('Product search cursor secret', () => {
     it('uses the dedicated cursor secret before the application secret', () => {

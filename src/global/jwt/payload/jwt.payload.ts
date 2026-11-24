@@ -1,4 +1,4 @@
-import type { MemberRole } from '~/api/member/domain/member-role.js';
+import type { MemberRole } from '~/api/member/domain/entity/member-role.js';
 
 export interface JwtClaims {
     memberId: string;

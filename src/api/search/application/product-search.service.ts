@@ -1,0 +1,76 @@
+import { Inject, Injectable } from '@nestjs/common';
+
+import { ProductSearchCursorExpiredError } from '~/api/search/application/product-search-cursor-expired.error.js';
+import { PRODUCT_SEARCH_CURSOR_SECRET } from '~/api/search/application/product-search-cursor-secret.js';
+import { ProductSearchUnavailableError } from '~/api/search/application/product-search-unavailable.error.js';
+import {
+    PRODUCT_SEARCH_PORT,
+    ProductSearchConnection,
+    type ProductSearchPort,
+} from '~/api/search/application/product-search.port.js';
+import { ProductSearchContractError } from '~/api/search/domain/product-search-contract.error.js';
+import {
+    ProductSearchInput,
+    assertSearchCursorFingerprint,
+    canonicalizeProductSearchInput,
+    decodeSearchCursor,
+    encodeSearchCursor,
+    fingerprintProductSearchInput,
+} from '~/api/search/domain/product-search.query.js';
+
+@Injectable()
+export class ProductSearchService {
+    constructor(
+        @Inject(PRODUCT_SEARCH_PORT)
+        private readonly searchPort: ProductSearchPort,
+        @Inject(PRODUCT_SEARCH_CURSOR_SECRET)
+        private readonly cursorSecret: string
+    ) {}
+
+    async search(input: ProductSearchInput): Promise<ProductSearchConnection> {
+        if (!this.searchPort.isAvailable()) {
+            throw new ProductSearchUnavailableError('SEARCH_DISABLED', 'Product search is disabled');
+        }
+        const canonical = canonicalizeProductSearchInput(input);
+        const fingerprint = fingerprintProductSearchInput(canonical);
+        const cursor = input.after ? decodeSearchCursor(input.after, this.cursorSecret) : null;
+        if (cursor) assertSearchCursorFingerprint(cursor, fingerprint);
+
+        let page;
+        try {
+            page = await this.searchPort.search({
+                input: canonical,
+                sessionId: cursor?.pitId ?? null,
+                searchAfter: cursor?.sortValues ?? null,
+            });
+        } catch (error) {
+            if (error instanceof ProductSearchCursorExpiredError) {
+                throw new ProductSearchContractError('SEARCH_CURSOR_EXPIRED', error.message);
+            }
+            throw error;
+        }
+
+        if (!page.hasNextPage) {
+            await this.searchPort.close(page.sessionId);
+            return { nodes: page.nodes, pageInfo: { hasNextPage: false, endCursor: null } };
+        }
+
+        try {
+            return {
+                nodes: page.nodes,
+                pageInfo: {
+                    hasNextPage: true,
+                    endCursor: encodeSearchCursor(
+                        page.sessionId,
+                        [...page.nextSortValues],
+                        fingerprint,
+                        this.cursorSecret
+                    ),
+                },
+            };
+        } catch (error) {
+            await this.searchPort.close(page.sessionId);
+            throw error;
+        }
+    }
+}

@@ -16,11 +16,11 @@ import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status.js'
 import { ItemEntity } from '~/api/catalog/domain/entity/item.entity.js';
 import { ProductStatus } from '~/api/catalog/domain/entity/product-status.js';
 import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
-import { MemberRole } from '~/api/member/domain/member-role.js';
-import { MemberEntity } from '~/api/member/domain/member.entity.js';
+import { MemberRole } from '~/api/member/domain/entity/member-role.js';
+import { MemberEntity } from '~/api/member/domain/entity/member.entity.js';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload.js';
 import { databaseEntities } from '~/infra/database/entities.js';
-import { catalogSearchWriteEffects } from '~/infra/search/catalog-write-effects.js';
+import { catalogSearchWriteEffects } from '~/api/search/application/catalog-write-effects.js';
 
 const describeMySql = process.env.MYSQL_INTEGRATION === '1' ? describe : describe.skip;
 

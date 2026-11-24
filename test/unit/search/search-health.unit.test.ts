@@ -1,11 +1,11 @@
 import { ConfigService } from '@nestjs/config';
 
 import { describe, expect, it, vi } from 'vitest';
-import { OpenSearchHttpError } from '~/infra/search/opensearch-http.error.js';
-import { OpenSearchHttpClient } from '~/infra/search/opensearch.client.js';
-import { SearchHealthController } from '~/infra/search/search-health.controller.js';
-import { SearchHealthService } from '~/infra/search/search-health.service.js';
-import { SearchConfig } from '~/infra/search/search.config.js';
+import { OpenSearchHttpError } from '~/infra/opensearch/opensearch-http.error.js';
+import { OpenSearchHttpClient } from '~/infra/opensearch/opensearch.client.js';
+import { SearchHealthController } from '~/api/search/presentation/search-health.controller.js';
+import { SearchHealthService } from '~/api/search/application/search-health.service.js';
+import { SearchConfig } from '~/infra/opensearch/search.config.js';
 
 describe('Search health', () => {
     it('does not call OpenSearch when disabled', async () => {

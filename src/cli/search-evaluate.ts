@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import {
     RelevanceEvaluationFixture,
     SearchRelevanceEvaluationService,
-} from '~/infra/search/search-relevance-evaluation.service.js';
+} from '~/api/search/application/search-relevance-evaluation.service.js';
 import { SearchMaintenanceAppModule } from '~/search-maintenance-app.module.js';
 
 async function main(): Promise<void> {

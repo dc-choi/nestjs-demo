@@ -12,11 +12,11 @@ import type { PaymentInventoryPort } from '~/api/payment/application/payment-inv
 import { PaymentWebhookRecoveryRelay } from '~/api/payment/application/payment-webhook-recovery.relay.js';
 import { PaymentWebhookService } from '~/api/payment/application/payment-webhook.service.js';
 import { PaymentService } from '~/api/payment/application/payment.service.js';
-import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity.js';
-import { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity.js';
-import { PaymentWebhookEventStatus } from '~/api/payment/domain/payment-webhook-event-status.js';
-import { PaymentWebhookEventEntity } from '~/api/payment/domain/payment-webhook-event.entity.js';
-import { PaymentWebhookOutcome } from '~/api/payment/domain/payment-webhook-outcome.js';
+import { PaymentAttemptEntity } from '~/api/payment/domain/entity/payment-attempt.entity.js';
+import { PaymentTransactionEntity } from '~/api/payment/domain/entity/payment-transaction.entity.js';
+import { PaymentWebhookEventStatus } from '~/api/payment/domain/entity/payment-webhook-event-status.js';
+import { PaymentWebhookEventEntity } from '~/api/payment/domain/entity/payment-webhook-event.entity.js';
+import { PaymentWebhookOutcome } from '~/api/payment/domain/entity/payment-webhook-outcome.js';
 
 const NOW = new Date('2026-09-05T00:00:00.000Z');
 const verifiedCommand = {

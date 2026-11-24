@@ -7,7 +7,7 @@ import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
 import { InvalidProductChange } from '~/api/catalog/domain/invalid-product-change.error.js';
 import { NotExistingProduct } from '~/api/catalog/domain/not-existing-product.error.js';
 import { ProductAccessDenied } from '~/api/catalog/domain/product-access-denied.error.js';
-import { MemberRole } from '~/api/member/domain/member-role.js';
+import { MemberRole } from '~/api/member/domain/entity/member-role.js';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload.js';
 
 export const DEFAULT_PRODUCT_SNAPSHOT_LIMIT = 20;

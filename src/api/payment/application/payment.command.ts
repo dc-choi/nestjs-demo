@@ -1,4 +1,4 @@
-import { PaymentWebhookOutcome } from '~/api/payment/domain/payment-webhook-outcome.js';
+import { PaymentWebhookOutcome } from '~/api/payment/domain/entity/payment-webhook-outcome.js';
 
 export interface CreatePaymentAttemptCommand {
     readonly orderId: bigint;

@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 
-import { SearchReconciliationService } from '~/infra/search/search-reconciliation.service.js';
+import { SearchReconciliationService } from '~/api/search/application/search-reconciliation.service.js';
 import { SearchMaintenanceAppModule } from '~/search-maintenance-app.module.js';
 
 async function main(): Promise<void> {

@@ -5,12 +5,12 @@ import { readMySqlIntegrationConnection, seedCatalogMaintenance } from './mysql-
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { ProductCommandService } from '~/api/catalog/application/product-command.service.js';
-import { MemberRole } from '~/api/member/domain/member-role.js';
+import { MemberRole } from '~/api/member/domain/entity/member-role.js';
 import { databaseEntities } from '~/infra/database/entities.js';
-import { CatalogMaintenanceEntity } from '~/infra/search/catalog-maintenance.entity.js';
-import { CatalogMaintenanceError } from '~/infra/search/catalog-maintenance.error.js';
-import { CatalogMaintenanceService } from '~/infra/search/catalog-maintenance.service.js';
-import { catalogSearchWriteEffects } from '~/infra/search/catalog-write-effects.js';
+import { CatalogMaintenanceEntity } from '~/api/search/domain/entity/catalog-maintenance.entity.js';
+import { CatalogMaintenanceError } from '~/api/search/application/catalog-maintenance.error.js';
+import { CatalogMaintenanceService } from '~/api/search/application/catalog-maintenance.service.js';
+import { catalogSearchWriteEffects } from '~/api/search/application/catalog-write-effects.js';
 
 const describeMySql = process.env.MYSQL_INTEGRATION === '1' ? describe : describe.skip;
 

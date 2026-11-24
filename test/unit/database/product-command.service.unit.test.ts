@@ -15,11 +15,11 @@ import { ProductSnapshotEntity } from '~/api/catalog/domain/entity/product-snaps
 import { ProductStatus } from '~/api/catalog/domain/entity/product-status.js';
 import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
 import { createProductSnapshotPayload } from '~/api/catalog/domain/product-snapshot.factory.js';
-import { MemberRole } from '~/api/member/domain/member-role.js';
-import { MemberEntity } from '~/api/member/domain/member.entity.js';
+import { MemberRole } from '~/api/member/domain/entity/member-role.js';
+import { MemberEntity } from '~/api/member/domain/entity/member.entity.js';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload.js';
-import { catalogSearchWriteEffects } from '~/infra/search/catalog-write-effects.js';
-import { SearchProjectionOutboxEntity } from '~/infra/search/search-projection-outbox.entity.js';
+import { catalogSearchWriteEffects } from '~/api/search/application/catalog-write-effects.js';
+import { SearchProjectionOutboxEntity } from '~/api/search/domain/entity/search-projection-outbox.entity.js';
 
 const seller: JwtPayload = { memberId: 7n, role: MemberRole.SELLER };
 

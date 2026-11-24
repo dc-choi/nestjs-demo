@@ -3,8 +3,8 @@ import { Module } from '@nestjs/common';
 
 import { ItemEntity } from '~/api/catalog/domain/entity/item.entity.js';
 import { InventoryService } from '~/api/inventory/application/inventory.service.js';
-import { InventoryMovementEntity } from '~/api/inventory/domain/inventory-movement.entity.js';
-import { InventoryReservationEntity } from '~/api/inventory/domain/inventory-reservation.entity.js';
+import { InventoryMovementEntity } from '~/api/inventory/domain/entity/inventory-movement.entity.js';
+import { InventoryReservationEntity } from '~/api/inventory/domain/entity/inventory-reservation.entity.js';
 import { InventoryResolver } from '~/api/inventory/presentation/inventory.resolver.js';
 
 @Module({

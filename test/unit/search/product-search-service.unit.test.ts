@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { ProductSearchNode } from '~/api/catalog/search/application/product-search.port.js';
-import { ProductSearchService } from '~/api/catalog/search/application/product-search.service.js';
+import type { ProductSearchNode } from '~/api/search/application/product-search.port.js';
+import { ProductSearchService } from '~/api/search/application/product-search.service.js';
 
 describe('Product search service', () => {
     it('reports a disabled search before validating the request', async () => {

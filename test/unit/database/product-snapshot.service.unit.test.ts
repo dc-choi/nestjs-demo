@@ -9,8 +9,8 @@ import {
 import { ProductSnapshotChangeType } from '~/api/catalog/domain/entity/product-snapshot-change-type.js';
 import { ProductSnapshotEntity } from '~/api/catalog/domain/entity/product-snapshot.entity.js';
 import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
-import { MemberRole } from '~/api/member/domain/member-role.js';
-import { MemberEntity } from '~/api/member/domain/member.entity.js';
+import { MemberRole } from '~/api/member/domain/entity/member-role.js';
+import { MemberEntity } from '~/api/member/domain/entity/member.entity.js';
 
 describe('ProductSnapshotService', () => {
     const findOne = vi.fn<EntityManager['findOne']>();

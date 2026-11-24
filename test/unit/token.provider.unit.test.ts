@@ -1,8 +1,8 @@
 import type { JwtService } from '@nestjs/jwt';
 
 import { describe, expect, it, vi } from 'vitest';
-import { MemberRole } from '~/api/member/domain/member-role.js';
-import { TokenProvider } from '~/global/jwt/token.provider.js';
+import { MemberRole } from '~/api/member/domain/entity/member-role.js';
+import { TokenProvider } from '~/api/auth/infrastructure/token.provider.js';
 
 describe('TokenProvider', () => {
     it('signs access token before atomically creating a hashed refresh-token session', async () => {

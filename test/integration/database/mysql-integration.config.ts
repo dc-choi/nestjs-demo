@@ -1,7 +1,7 @@
 import type { EntityManager } from '@mikro-orm/core';
 
 import 'dotenv/config';
-import { CatalogMaintenanceEntity } from '~/infra/search/catalog-maintenance.entity.js';
+import { CatalogMaintenanceEntity } from '~/api/search/domain/entity/catalog-maintenance.entity.js';
 
 export interface MySqlIntegrationConnection {
     host: string;

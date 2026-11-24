@@ -1,6 +1,6 @@
-import type { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity.js';
-import type { PaymentTransactionEntity } from '~/api/payment/domain/payment-transaction.entity.js';
-import type { PaymentWebhookEventEntity } from '~/api/payment/domain/payment-webhook-event.entity.js';
+import type { PaymentAttemptEntity } from '~/api/payment/domain/entity/payment-attempt.entity.js';
+import type { PaymentTransactionEntity } from '~/api/payment/domain/entity/payment-transaction.entity.js';
+import type { PaymentWebhookEventEntity } from '~/api/payment/domain/entity/payment-webhook-event.entity.js';
 
 export interface PaymentResult {
     readonly attempt: PaymentAttemptEntity;

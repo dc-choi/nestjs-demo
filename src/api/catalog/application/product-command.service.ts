@@ -44,8 +44,8 @@ import {
 } from '~/api/catalog/domain/product-snapshot.factory.js';
 import { ProductWriteConflict } from '~/api/catalog/domain/product-write-conflict.error.js';
 import { PRODUCT_REASON_MAX_LENGTH, ProductRuleError } from '~/api/catalog/domain/product.rules.js';
-import { MemberRole } from '~/api/member/domain/member-role.js';
-import { MemberEntity } from '~/api/member/domain/member.entity.js';
+import { MemberRole } from '~/api/member/domain/entity/member-role.js';
+import { MemberEntity } from '~/api/member/domain/entity/member.entity.js';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload.js';
 
 const snapshotPopulate = [

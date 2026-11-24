@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { ApplicationModule } from '~/application.module.js';
 import { searchMaintenanceEnvValidationSchema } from '~/global/config/env/search-maintenance-env.validation.js';
 import { DatabaseModule } from '~/infra/database/database.module.js';
-import { SearchModule } from '~/infra/search/search.module.js';
+import { SearchModule } from '~/api/search/search.module.js';
 import { SearchMaintenanceAppModule } from '~/search-maintenance-app.module.js';
 
 const databaseEnv = {

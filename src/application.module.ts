@@ -11,7 +11,7 @@ import { PaymentModule } from '~/api/payment/payment.module.js';
 import { DistributedLockModule } from '~/global/common/lock/distributed-lock.module.js';
 import { envValidationSchema } from '~/global/config/env/env.validation.js';
 import { LoggingModule } from '~/global/config/logger/logging.module.js';
-import { TokenModule } from '~/global/jwt/token.module.js';
+import { JwtAuthModule } from '~/global/jwt/jwt-auth.module.js';
 import { DatabaseModule } from '~/infra/database/database.module.js';
 import { MailModule } from '~/infra/mail/mail.module.js';
 import { RedisClientModule } from '~/infra/redis/redis-client.module.js';
@@ -28,7 +28,7 @@ import { RedisClientModule } from '~/infra/redis/redis-client.module.js';
         DistributedLockModule,
         DatabaseModule,
         MailModule,
-        TokenModule,
+        JwtAuthModule,
         AuthModule,
         CatalogModule,
         InventoryModule,

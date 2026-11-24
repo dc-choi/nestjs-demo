@@ -7,8 +7,9 @@ import {
     RecommendationProfile,
     RecommendationProfileReader,
 } from '~/api/recommendation/infrastructure/recommendation-profile.reader.js';
-import { OpenSearchHttpClient, escapeOpenSearchPathSegment } from '~/infra/search/opensearch.client.js';
-import { SearchConfig } from '~/infra/search/search.config.js';
+import type { ProductSearchDocument } from '~/api/search/domain/product-search.document.js';
+import { OpenSearchHttpClient, escapeOpenSearchPathSegment } from '~/infra/opensearch/opensearch.client.js';
+import { SearchConfig } from '~/infra/opensearch/search.config.js';
 
 export const CANDIDATE_LIMIT = 200;
 export const INTEREST_CANDIDATE_LIMIT = 150;
@@ -21,19 +22,21 @@ export const POPULARITY_ROW_LIMIT = 1_000;
  */
 export const MIN_POPULAR_FOUND_RATIO = 0.5;
 
-const SOURCE_FIELDS = ['productId', 'slug', 'categoryIds', 'tags', 'minPrice'];
+/** Read model contract owned by the search module: a field rename there must fail typecheck here. */
+const SOURCE_FIELDS = [
+    'productId',
+    'slug',
+    'categoryIds',
+    'tags',
+    'minPrice',
+] as const satisfies readonly (keyof ProductSearchDocument)[];
+type DocumentField = keyof ProductSearchDocument | `${keyof ProductSearchDocument}.keyword`;
 const USER_ID_PATTERN = /^[1-9]\d{0,18}$/;
 
 export type CandidateSource = 'INTEREST' | 'POPULAR';
 
 /** Product document fields that stage 3 ranking uses. */
-export interface CandidateDocument {
-    productId: string;
-    slug: string;
-    categoryIds: string[];
-    tags: string[];
-    minPrice: number;
-}
+export type CandidateDocument = Pick<ProductSearchDocument, (typeof SOURCE_FIELDS)[number]>;
 
 export interface CandidateHit {
     document: CandidateDocument;
@@ -292,7 +295,7 @@ export function buildPopularQuery(productIds: readonly string[]): Record<string,
     };
 }
 
-function weightedTerms(field: string, terms: Array<[value: string, score: number]>): unknown[] {
+function weightedTerms(field: DocumentField, terms: Array<[value: string, score: number]>): unknown[] {
     const max = Math.max(...terms.map(([, score]) => score));
     return terms.map(([value, score]) => ({
         constant_score: { filter: { term: { [field]: value } }, boost: score / max },

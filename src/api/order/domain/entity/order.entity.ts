@@ -1,11 +1,11 @@
 import { Cascade, Collection, type Opt, type Rel } from '@mikro-orm/core';
 import { Entity, Enum, Index, ManyToOne, OneToMany, PrimaryKey, Property, Unique } from '@mikro-orm/decorators/legacy';
 
-import { FulfillmentStatus } from '~/api/fulfillment/domain/fulfillment-status.js';
-import { FulfillmentEntity } from '~/api/fulfillment/domain/fulfillment.entity.js';
-import { InventoryReservationStatus } from '~/api/inventory/domain/inventory-reservation-status.js';
-import type { InventoryReservationEntity } from '~/api/inventory/domain/inventory-reservation.entity.js';
-import { MemberEntity } from '~/api/member/domain/member.entity.js';
+import { FulfillmentStatus } from '~/api/fulfillment/domain/entity/fulfillment-status.js';
+import { FulfillmentEntity } from '~/api/fulfillment/domain/entity/fulfillment.entity.js';
+import { InventoryReservationStatus } from '~/api/inventory/domain/entity/inventory-reservation-status.js';
+import type { InventoryReservationEntity } from '~/api/inventory/domain/entity/inventory-reservation.entity.js';
+import { MemberEntity } from '~/api/member/domain/entity/member.entity.js';
 import { assertOrderMoneyFits, sumDecimals } from '~/api/order/domain/decimal.js';
 import { OrderActorType } from '~/api/order/domain/entity/order-actor-type.js';
 import { OrderAddressEntity } from '~/api/order/domain/entity/order-address.entity.js';
@@ -13,7 +13,7 @@ import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js'
 import { OrderStatusHistoryEntity } from '~/api/order/domain/entity/order-status-history.entity.js';
 import { OrderStatus } from '~/api/order/domain/entity/order-status.js';
 import { OrderCancellationConflict } from '~/api/order/domain/order-cancellation-conflict.error.js';
-import { PaymentAttemptEntity } from '~/api/payment/domain/payment-attempt.entity.js';
+import { PaymentAttemptEntity } from '~/api/payment/domain/entity/payment-attempt.entity.js';
 
 interface PlaceOrder {
     readonly member: Rel<MemberEntity>;

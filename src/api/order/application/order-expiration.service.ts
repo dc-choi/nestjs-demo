@@ -12,10 +12,10 @@ import {
 
 import { createHash } from 'node:crypto';
 import type { InventoryTransitionResult } from '~/api/inventory/application/inventory-transition.result.js';
-import type { InventoryMovementEntity } from '~/api/inventory/domain/inventory-movement.entity.js';
-import { InventoryReservationStatus } from '~/api/inventory/domain/inventory-reservation-status.js';
-import { InventoryReservationEntity } from '~/api/inventory/domain/inventory-reservation.entity.js';
-import { MemberRole } from '~/api/member/domain/member-role.js';
+import type { InventoryMovementEntity } from '~/api/inventory/domain/entity/inventory-movement.entity.js';
+import { InventoryReservationStatus } from '~/api/inventory/domain/entity/inventory-reservation-status.js';
+import { InventoryReservationEntity } from '~/api/inventory/domain/entity/inventory-reservation.entity.js';
+import { MemberRole } from '~/api/member/domain/entity/member-role.js';
 import { lockOrderDependents } from '~/api/order/application/order-dependents.lock.js';
 import { ORDER_INVENTORY_PORT, type OrderInventoryPort } from '~/api/order/application/order-inventory.port.js';
 import { OrderActorType } from '~/api/order/domain/entity/order-actor-type.js';

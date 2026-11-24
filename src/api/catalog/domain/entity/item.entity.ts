@@ -6,7 +6,7 @@ import { ItemSaleStatus } from './item-sale-status.js';
 import { ProductEntity } from './product.entity.js';
 
 import { randomUUIDv7 } from 'node:crypto';
-import { InventoryMovementEntity } from '~/api/inventory/domain/inventory-movement.entity.js';
+import { InventoryMovementEntity } from '~/api/inventory/domain/entity/inventory-movement.entity.js';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js';
 
 /**

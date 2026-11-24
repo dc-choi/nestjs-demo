@@ -4,7 +4,7 @@ import { MikroORM } from '@mikro-orm/mysql';
 import { describe, expect, it } from 'vitest';
 import { ItemEntity } from '~/api/catalog/domain/entity/item.entity.js';
 import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
-import { MemberEntity } from '~/api/member/domain/member.entity.js';
+import { MemberEntity } from '~/api/member/domain/entity/member.entity.js';
 import { OrderItemEntity } from '~/api/order/domain/entity/order-item.entity.js';
 import { OrderEntity } from '~/api/order/domain/entity/order.entity.js';
 import { createMikroOrmCoreOptions } from '~/infra/database/mikro-orm.config.js';

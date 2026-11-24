@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ProductSearchUnavailableError } from '~/api/catalog/search/application/product-search-unavailable.error.js';
-import { ProductSearchBackendRequest } from '~/api/catalog/search/application/product-search.port.js';
-import { canonicalizeProductSearchInput } from '~/api/catalog/search/domain/product-search.query.js';
-import { OpenSearchProductSearchAdapter } from '~/infra/search/opensearch-product-search.adapter.js';
-import { OpenSearchHttpClient } from '~/infra/search/opensearch.client.js';
-import { SearchConfig } from '~/infra/search/search.config.js';
+import { ProductSearchUnavailableError } from '~/api/search/application/product-search-unavailable.error.js';
+import { ProductSearchBackendRequest } from '~/api/search/application/product-search.port.js';
+import { canonicalizeProductSearchInput } from '~/api/search/domain/product-search.query.js';
+import { OpenSearchProductSearchAdapter } from '~/api/search/infrastructure/opensearch-product-search.adapter.js';
+import { OpenSearchHttpClient } from '~/infra/opensearch/opensearch.client.js';
+import { SearchConfig } from '~/infra/opensearch/search.config.js';
 
 describe('OpenSearch product search adapter', () => {
     it('does not call OpenSearch when search is disabled', async () => {

@@ -6,7 +6,7 @@ import { ItemEntity } from '~/api/catalog/domain/entity/item.entity.js';
 import { ProductStatus } from '~/api/catalog/domain/entity/product-status.js';
 import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
 import { ProductRuleError } from '~/api/catalog/domain/product.rules.js';
-import { MemberEntity } from '~/api/member/domain/member.entity.js';
+import { MemberEntity } from '~/api/member/domain/entity/member.entity.js';
 
 const seller = Object.assign(new MemberEntity(), { id: 7n });
 

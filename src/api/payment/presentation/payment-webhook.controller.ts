@@ -15,10 +15,12 @@ import {
 import { IsEnum, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
 import { Request } from 'express';
 import { createHash } from 'node:crypto';
+import {
+    PAYMENT_WEBHOOK_SIGNATURE_VERIFIER,
+    type PaymentWebhookSignatureVerifier,
+} from '~/api/payment/application/payment-webhook-signature-verifier.port.js';
 import { PaymentWebhookService } from '~/api/payment/application/payment-webhook.service.js';
-import { PaymentWebhookOutcome } from '~/api/payment/domain/payment-webhook-outcome.js';
-import { PAYMENT_WEBHOOK_SIGNATURE_VERIFIER } from '~/api/payment/infrastructure/payment-webhook-signature-verifier.symbol.js';
-import type { PaymentWebhookSignatureVerifier } from '~/api/payment/infrastructure/payment-webhook-signature.verifier.js';
+import { PaymentWebhookOutcome } from '~/api/payment/domain/entity/payment-webhook-outcome.js';
 
 class PaymentWebhookHttpBody {
     @IsOptional()

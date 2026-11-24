@@ -3,7 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import {
     type SearchOutboxDeadLetterRetryOptions,
     SearchOutboxRecoveryService,
-} from '~/infra/search/search-outbox-recovery.service.js';
+} from '~/api/search/application/search-outbox-recovery.service.js';
 import { SearchMaintenanceAppModule } from '~/search-maintenance-app.module.js';
 
 async function main(): Promise<void> {

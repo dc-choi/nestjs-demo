@@ -3,9 +3,9 @@ import { ConfigModule } from '@nestjs/config';
 
 import { searchMaintenanceEnvValidationSchema } from './global/config/env/search-maintenance-env.validation.js';
 
+import { SearchModule } from '~/api/search/search.module.js';
 import { LoggingModule } from '~/global/config/logger/logging.module.js';
 import { DatabaseModule } from '~/infra/database/database.module.js';
-import { SearchModule } from '~/infra/search/search.module.js';
 
 @Module({
     imports: [

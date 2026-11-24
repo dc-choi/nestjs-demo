@@ -1,12 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { ProductSearchDocument } from '~/api/catalog/search/domain/product-search.document.js';
+import { ProductSearchDocument } from '~/api/search/domain/product-search.document.js';
 import { RecommendationCandidateService } from '~/api/recommendation/application/recommendation-candidate.service.js';
 import { RecommendationProfileReader } from '~/api/recommendation/infrastructure/recommendation-profile.reader.js';
-import { createCatalogIndexName } from '~/infra/search/catalog-index.definition.js';
-import { CatalogIndexManager } from '~/infra/search/catalog-index.manager.js';
-import { OpenSearchHttpClient } from '~/infra/search/opensearch.client.js';
-import { SearchConfig } from '~/infra/search/search.config.js';
+import { createCatalogIndexName } from '~/api/search/infrastructure/catalog-index.definition.js';
+import { CatalogIndexManager } from '~/api/search/infrastructure/catalog-index.manager.js';
+import { OpenSearchHttpClient } from '~/infra/opensearch/opensearch.client.js';
+import { SearchConfig } from '~/infra/opensearch/search.config.js';
 
 const describeOpenSearch = process.env.OPENSEARCH_INTEGRATION === '1' ? describe : describe.skip;
 

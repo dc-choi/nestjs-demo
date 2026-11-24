@@ -8,15 +8,15 @@ import { ItemSaleStatus } from '~/api/catalog/domain/entity/item-sale-status.js'
 import { ItemEntity } from '~/api/catalog/domain/entity/item.entity.js';
 import { ProductStatus } from '~/api/catalog/domain/entity/product-status.js';
 import { ProductEntity } from '~/api/catalog/domain/entity/product.entity.js';
-import { InventoryMovementType } from '~/api/inventory/domain/inventory-movement-type.js';
-import { InventoryMovementEntity } from '~/api/inventory/domain/inventory-movement.entity.js';
+import { InventoryMovementType } from '~/api/inventory/domain/entity/inventory-movement-type.js';
+import { InventoryMovementEntity } from '~/api/inventory/domain/entity/inventory-movement.entity.js';
 import { PasswordKdfAdmission } from '~/api/member/application/password-kdf.admission.js';
 import { PasswordService } from '~/api/member/application/password.service.js';
-import { MemberRole } from '~/api/member/domain/member-role.js';
-import { MemberEntity } from '~/api/member/domain/member.entity.js';
+import { MemberRole } from '~/api/member/domain/entity/member-role.js';
+import { MemberEntity } from '~/api/member/domain/entity/member.entity.js';
+import { catalogSearchWriteEffects } from '~/api/search/application/catalog-write-effects.js';
 import type { EnvConfig } from '~/global/config/env/env.config.js';
 import type { JwtPayload } from '~/global/jwt/payload/jwt.payload.js';
-import { catalogSearchWriteEffects } from '~/infra/search/catalog-write-effects.js';
 
 const DEMO_PRODUCT_SLUG = 'demo-wireless-keyboard';
 const initialStockBySku = new Map([

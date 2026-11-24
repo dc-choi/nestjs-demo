@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 
-import { SearchOutboxRelay } from '~/infra/search/search-outbox.relay.js';
+import { SearchOutboxRelay } from '~/api/search/application/search-outbox.relay.js';
 import { SearchMaintenanceAppModule } from '~/search-maintenance-app.module.js';
 
 async function main(): Promise<void> {

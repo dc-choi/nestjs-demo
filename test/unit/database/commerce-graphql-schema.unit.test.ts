@@ -4,8 +4,8 @@ import { GraphQLSchemaBuilderModule, GraphQLSchemaFactory } from '@nestjs/graphq
 import { GraphQLObjectType } from 'graphql';
 import { describe, expect, it } from 'vitest';
 import { ProductResolver } from '~/api/catalog/presentation/product.resolver.js';
-import { DecimalScalar } from '~/api/catalog/search/presentation/decimal.scalar.js';
-import { ProductSearchResolver } from '~/api/catalog/search/presentation/product-search.resolver.js';
+import { DecimalScalar } from '~/api/search/presentation/decimal.scalar.js';
+import { ProductSearchResolver } from '~/api/search/presentation/product-search.resolver.js';
 import { FulfillmentResolver } from '~/api/fulfillment/presentation/fulfillment.resolver.js';
 import { InventoryResolver } from '~/api/inventory/presentation/inventory.resolver.js';
 import { OrderExpirationResolver } from '~/api/order/presentation/order-expiration.resolver.js';
