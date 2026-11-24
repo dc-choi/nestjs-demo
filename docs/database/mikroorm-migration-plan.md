@@ -251,12 +251,13 @@ entityGenerator: {
 Entity는 도메인별로 다음 위치에 둔다.
 
 ```text
-src/api/member/domain/member.entity.ts
+src/api/member/domain/entity/member.entity.ts
 src/api/catalog/domain/entity/*.entity.ts
 src/api/order/domain/entity/*.entity.ts
 src/api/inventory/domain/entity/*.entity.ts
 src/api/payment/domain/entity/*.entity.ts
 src/api/fulfillment/domain/entity/*.entity.ts
+src/api/search/domain/entity/*.entity.ts
 
 src/infra/database/
   database.module.ts

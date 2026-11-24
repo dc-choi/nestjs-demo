@@ -582,40 +582,45 @@ Mapping/Analyzer 변경은 새 물리 인덱스에 MySQL 현재 상태를 backfi
 
 ## 현재 파일 구조
 
-인프라 client, GraphQL 검색 adapter와 projection 변환을 다음처럼 분리합니다.
+공유 OpenSearch 연결은 `infra/opensearch`, 검색 도메인 코드는 `api/search`의 레이어별 폴더에 둡니다.
 
 ```text
 deployment/opensearch/
   Dockerfile
   docker-compose.yaml
 
-src/infra/search/
-  search.module.ts
-  search-health.controller.ts
+src/infra/opensearch/
+  opensearch.module.ts
   opensearch.client.ts
-  catalog-index.definition.ts
-  catalog-index.manager.ts
-  catalog-projection.reader.ts
-  catalog-rebuild.service.ts
-  catalog-search.worker.ts
-  search-health.service.ts
-  search-outbox.relay.ts
-  search-outbox.worker.ts
-  search-projection-outbox.entity.ts
-  search-reconciliation.service.ts
-  search-relevance-evaluation.service.ts
+  opensearch-http.error.ts
+  search.config.ts
 
-src/api/catalog/search/
-  application/product-search.service.ts
-  domain/catalog-projector.ts
-  domain/product-search.document.ts
-  domain/product-search.query.ts
+src/api/search/
+  search.module.ts
+  search-http.module.ts
   presentation/product-search.resolver.ts
   presentation/product-search.input.ts
   presentation/product-search-connection.type.ts
-  presentation/product-search-node.type.ts
-  presentation/product-search-page-info.type.ts
-  presentation/product-search-thumbnail.type.ts
+  presentation/search-health.controller.ts
+  application/product-search.service.ts
+  application/catalog-maintenance.service.ts
+  application/catalog-rebuild.service.ts
+  application/catalog-search.worker.ts
+  application/catalog-write-effects.ts
+  application/search-outbox.relay.ts
+  application/search-outbox.worker.ts
+  application/search-reconciliation.service.ts
+  application/search-relevance-evaluation.service.ts
+  domain/catalog-projector.ts
+  domain/product-search.document.ts
+  domain/product-search.query.ts
+  domain/entity/search-projection-outbox.entity.ts
+  domain/entity/catalog-maintenance.entity.ts
+  infrastructure/opensearch-product-search.adapter.ts
+  infrastructure/product-search-query.compiler.ts
+  infrastructure/catalog-index.definition.ts
+  infrastructure/catalog-index.manager.ts
+  infrastructure/catalog-projection.reader.ts
 
 src/cli/
   search-rebuild.ts

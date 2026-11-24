@@ -327,7 +327,7 @@ GraphQL 타입을 rich domain 객체로 사용하지 않습니다. GraphQL 타�
 | presentation   | GraphQL Input/ObjectType/Payload, ID mapper  | 공개 GraphQL 계약과 문자열 ID 변환 |
 | application    | Service, Command/Result                      | 유스케이스와 transaction 조율      |
 | domain         | 필요한 행동을 가진 MikroORM Entity           | 상태와 계산 불변식                 |
-| infrastructure | MikroORM DB, OpenSearch document/DSL과 relay | 외부 기술 설정과 공통 연결 정책    |
+| infrastructure | MikroORM DB, OpenSearch client, 검색 DSL     | 외부 기술 설정과 공통 연결 정책    |
 
 GraphQL 타입과 영속성 타입은 계속 분리하지만, Service는 MikroORM이 제공하는 `EntityRepository<Entity>`와
 필요한 경우 `EntityManager`를 직접 주입받습니다. 같은 역할의 repository/reader interface, DI Symbol,
@@ -524,56 +524,9 @@ API 버전 경계를 없앤 것은 공개 주문 runtime 구현이 `OrderService
 
 ## 현재 파일 경계
 
-```text
-src/global/graphql/
-  graphql.module.ts
-  graphql-context.ts
-  graphql-error.formatter.ts
-  graphql-request-logging.plugin.ts
-  money.type.ts
-
-src/api/
-  auth/
-    application/auth.service.ts
-    presentation/auth.resolver.ts
-    auth.module.ts
-  member/
-    application/member.service.ts
-    domain/member.entity.ts
-    presentation/member.resolver.ts
-    member.module.ts
-  order/
-    application/order.service.ts       # 접수/취소와 transaction 조율
-    application/order-expiration.service.ts  # 예약 만료로 인한 주문 취소와 CLI 배치
-    application/order-dependents.lock.ts     # 취소/만료가 공유하는 종속 행 잠금 순서
-    domain/entity/                     # 주문 aggregate와 상태 이력
-    presentation/                      # placeOrder/cancelOrder/expireInventoryReservation 계약
-  catalog/
-    application/product-command.service.ts
-    application/product-snapshot.service.ts
-    application/product.service.ts
-    domain/entity/                     # live graph와 감사 Snapshot
-    presentation/                      # Catalog command/query 계약
-    search/                            # 검색 document/query/presentation
-  inventory/                           # 예약/원장 Service와 Resolver
-  payment/                             # 결제 Service, Resolver와 HTTP Webhook
-  fulfillment/                         # 배송 aggregate, Service와 Resolver
-
-src/infra/
-  database/
-    database.module.ts
-    mikro-orm.config.ts
-    migrations/
-    seeders/DatabaseSeeder.ts
-    mikro-orm.logger.ts
-    entities.ts
-  search/
-    opensearch.client.ts
-    catalog-index.manager.ts
-    catalog-rebuild.service.ts
-    search-outbox.relay.ts
-    search-reconciliation.service.ts
-```
+전체 폴더 구조와 모듈 간 의존 규칙은 [모듈 폴더 구조와 도메인 간 통신 규칙](architecture/module-structure.md),
+검색 파일 구조는 [OpenSearch 상품 검색](search/opensearch-product-search.md)의 현재 파일 구조를 따릅니다.
+GraphQL 공통 구성은 `src/global/graphql/`에 있습니다.
 
 ## 현재 검색 구현과 외부 연동 경계
 

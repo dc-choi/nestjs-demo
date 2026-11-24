@@ -97,6 +97,7 @@ pnpm e2e
 - [추천시스템 주문과 결제 더미 데이터](docs/recommender/commerce-data.md)
 - [데이터베이스 스키마 안내서](docs/database/schema.md)
 - [애플리케이션 레이어 원칙](docs/architecture/layering.md)
+- [모듈 폴더 구조와 도메인 간 통신 규칙](docs/architecture/module-structure.md)
 - [GraphQL, Entity와 도메인 모델 경계](docs/architecture/model-boundaries.md)
 - [MikroORM Entity 등록 목록](src/infra/database/entities.ts)
 - [상품 변경 이력과 주문 Snapshot 설계](docs/database/catalog-snapshots.md)
@@ -105,7 +106,7 @@ pnpm e2e
 - [OpenSearch 상품 검색과 동기화](docs/search/opensearch-product-search.md)
 - [로컬 실행과 운영 Runbook](docs/operations/local-runtime-runbook.md)
 
-구현 구조를 변경하기 전에는 레이어 원칙과 모델 경계 문서를 먼저 확인합니다.
+구현 구조를 변경하기 전에는 레이어 원칙, 모듈 구조와 모델 경계 문서를 먼저 확인합니다.
 
 상품 도메인을 처음 본다면 `Product`, `Item`, `ProductSnapshot`, `OrderItemSnapshot`
 순서로 읽는 것이 가장 빠릅니다. `Product`/`Item`과 하위 관계가 현재 판매 상태의
@@ -145,4 +146,4 @@ pnpm e2e
 - [공개 주문 처리](src/api/order/application/order.service.ts)
 - [canonical 상품 조회](src/api/catalog/application/product.service.ts)
 - [Catalog 변경 command](src/api/catalog/application/product-command.service.ts)
-- [검색 runtime 구성](src/infra/search/search.module.ts)
+- [검색 runtime 구성](src/api/search/search.module.ts)

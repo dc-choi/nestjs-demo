@@ -71,7 +71,7 @@ SQL fixture는 앱 테이블을 직접 생성했으며 migration 이력이 없�
 
 ### 1. 상품 1만 개 색인과 검색 확인
 
-[전체 rebuild](../../src/infra/search/catalog-rebuild.service.ts)와 [기존 CLI](../../src/cli/search-rebuild.ts)를 재사용합니다.
+[전체 rebuild](../../src/api/search/application/catalog-rebuild.service.ts)와 [기존 CLI](../../src/cli/search-rebuild.ts)를 재사용합니다.
 [색인 실행 절차](search-index.md)를 따릅니다. Runbook의 migration 단계는 이 fixture DB에서 건너뜁니다.
 처음에는 `--no-activate --evaluation-alias <전용_평가_Alias>`로 검사하고, 통과 후 전용 read/write Alias를 활성화합니다.
 현재 fixture의 검색 Outbox는 비어 있으므로 drain만 실행해 최초 색인을 기대하지 않습니다.

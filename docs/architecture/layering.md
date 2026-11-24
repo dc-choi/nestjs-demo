@@ -3,6 +3,9 @@
 이 프로젝트는 필요한 계층만 둡니다. 프레임워크가 이미 제공하는 추상화를 같은 역할의 자체
 interface나 wrapper로 다시 감싸지 않습니다.
 
+폴더 배치와 도메인 모듈 사이의 통신 규칙은 [모듈 폴더 구조와 도메인 간 통신 규칙](module-structure.md)을
+따릅니다.
+
 ## 기본 흐름
 
 ```text
@@ -19,7 +22,7 @@ GraphQL ObjectType과 MikroORM Entity는 외부 계약과 영속성 모델의 �
 
 ## 진입 계층
 
-- Controller와 Resolver는 Service만 주입받습니다.
+- Controller와 Resolver는 같은 모듈의 application Service와 `application/*.port.ts` 토큰만 주입받습니다.
 - Controller와 Resolver는 `EntityRepository`, `EntityManager`, MikroORM Entity를 직접 사용하지 않습니다.
 - 입력 검증과 GraphQL ID 문자열 변환, Service 호출, 응답 변환만 담당합니다.
 - DB 조회, 트랜잭션, 상태 변경 규칙을 진입 계층에 작성하지 않습니다.

@@ -67,7 +67,7 @@ domain model == MikroORM Entity, 같은 aggregate를 표현하는 경우
 
 | 모델, 테이블                                                              | 역할                                                                                                                    | 상태와 생명주기                                                                                 |
 | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| [`MemberEntity`](../../src/api/member/domain/member.entity.ts), `members` | 인증 주체, 판매자와 구매자의 공통 계정. email은 unique이고 비밀번호 hash, 전화번호, 최근 로그인/가입 시각을 보존합니다. | `role`: `GUEST`, `CUSTOMER`, `SELLER`, `ADMIN`. `deleted_at`을 사용하는 soft delete 모델입니다. |
+| [`MemberEntity`](../../src/api/member/domain/entity/member.entity.ts), `members` | 인증 주체, 판매자와 구매자의 공통 계정. email은 unique이고 비밀번호 hash, 전화번호, 최근 로그인/가입 시각을 보존합니다. | `role`: `GUEST`, `CUSTOMER`, `SELLER`, `ADMIN`. `deleted_at`을 사용하는 soft delete 모델입니다. |
 
 Member는 판매 상품과 주문의 소유자를 연결합니다. 상품 변경 이력의 `changed_by_member_id`도 선택적으로
 Member를 참조합니다. Catalog command가 실제 변경 행위자를 기록합니다.
@@ -104,31 +104,31 @@ Catalog의 11개 테이블 중 10개는 현재 판매 상태이고, `product_sna
 
 | 모델, 테이블                                                                                                             | 역할                                                                | 상태와 생명주기                                                                                              |
 | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| [`InventoryReservationEntity`](../../src/api/inventory/domain/inventory-reservation.entity.ts), `inventory_reservations` | OrderItem 하나에 대한 재고 예약 수량과 만료 시각을 표현합니다.      | `RESERVED`, `CONSUMED`, `RELEASED`, `EXPIRED`. 주문 시 15분 예약하고 결제 매입, 취소 또는 만료로 전이합니다. |
-| [`InventoryMovementEntity`](../../src/api/inventory/domain/inventory-movement.entity.ts), `inventory_movements`          | Item 재고의 증감량, 변경 후 재고와 원인 참조를 보존하는 원장입니다. | 예약 차감, 해제 복구, 입고/조정/반품을 기록하고 같은 Item의 idempotency key 중복을 막습니다.                 |
+| [`InventoryReservationEntity`](../../src/api/inventory/domain/entity/inventory-reservation.entity.ts), `inventory_reservations` | OrderItem 하나에 대한 재고 예약 수량과 만료 시각을 표현합니다.      | `RESERVED`, `CONSUMED`, `RELEASED`, `EXPIRED`. 주문 시 15분 예약하고 결제 매입, 취소 또는 만료로 전이합니다. |
+| [`InventoryMovementEntity`](../../src/api/inventory/domain/entity/inventory-movement.entity.ts), `inventory_movements`          | Item 재고의 증감량, 변경 후 재고와 원인 참조를 보존하는 원장입니다. | 예약 차감, 해제 복구, 입고/조정/반품을 기록하고 같은 Item의 idempotency key 중복을 막습니다.                 |
 
 ### 5. Payment
 
 | 모델, 테이블                                                                                                          | 역할                                                                            | 상태와 생명주기                                                                                                                          |
 | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| [`PaymentAttemptEntity`](../../src/api/payment/domain/payment-attempt.entity.ts), `payment_attempts`                  | 주문에 대해 결제 provider에 요청한 하나의 결제 시도와 요청 금액을 표현합니다.   | 생성/매입/실패/부분 및 전체 환불/취소 전이를 보호합니다. provider와 idempotency key 범위에서 재실행을 수렴시킵니다.                      |
-| [`PaymentTransactionEntity`](../../src/api/payment/domain/payment-transaction.entity.ts), `payment_transactions`      | 결제 시도 아래 매입/환불과 실패 작업을 기록합니다.                              | 현재 Service는 성공 `CAPTURE`/`REFUND`, 실패 `AUTHORIZE` 원장을 만들고 시도별 idempotency key를 검사합니다.                              |
-| [`PaymentWebhookEventEntity`](../../src/api/payment/domain/payment-webhook-event.entity.ts), `payment_webhook_events` | 검증된 webhook의 최소 명령, payload hash와 처리 결과를 보존합니다. | HMAC 검증 뒤 `RECEIVED`, `PROCESSED`, `FAILED`로 처리하며 같은 event ID의 다른 payload를 거절합니다. PaymentAttempt FK는 nullable입니다. |
+| [`PaymentAttemptEntity`](../../src/api/payment/domain/entity/payment-attempt.entity.ts), `payment_attempts`                  | 주문에 대해 결제 provider에 요청한 하나의 결제 시도와 요청 금액을 표현합니다.   | 생성/매입/실패/부분 및 전체 환불/취소 전이를 보호합니다. provider와 idempotency key 범위에서 재실행을 수렴시킵니다.                      |
+| [`PaymentTransactionEntity`](../../src/api/payment/domain/entity/payment-transaction.entity.ts), `payment_transactions`      | 결제 시도 아래 매입/환불과 실패 작업을 기록합니다.                              | 현재 Service는 성공 `CAPTURE`/`REFUND`, 실패 `AUTHORIZE` 원장을 만들고 시도별 idempotency key를 검사합니다.                              |
+| [`PaymentWebhookEventEntity`](../../src/api/payment/domain/entity/payment-webhook-event.entity.ts), `payment_webhook_events` | 검증된 webhook의 최소 명령, payload hash와 처리 결과를 보존합니다. | HMAC 검증 뒤 `RECEIVED`, `PROCESSED`, `FAILED`로 처리하며 같은 event ID의 다른 payload를 거절합니다. PaymentAttempt FK는 nullable입니다. |
 
 ### 6. Fulfillment
 
 | 모델, 테이블                                                                                                | 역할                                                      | 상태와 생명주기                                                                                                                  |
 | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| [`FulfillmentEntity`](../../src/api/fulfillment/domain/fulfillment.entity.ts), `fulfillments`               | 주문의 포장/배송 단위, 택배사와 운송장 번호를 표현합니다. | 주문 범위 멱등 생성 뒤 Admin command가 `PENDING`, `PACKED`, `SHIPPED`, `DELIVERED`, `CANCELLED` 전이와 상태별 시각을 기록합니다. |
-| [`FulfillmentItemEntity`](../../src/api/fulfillment/domain/fulfillment-item.entity.ts), `fulfillment_items` | 한 배송에 어떤 OrderItem을 몇 개 포함했는지 연결합니다.   | 분할 배송을 허용하되 활성 배송의 누적 수량이 주문 수량을 넘지 않게 검증합니다. 같은 배송/주문 품목 조합은 한 번만 저장됩니다.    |
+| [`FulfillmentEntity`](../../src/api/fulfillment/domain/entity/fulfillment.entity.ts), `fulfillments`               | 주문의 포장/배송 단위, 택배사와 운송장 번호를 표현합니다. | 주문 범위 멱등 생성 뒤 Admin command가 `PENDING`, `PACKED`, `SHIPPED`, `DELIVERED`, `CANCELLED` 전이와 상태별 시각을 기록합니다. |
+| [`FulfillmentItemEntity`](../../src/api/fulfillment/domain/entity/fulfillment-item.entity.ts), `fulfillment_items` | 한 배송에 어떤 OrderItem을 몇 개 포함했는지 연결합니다.   | 분할 배송을 허용하되 활성 배송의 누적 수량이 주문 수량을 넘지 않게 검증합니다. 같은 배송/주문 품목 조합은 한 번만 저장됩니다.    |
 
 ### 7. Search projection
 
 | 모델, 테이블                                                                                                            | 역할                                                             | 상태와 생명주기                                                                                          |
 | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| [`SearchProjectionOutboxEntity`](../../src/infra/search/search-projection-outbox.entity.ts), `search_projection_outbox` | Catalog 변경을 OpenSearch에 전달할 Product/revision event입니다. | `PENDING`, `PROCESSING`, `PROCESSED`, `DEAD_LETTER`. lease, 재시도 시각/횟수와 마지막 오류를 보존합니다. |
-| [`SearchOutboxRetryHistoryEntity`](../../src/infra/search/search-outbox-retry-history.entity.ts), `search_projection_outbox_retry_history` | 실패 작업 재처리의 이전 횟수/오류와 사유를 보존합니다. | 명시적 재처리 transaction에서 추가하는 감사 이력입니다. |
-| [`CatalogMaintenanceEntity`](../../src/infra/search/catalog-maintenance.entity.ts), `catalog_maintenance` | 활성 rebuild의 Catalog 쓰기/검색 갱신 진입을 제한합니다. | singleton의 owner token과 시작 시각을 보존하며, 실패 후 명시적 재개가 필요합니다. |
+| [`SearchProjectionOutboxEntity`](../../src/api/search/domain/entity/search-projection-outbox.entity.ts), `search_projection_outbox` | Catalog 변경을 OpenSearch에 전달할 Product/revision event입니다. | `PENDING`, `PROCESSING`, `PROCESSED`, `DEAD_LETTER`. lease, 재시도 시각/횟수와 마지막 오류를 보존합니다. |
+| [`SearchOutboxRetryHistoryEntity`](../../src/api/search/domain/entity/search-outbox-retry-history.entity.ts), `search_projection_outbox_retry_history` | 실패 작업 재처리의 이전 횟수/오류와 사유를 보존합니다. | 명시적 재처리 transaction에서 추가하는 감사 이력입니다. |
+| [`CatalogMaintenanceEntity`](../../src/api/search/domain/entity/catalog-maintenance.entity.ts), `catalog_maintenance` | 활성 rebuild의 Catalog 쓰기/검색 갱신 진입을 제한합니다. | singleton의 owner token과 시작 시각을 보존하며, 실패 후 명시적 재개가 필요합니다. |
 
 ## Catalog 관계도
 
